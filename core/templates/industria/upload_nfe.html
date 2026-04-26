@@ -1,0 +1,812 @@
+{% extends 'base.html' %}
+{# ================================================================
+   UPLOAD NF-e VIA XML — Portal da Indústria
+   Template: industria/upload_nfe.html
+   Versão:   0.8.0 — Drag & Drop + Preview + Winthor
+   ================================================================ #}
+
+{% block title %}Upload NF-e — Agendamento #{{ agendamento.pk }} | Ordo{% endblock %}
+{% block page_title %}Upload de NF-e{% endblock %}
+{% block page_subtitle %}Agendamento #{{ agendamento.pk }} — PO: {{ agendamento.numero_pedido }}{% endblock %}
+{% block nav_dash_ind %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'dashboard_industria' %}" class="btn-ordo-ghost btn btn-sm">
+  <i class="fa-solid fa-arrow-left me-1"></i> Voltar ao Dashboard
+</a>
+{% endblock %}
+
+
+{# ================================================================
+   CSS — Tema Midnight Blue com efeitos neon
+   ================================================================ #}
+{% block extra_css %}
+<style>
+/* ---------------------------------------------------------------
+   VARIÁVEIS LOCAIS
+   --------------------------------------------------------------- */
+:root {
+  --up-bg:          #0b1929;
+  --up-surface:     #112240;
+  --up-surface-2:   #152d4a;
+  --up-border:      rgba(100,130,180,.2);
+  --up-accent:      #00b4d8;
+  --up-glow:        rgba(0,180,216,.15);
+  --up-green:       #00d4a0;
+  --up-green-glow:  rgba(0,212,160,.15);
+  --up-yellow:      #ffb703;
+  --up-red:         #ff4d6d;
+  --up-red-glow:    rgba(255,77,109,.12);
+  --up-text:        #e2e8f0;
+  --up-text-dim:    #7a8faa;
+  --up-radius:      12px;
+  --up-radius-sm:    8px;
+  --up-shadow:      0 8px 32px rgba(0,0,0,.35);
+}
+
+/* ---------------------------------------------------------------
+   WRAPPER
+   --------------------------------------------------------------- */
+.up-wrapper { max-width: 800px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+
+/* ---------------------------------------------------------------
+   CARD BASE
+   --------------------------------------------------------------- */
+.up-card {
+  background: var(--up-surface);
+  border: 1px solid var(--up-border);
+  border-radius: var(--up-radius);
+  box-shadow: var(--up-shadow);
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+.up-card-header {
+  background: linear-gradient(135deg, #0d1f35 0%, #1a3558 100%);
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--up-border);
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+.up-card-icon {
+  width: 38px; height: 38px;
+  background: var(--up-glow);
+  border: 1px solid rgba(0,180,216,.3);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--up-accent);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.up-card-title {
+  font-size: .92rem;
+  font-weight: 700;
+  color: var(--up-text);
+  margin: 0;
+}
+.up-card-sub {
+  font-size: .7rem;
+  color: var(--up-text-dim);
+  margin-top: 1px;
+}
+.up-card-body { padding: 1.5rem; }
+
+/* ---------------------------------------------------------------
+   SEÇÃO DE DETALHES DO AGENDAMENTO
+   --------------------------------------------------------------- */
+.up-ag-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .6rem .5rem;
+  font-size: .8rem;
+}
+.up-ag-item-label {
+  color: var(--up-text-dim);
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-bottom: 2px;
+}
+.up-ag-item-value { color: var(--up-text); font-weight: 600; }
+
+/* Prazo SLA mini-badge */
+.up-sla-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  border-radius: 999px;
+  padding: .3rem .75rem;
+  font-size: .72rem;
+  font-weight: 700;
+}
+.up-sla-ok     { background: rgba(0,212,160,.1);  color: var(--up-green); border: 1px solid rgba(0,212,160,.3); }
+.up-sla-warn   { background: rgba(255,183,3,.1);  color: var(--up-yellow); border: 1px solid rgba(255,183,3,.3); }
+.up-sla-exp    { background: var(--up-red-glow);  color: var(--up-red);   border: 1px solid rgba(255,77,109,.3); }
+
+/* ---------------------------------------------------------------
+   ZONA DE DRAG & DROP
+   --------------------------------------------------------------- */
+.up-dropzone {
+  border: 2px dashed var(--up-border);
+  border-radius: var(--up-radius);
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .25s, background .25s, box-shadow .25s;
+  position: relative;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  background: rgba(0,180,216,.02);
+}
+.up-dropzone:hover,
+.up-dropzone.drag-over {
+  border-color: var(--up-accent);
+  background: var(--up-glow);
+  box-shadow: 0 0 0 3px rgba(0,180,216,.08);
+}
+.up-dropzone.file-ok {
+  border-color: var(--up-green);
+  background: var(--up-green-glow);
+  border-style: solid;
+}
+.up-dropzone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+.up-dz-icon { font-size: 2.5rem; color: var(--up-accent); opacity: .7; transition: transform .25s; }
+.up-dropzone:hover .up-dz-icon,
+.up-dropzone.drag-over .up-dz-icon { transform: translateY(-4px); opacity: 1; }
+.up-dropzone.file-ok .up-dz-icon   { color: var(--up-green); opacity: 1; }
+
+.up-dz-title {
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--up-text);
+}
+.up-dz-sub {
+  font-size: .72rem;
+  color: var(--up-text-dim);
+}
+.up-file-selecionado {
+  display: none;
+  align-items: center;
+  gap: .6rem;
+  background: rgba(0,212,160,.08);
+  border: 1px solid rgba(0,212,160,.25);
+  border-radius: 6px;
+  padding: .5rem .9rem;
+  font-size: .8rem;
+  color: var(--up-green);
+  font-weight: 600;
+  max-width: 420px;
+}
+.up-file-selecionado.visivel { display: flex; }
+.up-file-nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 280px;
+}
+
+/* ---------------------------------------------------------------
+   BOTÃO PROCESSAR
+   --------------------------------------------------------------- */
+.up-btn-processar {
+  background: linear-gradient(135deg, var(--up-accent) 0%, #007fa6 100%);
+  color: #000;
+  border: none;
+  border-radius: var(--up-radius-sm);
+  padding: .7rem 2rem;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: filter .15s, transform .1s;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  width: 100%;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+.up-btn-processar:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+.up-btn-processar:active:not(:disabled) { transform: translateY(0); }
+.up-btn-processar:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
+}
+
+/* Spinner integrado */
+.up-spinner {
+  display: none;
+  width: 18px; height: 18px;
+  border: 2px solid rgba(0,0,0,.2);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------------------------------------------------------------
+   ERRO DE VALIDAÇÃO
+   --------------------------------------------------------------- */
+.up-erro {
+  background: var(--up-red-glow);
+  border: 1px solid rgba(255,77,109,.3);
+  border-left: 4px solid var(--up-red);
+  border-radius: var(--up-radius-sm);
+  padding: 1rem 1.25rem;
+  display: flex;
+  gap: .9rem;
+  align-items: flex-start;
+}
+.up-erro-icon { color: var(--up-red); font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+.up-erro-titulo { font-size: .8rem; font-weight: 700; color: var(--up-red); margin-bottom: .3rem; }
+.up-erro-msg    { font-size: .8rem; color: #ffb3c1; line-height: 1.5; }
+
+/* ---------------------------------------------------------------
+   CARD DE PREVIEW — dados extraídos da NF-e
+   --------------------------------------------------------------- */
+.up-preview-card {
+  background: linear-gradient(135deg, rgba(0,212,160,.06) 0%, rgba(0,180,216,.05) 100%);
+  border: 1px solid rgba(0,212,160,.25);
+  border-radius: var(--up-radius);
+  overflow: hidden;
+  animation: fadeSlideIn .4s ease;
+}
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.up-preview-header {
+  background: rgba(0,212,160,.08);
+  border-bottom: 1px solid rgba(0,212,160,.2);
+  padding: .9rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+.up-preview-header-icon {
+  width: 36px; height: 36px;
+  background: rgba(0,212,160,.15);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--up-green);
+  font-size: 1rem;
+}
+.up-preview-titulo { font-size: .85rem; font-weight: 700; color: var(--up-green); }
+.up-preview-sub    { font-size: .68rem; color: rgba(0,212,160,.7); }
+
+.up-preview-body { padding: 1.25rem; }
+
+.up-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .85rem;
+  margin-bottom: 1.25rem;
+}
+.up-preview-field-label {
+  font-size: .63rem;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--up-text-dim);
+  margin-bottom: 3px;
+}
+.up-preview-field-value {
+  font-size: .83rem;
+  color: var(--up-text);
+  font-weight: 600;
+  word-break: break-all;
+}
+.up-preview-chave {
+  font-size: .72rem;
+  font-family: 'Courier New', monospace;
+  color: var(--up-accent);
+  letter-spacing: .5px;
+  word-break: break-all;
+  background: rgba(0,180,216,.06);
+  border-radius: 5px;
+  padding: .3rem .5rem;
+}
+
+/* Winthor badge */
+.up-winthor-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  background: rgba(0,212,160,.1);
+  border: 1px solid rgba(0,212,160,.3);
+  border-radius: 999px;
+  padding: .3rem .9rem;
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--up-green);
+  margin-bottom: 1rem;
+}
+
+/* Botões de ação do preview */
+.up-preview-actions {
+  display: flex;
+  gap: .75rem;
+  align-items: center;
+}
+.up-btn-confirmar {
+  flex: 1;
+  background: linear-gradient(135deg, var(--up-green) 0%, #00a07a 100%);
+  color: #000;
+  border: none;
+  border-radius: var(--up-radius-sm);
+  padding: .7rem 1.5rem;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: filter .15s, transform .1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+}
+.up-btn-confirmar:hover  { filter: brightness(1.1); transform: translateY(-1px); }
+.up-btn-cancelar-prev {
+  background: transparent;
+  border: 1px solid var(--up-border);
+  color: var(--up-text-dim);
+  border-radius: var(--up-radius-sm);
+  padding: .7rem 1.25rem;
+  font-size: .85rem;
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: border-color .2s;
+  text-decoration: none;
+}
+.up-btn-cancelar-prev:hover { border-color: var(--up-text-dim); color: var(--up-text); }
+
+/* ---------------------------------------------------------------
+   BLOQUEADO (prazo expirado)
+   --------------------------------------------------------------- */
+.up-bloqueado {
+  text-align: center;
+  padding: 2.5rem;
+  background: var(--up-red-glow);
+  border: 2px dashed rgba(255,77,109,.3);
+  border-radius: var(--up-radius);
+}
+.up-bloqueado-icon { font-size: 3rem; color: var(--up-red); opacity: .7; margin-bottom: 1rem; }
+.up-bloqueado h5   { color: var(--up-red); font-weight: 700; }
+.up-bloqueado p    { color: #ffb3c1; font-size: .85rem; }
+
+/* ---------------------------------------------------------------
+   RESPONSIVO
+   --------------------------------------------------------------- */
+@media (max-width: 600px) {
+  .up-ag-grid       { grid-template-columns: 1fr; }
+  .up-preview-grid  { grid-template-columns: 1fr; }
+  .up-preview-actions { flex-direction: column; }
+  .up-btn-confirmar { width: 100%; }
+}
+</style>
+{% endblock %}
+
+
+{# ================================================================
+   CONTEÚDO
+   ================================================================ #}
+{% block content %}
+<div class="up-wrapper fade-in">
+
+  <!-- ============================================================
+       CARD 1 — RESUMO DO AGENDAMENTO
+       ============================================================ -->
+  <div class="up-card">
+    <div class="up-card-header">
+      <div class="up-card-icon">
+        <i class="fa-solid fa-calendar-check"></i>
+      </div>
+      <div>
+        <div class="up-card-title">Agendamento #{{ agendamento.pk }}</div>
+        <div class="up-card-sub">PO: {{ agendamento.numero_pedido }} · {{ agendamento.fornecedor.razao_social|truncatechars:40 }}</div>
+      </div>
+    </div>
+    <div class="up-card-body">
+      <div class="up-ag-grid">
+
+        <div>
+          <div class="up-ag-item-label">Data da Descarga</div>
+          <div class="up-ag-item-value">{{ agendamento.inicio|date:"d/m/Y" }}</div>
+        </div>
+        <div>
+          <div class="up-ag-item-label">Horário</div>
+          <div class="up-ag-item-value">{{ agendamento.inicio|date:"H:i" }}</div>
+        </div>
+        <div>
+          <div class="up-ag-item-label">Tipo de Carga</div>
+          <div class="up-ag-item-value">{{ agendamento.get_tipo_carga_display }}</div>
+        </div>
+        <div>
+          <div class="up-ag-item-label">Doca(s)</div>
+          <div class="up-ag-item-value">
+            {% for doca in agendamento.docas.all %}{{ doca.codigo }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+          </div>
+        </div>
+
+        {# Prazo SLA #}
+        <div style="grid-column: 1/-1;">
+          <div class="up-ag-item-label">Prazo NF-e</div>
+          {% if prazo_expirado %}
+            <span class="up-sla-badge up-sla-exp">
+              <i class="fa-solid fa-circle-xmark"></i>
+              PRAZO EXPIRADO em {{ prazo|date:"d/m/Y H:i" }}
+            </span>
+          {% elif prazo %}
+            {% now "U" as agora_ts %}
+            <span class="up-sla-badge {% if prazo.timestamp|floatformat:0 < agora_ts %}up-sla-exp{% elif prazo_hours_left < 6 %}up-sla-warn{% else %}up-sla-ok{% endif %}">
+              <i class="fa-solid fa-stopwatch"></i>
+              Até {{ prazo|date:"d/m/Y H:i" }}
+            </span>
+          {% else %}
+            <span class="up-sla-badge up-sla-ok">— Sem prazo configurado</span>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  {# ================================================================
+     BLOCO CONDICIONAL:
+       A) Prazo expirado → tela bloqueada
+       B) Preview disponível (após validação) → card de confirmação
+       C) Estado inicial → formulário de upload
+     ================================================================ #}
+
+  {% if prazo_expirado %}
+  <!-- ============================================================
+       ESTADO A: PRAZO EXPIRADO — BLOQUEADO
+       ============================================================ -->
+  <div class="up-bloqueado">
+    <div class="up-bloqueado-icon"><i class="fa-solid fa-lock"></i></div>
+    <h5>Prazo Expirado</h5>
+    <p>
+      O prazo para vincular a NF-e a este agendamento se encerrou em
+      <strong>{{ prazo|date:"d/m/Y \\à\\s H:i" }}</strong>.
+      <br>Entre em contato com a equipe Ordo para reagendar.
+    </p>
+    <a href="{% url 'dashboard_industria' %}" class="up-btn-cancelar-prev mt-3 d-inline-block text-center">
+      <i class="fa-solid fa-arrow-left me-1"></i> Voltar ao Dashboard
+    </a>
+  </div>
+
+  {% elif preview %}
+  <!-- ============================================================
+       ESTADO B: PREVIEW DA NF-e VALIDADA — aguardando confirmação
+       ============================================================ -->
+  <div class="up-preview-card">
+
+    <div class="up-preview-header">
+      <div class="up-preview-header-icon">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <div>
+        <div class="up-preview-titulo">NF-e Validada com Sucesso</div>
+        <div class="up-preview-sub">XML verificado · Destinatário correto · Liberada no Winthor</div>
+      </div>
+    </div>
+
+    <div class="up-preview-body">
+
+      {# Winthor badge #}
+      <div class="up-winthor-ok">
+        <i class="fa-solid fa-check-double"></i>
+        Winthor: Nota localizada e liberada para descarga
+      </div>
+
+      {# Grid de dados extraídos #}
+      <div class="up-preview-grid">
+        <div>
+          <div class="up-preview-field-label">Número NF</div>
+          <div class="up-preview-field-value">{{ preview.numero_nf }} / Série {{ preview.serie }}</div>
+        </div>
+        <div>
+          <div class="up-preview-field-label">Valor Total</div>
+          <div class="up-preview-field-value" style="color:var(--up-green);">{{ preview.valor_total }}</div>
+        </div>
+        <div>
+          <div class="up-preview-field-label">Data de Emissão</div>
+          <div class="up-preview-field-value">{{ preview.data_emissao }}</div>
+        </div>
+        <div>
+          <div class="up-preview-field-label">Emitente</div>
+          <div class="up-preview-field-value">{{ preview.razao_emit|truncatechars:30 }}</div>
+        </div>
+        <div>
+          <div class="up-preview-field-label">CNPJ Emitente</div>
+          <div class="up-preview-field-value" style="font-family:monospace;">{{ preview.cnpj_emit }}</div>
+        </div>
+        <div>
+          <div class="up-preview-field-label">CNPJ Destinatário</div>
+          <div class="up-preview-field-value" style="font-family:monospace; color:var(--up-green);">{{ preview.cnpj_dest }} ✓</div>
+        </div>
+        <div style="grid-column:1/-1;">
+          <div class="up-preview-field-label">Chave de Acesso (44 dígitos)</div>
+          <div class="up-preview-chave">{{ preview.chave }}</div>
+        </div>
+      </div>
+
+      {# Ações: confirmar ou cancelar #}
+      <div class="up-preview-actions">
+        <a href="{% url 'upload_nfe' agendamento.pk %}" class="up-btn-cancelar-prev">
+          <i class="fa-solid fa-rotate-left me-1"></i> Novo Upload
+        </a>
+        <form method="POST"
+              enctype="multipart/form-data"
+              id="form-confirmar"
+              style="flex:1;">
+          {% csrf_token %}
+          <input type="hidden" name="confirm" value="1">
+          {# O arquivo não pode ser re-enviado sem novo input — usamos a chave da session,
+             por isso arquivo_xml_confirm é opcional. O back-end usa a chave da session. #}
+          <button type="submit" class="up-btn-confirmar" id="btn-confirmar">
+            <i class="fa-solid fa-circle-check"></i>
+            Confirmar e Vincular NF-e ao Agendamento
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  {% else %}
+  <!-- ============================================================
+       ESTADO C: FORMULÁRIO DE UPLOAD (estado inicial ou após erro)
+       ============================================================ -->
+  <div class="up-card">
+    <div class="up-card-header">
+      <div class="up-card-icon">
+        <i class="fa-solid fa-file-arrow-up"></i>
+      </div>
+      <div>
+        <div class="up-card-title">Upload do Arquivo XML da NF-e</div>
+        <div class="up-card-sub">
+          Destinatário esperado: <strong style="color:var(--up-text);">{{ empresa_operadora.razao_social }}</strong>
+          &nbsp;·&nbsp; CNPJ: <code style="color:var(--up-accent);">{{ empresa_operadora.cnpj }}</code>
+        </div>
+      </div>
+    </div>
+
+    <div class="up-card-body">
+
+      {# Erro de validação #}
+      {% if erro_validacao %}
+      <div class="up-erro mb-4">
+        <div class="up-erro-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div>
+          <div class="up-erro-titulo">Falha na Validação da NF-e</div>
+          <div class="up-erro-msg">{{ erro_validacao }}</div>
+        </div>
+      </div>
+      {% endif %}
+
+      {# Erros de form (tamanho, extensão) #}
+      {% if form.arquivo_nfe.errors %}
+      <div class="up-erro mb-4">
+        <div class="up-erro-icon"><i class="fa-solid fa-file-circle-xmark"></i></div>
+        <div>
+          <div class="up-erro-titulo">Arquivo Inválido</div>
+          <div class="up-erro-msg">{{ form.arquivo_nfe.errors.0 }}</div>
+        </div>
+      </div>
+      {% endif %}
+
+      {# Formulário de upload com Drag & Drop #}
+      <form method="POST"
+            enctype="multipart/form-data"
+            id="form-upload"
+            novalidate>
+        {% csrf_token %}
+
+        {# ---- Zona Drag & Drop ---- #}
+        <div class="up-dropzone" id="dropzone" role="button" tabindex="0"
+             aria-label="Área para arrastar e soltar arquivo XML da NF-e">
+          <input type="file"
+                 name="arquivo_nfe"
+                 id="id_arquivo_nfe"
+                 accept=".xml,text/xml,application/xml"
+                 multiple
+                 aria-label="Selecionar arquivos XML da NF-e">
+
+          <div class="up-dz-icon" id="dz-icon">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+
+          <div class="up-dz-title" id="dz-title">
+            Arraste o arquivo XML aqui
+          </div>
+          <div class="up-dz-sub" id="dz-sub">
+            ou <span style="color:var(--up-accent); text-decoration:underline;">clique para selecionar</span>
+            &nbsp;·&nbsp; Selecione um ou mais arquivos XML (máximo 100) &nbsp;·&nbsp; Máx. 5 MB cada
+          </div>
+
+          {# Nome do arquivo exibido após seleção #}
+          <div class="up-file-selecionado" id="file-info">
+            <i class="fa-solid fa-file-code"></i>
+            <span class="up-file-nome" id="file-nome">—</span>
+            <span id="file-size" style="font-size:.7rem; opacity:.7;"></span>
+          </div>
+        </div>
+
+        {# ---- Botão Processar ---- #}
+        <button type="submit"
+                id="btn-processar"
+                class="up-btn-processar"
+                disabled>
+          <div class="up-spinner" id="spinner"></div>
+          <i class="fa-solid fa-magnifying-glass-chart" id="btn-icon"></i>
+          <span id="btn-texto">Selecione um arquivo para continuar</span>
+        </button>
+
+      </form>
+
+      {# Legenda de como funciona #}
+      <div style="margin-top:1.5rem; font-size:.72rem; color:var(--up-text-dim); line-height:1.7;">
+        <div style="font-weight:700; color:var(--up-text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:.4rem;">
+          O que acontece ao processar:
+        </div>
+        <div>
+          <span style="color:var(--up-accent);">①</span> Extração da chave de 44 dígitos e dados da nota
+        </div>
+        <div>
+          <span style="color:var(--up-accent);">②</span> Validação do CNPJ destinatário × {{ empresa_operadora.razao_social }}
+        </div>
+        <div>
+          <span style="color:var(--up-accent);">③</span> Confirmação no Winthor (nota liberada para descarga)
+        </div>
+        <div>
+          <span style="color:var(--up-accent);">④</span> Exibição do resumo para sua confirmação final
+        </div>
+      </div>
+
+    </div>
+  </div>
+  {% endif %}{# /prazo_expirado, preview, else #}
+
+</div>{# /up-wrapper #}
+{% endblock %}
+
+
+{# ================================================================
+   JAVASCRIPT VANILLA
+   ================================================================ #}
+{% block extra_js %}
+<script>
+(function () {
+  'use strict';
+
+  /* ---------------------------------------------------------------
+     DRAG & DROP — só relevante quando o formulário está visível
+     --------------------------------------------------------------- */
+  var dropzone   = document.getElementById('dropzone');
+  var fileInput  = document.getElementById('id_arquivo_nfe');
+  var btnProc    = document.getElementById('btn-processar');
+  var btnTexto   = document.getElementById('btn-texto');
+  var btnIcon    = document.getElementById('btn-icon');
+  var spinner    = document.getElementById('spinner');
+  var fileInfo   = document.getElementById('file-info');
+  var fileNome   = document.getElementById('file-nome');
+  var fileSize   = document.getElementById('file-size');
+  var dzIcon     = document.getElementById('dz-icon');
+  var dzTitle    = document.getElementById('dz-title');
+  var dzSub      = document.getElementById('dz-sub');
+
+  if (!dropzone || !fileInput) return;  // página sem o formulário de upload
+
+  /* ---- helpers ---- */
+  function formatBytes(bytes) {
+    if (bytes < 1024)       return bytes + ' B';
+    if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(2) + ' MB';
+  }
+
+  function onFilesChange(files) {
+    if (!files || files.length === 0) return;
+
+    var invalidos = [];
+    var totalBytes = 0;
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      if (!f.name.toLowerCase().endsWith('.xml')) invalidos.push(f.name + ' (não é .xml)');
+      else if (f.size > 5 * 1024 * 1024)         invalidos.push(f.name + ' (> 5 MB)');
+      else                                         totalBytes += f.size;
+    }
+
+    if (invalidos.length > 0) {
+      dzTitle.textContent = 'Arquivo(s) inválido(s): ' + invalidos[0];
+      dzTitle.style.color = 'var(--up-red)';
+      dropzone.classList.remove('file-ok');
+      btnProc.disabled = true;
+      btnTexto.textContent = 'Corrija os arquivos e tente novamente';
+      return;
+    }
+
+    var n = files.length;
+    dropzone.classList.add('file-ok');
+    dzTitle.textContent = n === 1 ? 'Arquivo selecionado' : n + ' arquivos selecionados';
+    dzTitle.style.color = '';
+    dzSub.style.display = 'none';
+    dzIcon.innerHTML    = '<i class="fa-solid fa-file-circle-check"></i>';
+
+    fileNome.textContent = n === 1 ? files[0].name : n + ' arquivos XML';
+    fileSize.textContent = '(' + formatBytes(totalBytes) + ' total)';
+    fileInfo.classList.add('visivel');
+
+    btnProc.disabled     = false;
+    btnTexto.textContent = n === 1 ? 'Processar NF-e' : 'Processar ' + n + ' NF-es';
+    btnIcon.className    = 'fa-solid fa-magnifying-glass-chart';
+  }
+
+  /* ---- Input change (clique / seleção) ---- */
+  fileInput.addEventListener('change', function () {
+    onFilesChange(this.files);
+  });
+
+  /* ---- Drag & Drop eventos ---- */
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    dropzone.addEventListener(ev, function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('drag-over');
+    });
+  });
+  ['dragleave', 'dragend', 'drop'].forEach(function (ev) {
+    dropzone.addEventListener(ev, function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('drag-over');
+    });
+  });
+  dropzone.addEventListener('drop', function (e) {
+    var files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      var dt = new DataTransfer();
+      for (var i = 0; i < files.length; i++) dt.items.add(files[i]);
+      fileInput.files = dt.files;
+      onFilesChange(files);
+    }
+  });
+
+  /* ---- Submit: mostrar spinner ---- */
+  document.getElementById('form-upload') &&
+  document.getElementById('form-upload').addEventListener('submit', function () {
+    if (btnProc.disabled) return;
+    spinner.style.display  = 'block';
+    btnIcon.style.display  = 'none';
+    btnTexto.textContent   = 'Processando NF-e…';
+    btnProc.disabled       = true;
+  });
+
+  /* ---------------------------------------------------------------
+     CONFIRMAR PREVIEW — loading state
+     --------------------------------------------------------------- */
+  var formConf = document.getElementById('form-confirmar');
+  var btnConf  = document.getElementById('btn-confirmar');
+  if (formConf && btnConf) {
+    formConf.addEventListener('submit', function () {
+      btnConf.disabled = true;
+      btnConf.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Vinculando…';
+    });
+  }
+
+})();
+</script>
+{% endblock %}

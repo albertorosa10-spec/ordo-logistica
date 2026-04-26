@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard do Pátio — Ordo Logística{% endblock %}
+{% block page_title %}Dashboard Operacional{% endblock %}
+{% block page_subtitle %}Visão em tempo real do pátio de descarga{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{# Auto-refresh a cada 60 segundos para manter o pátio atualizado #}
+{% block extra_css %}
+/* Estilos específicos do dashboard gestor */
+.kpi-card {
+    background: var(--ordo-surface);
+    border: 1px solid var(--ordo-border);
+    border-radius: var(--ordo-radius);
+    padding: 1.25rem 1.5rem;
+    transition: all 0.25s;
+}
+.kpi-card:hover { transform: translateY(-2px); border-color: var(--ordo-accent); }
+.kpi-value     { font-size: 2.4rem; font-weight: 800; line-height: 1; }
+.kpi-label     { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .5px; color: var(--ordo-text-dim); margin-top: 4px; }
+
+/* Input de código de descarga no check-in */
+.checkin-input {
+    width: 72px !important;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    background: var(--ordo-surface-2) !important;
+    border: 1px solid var(--ordo-border) !important;
+    color: var(--ordo-text) !important;
+    border-radius: 6px !important;
+    padding: 4px 6px !important;
+}
+.checkin-input:focus {
+    border-color: var(--ordo-green) !important;
+    box-shadow: 0 0 0 2px rgba(0,212,160,.15) !important;
+}
+
+/* Alerta NF-e */
+.alerta-nfe {
+    background: rgba(255,183,3,0.08);
+    border: 1px solid rgba(255,183,3,0.3);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+}
+.alerta-nfe-item {
+    font-size: .83rem;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,183,3,0.1);
+}
+.alerta-nfe-item:last-child { border-bottom: none; }
+{% endblock %}
+
+{% block topbar_actions %}
+{# Filtro de data com botão Hoje #}
+<form method="GET" class="d-flex align-items-center gap-2">
+    <label class="form-label mb-0" style="font-size:.75rem; white-space:nowrap;">
+        <i class="fa-solid fa-calendar me-1"></i> Data:
+    </label>
+    <input type="date" name="data"
+           value="{{ data_filtro|date:'Y-m-d' }}"
+           class="form-control form-control-sm"
+           style="width:145px;">
+    <button type="submit" class="btn-ordo-ghost btn btn-sm">
+        <i class="fa-solid fa-search fa-xs"></i>
+    </button>
+    <a href="{% url 'dashboard' %}" class="btn-ordo-ghost btn btn-sm">
+        Hoje
+    </a>
+</form>
+{% endblock %}
+
+{% block content %}
+
+{# ============ ALERTA NF-e VENCENDO ============ #}
+{% if alertas_nfe %}
+<div class="alerta-nfe mb-4">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <i class="fa-solid fa-triangle-exclamation" style="color:var(--ordo-yellow); font-size:1.1rem;"></i>
+        <strong style="color:var(--ordo-yellow);">
+            {{ alertas_nfe|length }} pré-agendamento{{ alertas_nfe|length|pluralize }} com prazo de NF-e vencendo em menos de 6 horas!
+        </strong>
+    </div>
+    {% for ag in alertas_nfe %}
+    <div class="alerta-nfe-item" style="color:var(--ordo-text);">
+        <i class="fa-solid fa-clock me-1" style="color:var(--ordo-yellow);"></i>
+        <strong>PO {{ ag.numero_pedido }}</strong> —
+        {{ ag.fornecedor.razao_social|truncatechars:30 }} —
+        Descarga: {{ ag.inicio|date:"d/m H:i" }} —
+        Prazo NF-e: <strong>{{ ag.prazo_vinculo_nfe|date:"d/m H:i" }}</strong>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{# ============ KPIs DO DIA ============ #}
+<div class="row g-3 mb-4">
+
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-value" style="color:var(--ordo-text);">{{ kpis.total }}</div>
+            <div class="kpi-label">
+                <i class="fa-solid fa-calendar-day me-1"></i>
+                Total do dia — {{ data_filtro|date:"d/m/Y" }}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-value" style="color:var(--ordo-accent);">{{ kpis.confirmados }}</div>
+            <div class="kpi-label">
+                <i class="fa-solid fa-circle-check me-1"></i> Confirmados
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-value" style="color:#a78bfa;">{{ kpis.em_descarga }}</div>
+            <div class="kpi-label">
+                <i class="fa-solid fa-truck-ramp-box me-1"></i> Em Descarga
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-value" style="color:var(--ordo-green);">{{ kpis.finalizados }}</div>
+            <div class="kpi-label">
+                <i class="fa-solid fa-flag-checkered me-1"></i> Finalizados
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{# ============ TABELA PRINCIPAL ============ #}
+<div class="ordo-card fade-in">
+    <div class="ordo-card-header justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+            <i class="fa-solid fa-warehouse" style="color:var(--ordo-accent)"></i>
+            <span class="fw-semibold">
+                Agendamentos — {{ data_filtro|date:"d \d\e F \d\e Y" }}
+            </span>
+        </div>
+        <small style="color:var(--ordo-text-dim);">
+            <i class="fa-solid fa-arrows-rotate me-1"></i>
+            Atualiza automaticamente a cada 60s
+        </small>
+    </div>
+
+    <div class="ordo-card-body p-0">
+        {% if agendamentos %}
+        <div class="table-responsive">
+            <table class="table ordo-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Horário</th>
+                        <th>Doca(s)</th>
+                        <th>Fornecedor</th>
+                        <th>PO</th>
+                        <th>Tipo</th>
+                        <th>Status</th>
+                        <th>NF-e</th>
+                        <th style="width:220px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ag in agendamentos %}
+                    <tr>
+                        {# Horário com destaque se EM_PATIO ou EM_DESCARGA #}
+                        <td>
+                            <div class="fw-semibold {% if ag.status in 'EM_PATIO,EM_DESCARGA' %}text-warning{% endif %}">
+                                {{ ag.inicio|date:"H:i" }}
+                            </div>
+                            <div style="font-size:.7rem; color:var(--ordo-text-dim);">
+                                {{ ag.inicio|date:"d/m" }}
+                            </div>
+                        </td>
+
+                        {# Docas vinculadas #}
+                        <td>
+                            {% for doca in ag.docas.all %}
+                                <span class="badge-conf badge rounded-pill" style="font-size:.68rem;">
+                                    {{ doca.codigo }}
+                                </span>
+                            {% empty %}
+                                <span class="text-muted">—</span>
+                            {% endfor %}
+                        </td>
+
+                        <td style="max-width:160px;">
+                            <div class="text-truncate" title="{{ ag.fornecedor.razao_social }}">
+                                {{ ag.fornecedor.razao_social|truncatechars:25 }}
+                            </div>
+                        </td>
+
+                        <td class="fw-semibold" style="font-size:.82rem;">
+                            {{ ag.numero_pedido }}
+                        </td>
+
+                        <td>
+                            <span style="font-size:.75rem; color:var(--ordo-text-dim);">
+                                {{ ag.get_tipo_carga_display }}
+                            </span>
+                        </td>
+
+                        {# Badge de status com cor semântica #}
+                        <td>
+                            {% if ag.status == 'PRE_AGENDADO' %}
+                                <span class="badge-pre badge rounded-pill px-2">Pré-agendado</span>
+                            {% elif ag.status == 'CONFIRMADO' %}
+                                <span class="badge-conf badge rounded-pill px-2">Confirmado</span>
+                            {% elif ag.status == 'EM_PATIO' %}
+                                <span class="badge-patio badge rounded-pill px-2">Em Pátio</span>
+                            {% elif ag.status == 'EM_DESCARGA' %}
+                                <span class="badge-desc badge rounded-pill px-2">Em Descarga</span>
+                            {% elif ag.status == 'FINALIZADO' %}
+                                <span class="badge-fin badge rounded-pill px-2">Finalizado</span>
+                            {% else %}
+                                <span class="badge-canc badge rounded-pill px-2">{{ ag.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+
+                        {# Status da NF-e: ícone + prazo #}
+                        <td>
+                            {% if ag.nfe_validada %}
+                                <i class="fa-solid fa-circle-check" style="color:var(--ordo-green);" title="NF-e vinculada"></i>
+                            {% elif ag.prazo_expirado %}
+                                <i class="fa-solid fa-circle-xmark" style="color:var(--ordo-red);" title="Prazo expirado"></i>
+                            {% elif ag.prazo_vinculo_nfe %}
+                                <span style="font-size:.7rem; color:var(--ordo-yellow);">
+                                    {{ ag.prazo_vinculo_nfe|date:"d/m H:i" }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+
+                        {# Coluna de ações contextuais por status #}
+                        <td>
+                            {% if ag.status == 'CONFIRMADO' %}
+                                {# CONFIRMADO: campo de 4 dígitos + botão check-in #}
+                                {# Ao digitar 4 dígitos, o form é submetido automaticamente via JS #}
+                                <form method="POST"
+                                      action="{% url 'gestor_checkin' ag.pk %}"
+                                      class="d-flex align-items-center gap-2"
+                                      id="form-checkin-{{ ag.pk }}">
+                                    {% csrf_token %}
+                                    <input type="text"
+                                           name="codigo_descarga"
+                                           class="checkin-input"
+                                           maxlength="4"
+                                           placeholder="0000"
+                                           autocomplete="off"
+                                           data-form="form-checkin-{{ ag.pk }}"
+                                           title="Código de descarga de 4 dígitos">
+                                    <button type="submit"
+                                            class="btn btn-sm"
+                                            style="background:var(--ordo-green); color:#000; font-size:.75rem; border-radius:6px; padding:4px 10px; font-weight:600; border:none;">
+                                        <i class="fa-solid fa-right-to-bracket me-1"></i>Check-in
+                                    </button>
+                                </form>
+
+                            {% elif ag.status == 'EM_PATIO' %}
+                                {# EM_PATIO: iniciar descarga #}
+                                <span style="font-size:.72rem; color:var(--ordo-yellow);">
+                                    <i class="fa-solid fa-circle-dot fa-beat me-1"></i>
+                                    Em pátio — aguardando doca
+                                </span>
+
+                            {% elif ag.status == 'EM_DESCARGA' %}
+                                {# EM_DESCARGA: botão para finalizar #}
+                                <span style="font-size:.72rem; color:#a78bfa;">
+                                    <i class="fa-solid fa-circle-dot fa-beat me-1"></i>
+                                    Descarga em andamento
+                                </span>
+
+                            {% elif ag.status == 'PRE_AGENDADO' and not ag.nfe_validada %}
+                                <span style="font-size:.72rem; color:var(--ordo-text-dim);">
+                                    Aguardando NF-e
+                                </span>
+
+                            {% else %}
+                                <span class="text-muted" style="font-size:.72rem;">—</span>
+                            {% endif %}
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5" style="color:var(--ordo-text-dim);">
+            <i class="fa-solid fa-calendar-xmark fa-3x mb-3" style="opacity:.3;"></i>
+            <p class="mb-0">
+                Nenhum agendamento para <strong>{{ data_filtro|date:"d/m/Y" }}</strong>.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div><!-- /table card -->
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh a cada 60 segundos
+    setTimeout(function() { location.reload(); }, 60000);
+
+    // Check-in automático: ao digitar 4 dígitos, submete o formulário
+    document.querySelectorAll('.checkin-input').forEach(function(input) {
+        input.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '').slice(0, 4);
+            if (this.value.length === 4) {
+                var formId = this.getAttribute('data-form');
+                document.getElementById(formId).submit();
+            }
+        });
+    });
+</script>
+{% endblock %}

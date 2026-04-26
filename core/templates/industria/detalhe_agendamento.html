@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block title %}Agendamento #{{ agendamento.pk }} — Ordo{% endblock %}
+{% block page_title %}Detalhe do Agendamento{% endblock %}
+{% block page_subtitle %}PO {{ agendamento.numero_pedido }}{% endblock %}
+{% block nav_dash_ind %}active{% endblock %}
+
+{% block extra_css %}
+.detalhe-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+@media (max-width: 768px) {
+    .detalhe-grid { grid-template-columns: 1fr; }
+}
+.campo-label {
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--ordo-text-dim);
+    margin-bottom: 4px;
+}
+.campo-valor {
+    font-size: .95rem;
+    font-weight: 600;
+    color: var(--ordo-text);
+}
+.timeline-item {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    padding: .6rem 0;
+    border-bottom: 1px solid var(--ordo-border);
+}
+.timeline-item:last-child { border-bottom: none; }
+.timeline-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-top: 4px;
+    flex-shrink: 0;
+}
+.tl-done    { background: var(--ordo-green); }
+.tl-atual   { background: var(--ordo-accent); box-shadow: 0 0 0 3px rgba(0,180,216,.25); }
+.tl-pending { background: var(--ordo-border); }
+{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{% url 'dashboard_industria' %}" class="btn-ordo-ghost btn btn-sm">
+        <i class="fa-solid fa-arrow-left me-1"></i> Voltar ao Dashboard
+    </a>
+</div>
+
+<div class="detalhe-grid fade-in">
+
+    {# ---- CARD PRINCIPAL ---- #}
+    <div class="ordo-card">
+        <div class="ordo-card-header justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-calendar-days" style="color:var(--ordo-accent);"></i>
+                <span class="fw-semibold">Dados do Agendamento</span>
+            </div>
+            <span class="badge rounded-pill px-3 py-1"
+                  style="font-size:.72rem;
+                         {% if agendamento.status == 'PRE_AGENDADO' or agendamento.status == 'AGUARDANDO_FISCAL' %}
+                             background:rgba(136,146,176,.15); color:#8892B0;
+                         {% elif agendamento.status == 'CONFIRMADO' %}
+                             background:rgba(0,180,216,.15); color:var(--ordo-accent);
+                         {% elif agendamento.status == 'EM_PATIO' or agendamento.status == 'EM_DESCARGA' %}
+                             background:rgba(255,183,3,.15); color:var(--ordo-yellow);
+                         {% elif agendamento.status == 'FINALIZADO' %}
+                             background:rgba(0,212,160,.15); color:var(--ordo-green);
+                         {% else %}
+                             background:rgba(255,77,109,.15); color:var(--ordo-red);
+                         {% endif %}">
+                {{ agendamento.get_status_display }}
+            </span>
+        </div>
+
+        <div class="ordo-card-body">
+            <div class="row g-4">
+                <div class="col-6">
+                    <div class="campo-label">Pedido de Compra (PO)</div>
+                    <div class="campo-valor" style="font-family:monospace; font-size:1.1rem; color:var(--ordo-accent);">
+                        {{ agendamento.numero_pedido }}
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="campo-label">Tipo de Carga</div>
+                    <div class="campo-valor">{{ agendamento.get_tipo_carga_display }}</div>
+                </div>
+                <div class="col-6">
+                    <div class="campo-label">Data e Hora de Início</div>
+                    <div class="campo-valor">{{ agendamento.inicio|date:"d/m/Y" }}</div>
+                    <div style="font-size:.85rem; color:var(--ordo-accent); font-weight:700;">
+                        {{ agendamento.inicio|date:"H:i" }}
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="campo-label">Fim Estimado</div>
+                    <div class="campo-valor">
+                        {% if agendamento.fim_estimado %}
+                            {{ agendamento.fim_estimado|date:"H:i" }}
+                        {% else %}—{% endif %}
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="campo-label">Doca(s)</div>
+                    <div class="campo-valor">
+                        {% for doca in agendamento.docas.all %}
+                            <span class="badge-conf badge rounded-pill me-1">{{ doca.codigo }}</span>
+                        {% empty %}—{% endfor %}
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="campo-label">Qtd. Itens / Caixas</div>
+                    <div class="campo-valor">{{ agendamento.qtd_itens }}</div>
+                </div>
+
+                {# Código de descarga — só visível se confirmado ou em operação #}
+                {% if agendamento.codigo_descarga and agendamento.status in 'CONFIRMADO,EM_PATIO,EM_DESCARGA' %}
+                <div class="col-12">
+                    <div class="campo-label">Código de Descarga</div>
+                    <div style="font-family:monospace; font-size:2rem; font-weight:800;
+                                color:var(--ordo-accent); letter-spacing:6px;">
+                        {{ agendamento.codigo_descarga }}
+                    </div>
+                    <div style="font-size:.72rem; color:var(--ordo-text-dim); margin-top:2px;">
+                        Informe este código ao gestor de pátio no check-in.
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ---- AÇÕES ---- #}
+        {% if agendamento.status == 'PRE_AGENDADO' %}
+        <div class="ordo-card-body" style="border-top:1px solid var(--ordo-border); padding-top:1rem;">
+            <div style="font-size:.75rem; color:var(--ordo-text-dim); margin-bottom:.75rem;">
+                <i class="fa-solid fa-circle-info me-1"></i>
+                Para reagendar, cancele este agendamento e crie um novo.
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                {% if not agendamento.nfe_validada and not agendamento.prazo_expirado %}
+                <a href="{% url 'industria_nfe' agendamento.pk %}" class="btn-ordo-primary btn btn-sm">
+                    <i class="fa-solid fa-link me-1"></i> Vincular NF-e
+                </a>
+                {% endif %}
+                <form method="post" action="{% url 'industria_cancelar' agendamento.pk %}"
+                      onsubmit="return confirm('Cancelar este agendamento? Esta ação não pode ser desfeita.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm"
+                            style="background:rgba(255,77,109,.1); color:var(--ordo-red);
+                                   border:1px solid rgba(255,77,109,.3); border-radius:8px;">
+                        <i class="fa-solid fa-calendar-xmark me-1"></i> Cancelar e Reagendar
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% elif agendamento.status == 'AGUARDANDO_FISCAL' %}
+        <div class="ordo-card-body" style="border-top:1px solid var(--ordo-border);">
+            <div class="alert-ordo-warn p-2 rounded-2" style="font-size:.78rem;">
+                <i class="fa-solid fa-hourglass-half me-1"></i>
+                NF-e em <strong>Análise Fiscal</strong>. Aguarde liberação do setor interno.
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {# ---- CARD NF-e + TIMELINE ---- #}
+    <div style="display:flex; flex-direction:column; gap:1.5rem;">
+
+        {# NF-e #}
+        <div class="ordo-card">
+            <div class="ordo-card-header">
+                <i class="fa-solid fa-file-invoice" style="color:var(--ordo-accent);"></i>
+                <span class="fw-semibold">NF-e</span>
+            </div>
+            <div class="ordo-card-body">
+                {% if agendamento.nfe_validada %}
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fa-solid fa-circle-check fa-lg" style="color:var(--ordo-green);"></i>
+                        <span class="fw-semibold" style="color:var(--ordo-green);">NF-e Validada</span>
+                    </div>
+                    {% if agendamento.nfe_vinculada_em %}
+                    <div style="font-size:.75rem; color:var(--ordo-text-dim);">
+                        Vinculada em {{ agendamento.nfe_vinculada_em|date:"d/m/Y H:i" }}
+                    </div>
+                    {% endif %}
+                    {% if agendamento.chave_nfe %}
+                    <div class="mt-2" style="font-size:.68rem; color:var(--ordo-text-dim); word-break:break-all; font-family:monospace;">
+                        {{ agendamento.chave_nfe }}
+                    </div>
+                    {% endif %}
+                {% elif agendamento.prazo_expirado %}
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fa-solid fa-circle-xmark fa-lg" style="color:var(--ordo-red);"></i>
+                        <span class="fw-semibold" style="color:var(--ordo-red);">Prazo Expirado</span>
+                    </div>
+                    <div style="font-size:.75rem; color:var(--ordo-text-dim);">
+                        O prazo para vincular a NF-e encerrou em
+                        {{ agendamento.prazo_vinculo_nfe|date:"d/m/Y H:i" }}.
+                    </div>
+                {% else %}
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fa-solid fa-clock fa-lg" style="color:var(--ordo-yellow);"></i>
+                        <span class="fw-semibold" style="color:var(--ordo-yellow);">Aguardando NF-e</span>
+                    </div>
+                    {% if agendamento.prazo_vinculo_nfe %}
+                    <div style="font-size:.75rem; color:var(--ordo-text-dim);">
+                        Prazo: até <strong style="color:var(--ordo-text);">{{ agendamento.prazo_vinculo_nfe|date:"d/m/Y H:i" }}</strong>
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        {# Timeline de status #}
+        <div class="ordo-card">
+            <div class="ordo-card-header">
+                <i class="fa-solid fa-timeline" style="color:var(--ordo-accent);"></i>
+                <span class="fw-semibold">Histórico de Operação</span>
+            </div>
+            <div class="ordo-card-body">
+                {% with s=agendamento.status %}
+
+                <div class="timeline-item">
+                    <div class="timeline-dot {% if s != 'PRE_AGENDADO' and s != 'AGUARDANDO_FISCAL' %}tl-done{% elif s == 'PRE_AGENDADO' or s == 'AGUARDANDO_FISCAL' %}tl-atual{% else %}tl-pending{% endif %}"></div>
+                    <div>
+                        <div style="font-size:.8rem; font-weight:600;">Agendado</div>
+                        <div style="font-size:.7rem; color:var(--ordo-text-dim);">
+                            {{ agendamento.criado_em|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-dot {% if s == 'CONFIRMADO' %}tl-atual{% elif s in 'EM_PATIO,EM_DESCARGA,FINALIZADO' %}tl-done{% else %}tl-pending{% endif %}"></div>
+                    <div>
+                        <div style="font-size:.8rem; font-weight:600; {% if s not in 'CONFIRMADO,EM_PATIO,EM_DESCARGA,FINALIZADO' %}color:var(--ordo-text-dim);{% endif %}">Confirmado</div>
+                        {% if agendamento.nfe_vinculada_em %}
+                        <div style="font-size:.7rem; color:var(--ordo-text-dim);">{{ agendamento.nfe_vinculada_em|date:"d/m/Y H:i" }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-dot {% if s == 'EM_PATIO' %}tl-atual{% elif s in 'EM_DESCARGA,FINALIZADO' %}tl-done{% else %}tl-pending{% endif %}"></div>
+                    <div>
+                        <div style="font-size:.8rem; font-weight:600; {% if s not in 'EM_PATIO,EM_DESCARGA,FINALIZADO' %}color:var(--ordo-text-dim);{% endif %}">Em Pátio</div>
+                        {% if agendamento.horario_entrada_patio %}
+                        <div style="font-size:.7rem; color:var(--ordo-text-dim);">{{ agendamento.horario_entrada_patio|date:"d/m/Y H:i" }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-dot {% if s == 'EM_DESCARGA' %}tl-atual{% elif s == 'FINALIZADO' %}tl-done{% else %}tl-pending{% endif %}"></div>
+                    <div>
+                        <div style="font-size:.8rem; font-weight:600; {% if s not in 'EM_DESCARGA,FINALIZADO' %}color:var(--ordo-text-dim);{% endif %}">Em Descarga</div>
+                        {% if agendamento.horario_inicio_descarga %}
+                        <div style="font-size:.7rem; color:var(--ordo-text-dim);">{{ agendamento.horario_inicio_descarga|date:"d/m/Y H:i" }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-dot {% if s == 'FINALIZADO' %}tl-done{% else %}tl-pending{% endif %}"></div>
+                    <div>
+                        <div style="font-size:.8rem; font-weight:600; {% if s != 'FINALIZADO' %}color:var(--ordo-text-dim);{% else %}color:var(--ordo-green);{% endif %}">Finalizado</div>
+                        {% if agendamento.horario_finalizacao %}
+                        <div style="font-size:.7rem; color:var(--ordo-text-dim);">{{ agendamento.horario_finalizacao|date:"d/m/Y H:i" }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% endwith %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

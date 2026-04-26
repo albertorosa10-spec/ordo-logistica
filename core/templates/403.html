@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Acesso Negado | Ordo{% endblock %}
+{% block page_title %}Acesso Negado{% endblock %}
+{% block page_subtitle %}Você não tem permissão para acessar esta página{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center fade-in">
+    <div class="col-lg-6">
+        <div class="ordo-card text-center py-5">
+            <div class="ordo-card-body">
+                <i class="fa-solid fa-lock fa-3x mb-3" style="color:var(--ordo-red); opacity:.7;"></i>
+                <h4 class="fw-bold mb-2" style="color:var(--ordo-text);">403 — Acesso Negado</h4>
+                <p style="font-size:.88rem; color:var(--ordo-text-dim); max-width:360px; margin:0 auto 1.5rem;">
+                    Seu perfil não tem permissão para acessar este recurso.
+                    Caso acredite que isto é um erro, fale com o administrador.
+                </p>
+                <a href="/" class="btn-ordo-ghost btn btn-sm">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Voltar ao início
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

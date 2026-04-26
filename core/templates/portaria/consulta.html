@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}Consulta de Portaria — Ordo Logística{% endblock %}
+{% block body_class %}no-sidebar{% endblock %}
+{% block main_wrapper_class %}{% endblock %}
+
+{% block extra_css %}
+.portaria-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background:
+        radial-gradient(ellipse at 70% 30%, rgba(255,183,3,0.06) 0%, transparent 55%),
+        var(--ordo-bg);
+}
+.portaria-box {
+    width: 100%;
+    max-width: 520px;
+}
+.result-card {
+    border-radius: 16px;
+    padding: 2rem;
+    border: 2px solid;
+    text-align: center;
+    margin-top: 1.5rem;
+}
+.result-card.autorizado {
+    background: rgba(0,212,160,0.06);
+    border-color: var(--ordo-green);
+}
+.result-card.bloqueado {
+    background: rgba(255,77,109,0.06);
+    border-color: var(--ordo-red);
+}
+.result-icon { font-size: 3rem; margin-bottom: 1rem; }
+{% endblock %}
+
+{% block content %}
+<div class="portaria-wrapper">
+    <div class="portaria-box fade-in">
+
+        <div class="text-center mb-4">
+            <div style="font-size:2rem; font-weight:800; color:var(--ordo-yellow); letter-spacing:-1px;">
+                <i class="fa-solid fa-truck-fast me-2"></i>PORTARIA
+            </div>
+            <div style="font-size:.75rem; color:var(--ordo-text-dim); letter-spacing:2px; text-transform:uppercase;">
+                Ordo Tecnologia Logística
+            </div>
+        </div>
+
+        <div class="ordo-card">
+            <div class="ordo-card-header">
+                <i class="fa-solid fa-magnifying-glass" style="color:var(--ordo-yellow)"></i>
+                <span class="fw-semibold">Verificar Autorização de Entrada</span>
+            </div>
+            <div class="ordo-card-body">
+                <form method="GET" id="form-portaria">
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="fa-solid fa-barcode me-1"></i> Chave NF-e (44 dígitos)
+                        </label>
+                        <input type="text" name="chave" class="form-control" maxlength="44"
+                               value="{{ request.GET.chave }}"
+                               placeholder="00000000000000000000000000000000000000000000">
+                    </div>
+                    <div class="text-center" style="font-size:.75rem; color:var(--ordo-text-dim); margin: -0.5rem 0 0.75rem;">— ou —</div>
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="fa-solid fa-hashtag me-1"></i> Número do Pedido de Compra (PO)
+                        </label>
+                        <input type="text" name="pedido" class="form-control"
+                               value="{{ request.GET.pedido }}"
+                               placeholder="Ex: PO123456">
+                    </div>
+                    <button type="submit" class="w-100 btn" style="background:var(--ordo-yellow); color:#000; font-weight:700; border-radius:10px; padding:.75rem;">
+                        <i class="fa-solid fa-search me-2"></i> Verificar Autorização
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- RESULTADO -->
+        {% if agendamento %}
+            {% if pode_entrar %}
+            <div class="result-card autorizado fade-in fade-in-delay-1">
+                <div class="result-icon" style="color:var(--ordo-green);">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <h3 style="color:var(--ordo-green); font-weight:800;">AUTORIZADO</h3>
+                <p class="text-muted mb-3">NF-e validada. Veículo liberado para descarga.</p>
+                <div class="text-start" style="background:var(--ordo-surface-2); border-radius:8px; padding:1rem; font-size:.82rem;">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span style="color:var(--ordo-text-dim);">Fornecedor</span>
+                        <span class="fw-semibold">{{ agendamento.fornecedor.razao_social }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span style="color:var(--ordo-text-dim);">Pedido (PO)</span>
+                        <span class="fw-semibold">{{ agendamento.numero_pedido }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span style="color:var(--ordo-text-dim);">Doca(s)</span>
+                        <span class="fw-semibold">
+                            {% for doca in agendamento.docas.all %}{{ doca.codigo }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span style="color:var(--ordo-text-dim);">Horário</span>
+                        <span class="fw-semibold">{{ agendamento.inicio|date:"d/m H:i" }}</span>
+                    </div>
+                    {% if agendamento.codigo_descarga %}
+                    <div class="d-flex justify-content-between">
+                        <span style="color:var(--ordo-text-dim);">Código de Descarga</span>
+                        <span class="fw-bold" style="color:var(--ordo-accent); font-size:1rem; letter-spacing:2px;">
+                            {{ agendamento.codigo_descarga }}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="result-card bloqueado fade-in fade-in-delay-1">
+                <div class="result-icon" style="color:var(--ordo-red);">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                </div>
+                <h3 style="color:var(--ordo-red); font-weight:800;">BLOQUEADO</h3>
+                <p class="text-muted mb-2">
+                    Agendamento encontrado, mas a NF-e <strong>ainda não foi validada</strong>.
+                </p>
+                <small style="color:var(--ordo-text-dim);">
+                    Status atual: <strong>{{ agendamento.get_status_display }}</strong>
+                </small>
+            </div>
+            {% endif %}
+        {% elif buscou %}
+            <div class="result-card bloqueado fade-in fade-in-delay-1">
+                <div class="result-icon" style="color:var(--ordo-text-dim);">
+                    <i class="fa-solid fa-circle-question"></i>
+                </div>
+                <h3 style="color:var(--ordo-text-dim); font-weight:700;">NÃO ENCONTRADO</h3>
+                <p class="text-muted">Nenhum agendamento localizado com os dados informados.</p>
+            </div>
+        {% endif %}
+
+        <div class="text-center mt-4">
+            <a href="{% url 'home' %}" style="font-size:.75rem; color:var(--ordo-text-dim); text-decoration:none;">
+                <i class="fa-solid fa-arrow-left me-1"></i> Voltar para a Home
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

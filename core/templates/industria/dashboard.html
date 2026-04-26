@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+
+{% block title %}Meu Dashboard — Portal da Indústria | Ordo{% endblock %}
+{% block page_title %}Dashboard da Indústria{% endblock %}
+{% block page_subtitle %}{{ fornecedor.razao_social }}{% endblock %}
+{% block nav_dash_ind %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'novo_agendamento' %}" class="btn-ordo-primary btn">
+    <i class="fa-solid fa-calendar-plus me-2"></i>Novo Agendamento
+</a>
+{% endblock %}
+
+{% block extra_css %}
+/* Score bar do fornecedor */
+.score-track {
+    height: 8px;
+    background: var(--ordo-border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+.score-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width .6s ease;
+}
+
+/* História colapsável */
+.historico-header {
+    cursor: pointer;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--ordo-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--ordo-text-dim);
+    transition: background .15s;
+}
+.historico-header:hover {
+    background: var(--ordo-surface-2);
+    color: var(--ordo-text);
+}
+.historico-chevron { transition: transform .25s; }
+.historico-header.aberto .historico-chevron { transform: rotate(180deg); }
+{% endblock %}
+
+{% block content %}
+
+{# ============ ALERTAS NF-e VENCENDO EM < 6H ============ #}
+{% if alertas_nfe %}
+<div class="mb-4">
+    {% for ag in alertas_nfe %}
+    <div class="alert-ordo-warn p-3 mb-2 d-flex align-items-center gap-3 rounded-3">
+        <i class="fa-solid fa-triangle-exclamation fa-lg flex-shrink-0"></i>
+        <div class="flex-grow-1">
+            <strong>Prazo de NF-e vencendo!</strong>
+            Agendamento <strong>#{{ ag.pk }}</strong> — PO: {{ ag.numero_pedido }} —
+            Descarga em <strong>{{ ag.inicio|date:"d/m H:i" }}</strong>.
+            Vincule a NF-e antes de <strong>{{ ag.prazo_vinculo_nfe|date:"d/m H:i" }}</strong>.
+        </div>
+        <a href="{% url 'industria_nfe' ag.pk %}"
+           class="btn btn-sm flex-shrink-0"
+           style="background:var(--ordo-yellow); color:#000; font-weight:700; border-radius:8px; border:none; white-space:nowrap;">
+            <i class="fa-solid fa-upload me-1"></i> Vincular NF-e
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{# ============ KPIs ============ #}
+<div class="row g-3 mb-4 fade-in">
+    <div class="col-6 col-lg-3">
+        <a href="{% url 'industria_lista' %}?status=PRE_AGENDADO" style="text-decoration:none; color:inherit; display:block;">
+        <div class="ordo-kpi">
+            <div class="ordo-kpi-icon mb-2" style="background:rgba(136,146,176,.1); color:#8892B0;">
+                <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+            <div class="ordo-kpi-value" style="color:#8892B0;">{{ kpis.pre_agendados }}</div>
+            <div class="ordo-kpi-label">Pré-agendados</div>
+        </div>
+        </a>
+    </div>
+    <div class="col-6 col-lg-3">
+        <a href="{% url 'industria_lista' %}?status=CONFIRMADO" style="text-decoration:none; color:inherit; display:block;">
+        <div class="ordo-kpi">
+            <div class="ordo-kpi-icon mb-2" style="background:rgba(0,180,216,.1); color:var(--ordo-accent);">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="ordo-kpi-value" style="color:var(--ordo-accent);">{{ kpis.confirmados }}</div>
+            <div class="ordo-kpi-label">Confirmados</div>
+        </div>
+        </a>
+    </div>
+    <div class="col-6 col-lg-3">
+        <a href="{% url 'industria_lista' %}?status=EM_PATIO" style="text-decoration:none; color:inherit; display:block;">
+        <div class="ordo-kpi">
+            <div class="ordo-kpi-icon mb-2" style="background:rgba(255,183,3,.1); color:var(--ordo-yellow);">
+                <i class="fa-solid fa-truck-ramp-box"></i>
+            </div>
+            <div class="ordo-kpi-value" style="color:var(--ordo-yellow);">{{ kpis.em_patio }}</div>
+            <div class="ordo-kpi-label">Em Pátio / Descarga</div>
+        </div>
+        </a>
+    </div>
+    <div class="col-6 col-lg-3">
+        <a href="{% url 'industria_lista' %}?status=FINALIZADO" style="text-decoration:none; color:inherit; display:block;">
+        <div class="ordo-kpi">
+            <div class="ordo-kpi-icon mb-2" style="background:rgba(0,212,160,.1); color:var(--ordo-green);">
+                <i class="fa-solid fa-flag-checkered"></i>
+            </div>
+            <div class="ordo-kpi-value" style="color:var(--ordo-green);">{{ kpis.finalizados }}</div>
+            <div class="ordo-kpi-label">Finalizados</div>
+        </div>
+        </a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4 fade-in fade-in-delay-1">
+
+    {# ============ CARD DE PERFIL ============ #}
+    <div class="col-md-4">
+        <div class="ordo-card h-100">
+            <div class="ordo-card-header">
+                <i class="fa-solid fa-building" style="color:var(--ordo-accent)"></i>
+                <span class="fw-semibold">Meu Perfil</span>
+            </div>
+            <div class="ordo-card-body">
+                <div class="mb-3">
+                    <div style="font-size:.68rem; color:var(--ordo-text-dim); text-transform:uppercase; letter-spacing:.5px;">Razão Social</div>
+                    <div class="fw-semibold mt-1">{{ fornecedor.razao_social }}</div>
+                </div>
+                <div class="mb-3">
+                    <div style="font-size:.68rem; color:var(--ordo-text-dim); text-transform:uppercase; letter-spacing:.5px;">CNPJ</div>
+                    <div class="mt-1" style="font-family:monospace; letter-spacing:1px;">{{ fornecedor.cnpj }}</div>
+                </div>
+
+                {# Score de pontualidade com barra visual de progresso #}
+                <div class="mb-3">
+                    <div style="font-size:.68rem; color:var(--ordo-text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">
+                        Score de Pontualidade
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="score-track flex-grow-1">
+                            <div class="score-fill"
+                                 style="width:{{ fornecedor.score_pontualidade }}%;
+                                        background:{% if fornecedor.score_pontualidade >= 80 %}var(--ordo-green){% elif fornecedor.score_pontualidade >= 50 %}var(--ordo-yellow){% else %}var(--ordo-red){% endif %};">
+                            </div>
+                        </div>
+                        <span class="fw-bold"
+                              style="font-size:.9rem; min-width:40px; text-align:right;
+                                     color:{% if fornecedor.score_pontualidade >= 80 %}var(--ordo-green){% elif fornecedor.score_pontualidade >= 50 %}var(--ordo-yellow){% else %}var(--ordo-red){% endif %};">
+                            {{ fornecedor.score_pontualidade|floatformat:0 }}
+                        </span>
+                    </div>
+                </div>
+
+                {# Capacidade de multi-doca #}
+                <div style="font-size:.78rem;">
+                    {% if fornecedor.permite_multi_doca %}
+                    <span class="badge-fin badge rounded-pill px-2 py-1">
+                        <i class="fa-solid fa-check me-1"></i> Multi-doca habilitado
+                    </span>
+                    {% else %}
+                    <span class="badge-pre badge rounded-pill px-2 py-1">
+                        <i class="fa-solid fa-minus me-1"></i> Doca única por agendamento
+                    </span>
+                    {% endif %}
+                </div>
+
+                {% if fornecedor.bloqueado %}
+                <div class="alert-ordo-danger p-2 rounded-2 mt-3" style="font-size:.75rem;">
+                    <i class="fa-solid fa-ban me-1"></i>
+                    <strong>Conta bloqueada:</strong> {{ fornecedor.motivo_bloqueio }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# ============ TABELA DE AGENDAMENTOS ATIVOS ============ #}
+    <div class="col-md-8">
+        <div class="ordo-card h-100">
+            <div class="ordo-card-header justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-calendar-days" style="color:var(--ordo-accent)"></i>
+                    <span class="fw-semibold">Agendamentos Ativos</span>
+                </div>
+                <a href="{% url 'novo_agendamento' %}" class="btn-ordo-primary btn btn-sm">
+                    <i class="fa-solid fa-plus me-1"></i> Novo
+                </a>
+            </div>
+
+            <div class="ordo-card-body p-0">
+                {% if agendamentos %}
+                <div class="table-responsive">
+                    <table class="table ordo-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Data / Hora</th>
+                                <th>Doca(s)</th>
+                                <th>PO</th>
+                                <th>Tipo</th>
+                                <th>Status</th>
+                                <th>Cód. Descarga</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ag in agendamentos %}
+                            <tr style="cursor:pointer;" onclick="location.href='{% url 'industria_detalhe' ag.pk %}'"
+                                title="Ver detalhes">
+                                <td>
+                                    <div class="fw-semibold">{{ ag.inicio|date:"d/m/Y" }}</div>
+                                    <div style="font-size:.72rem; color:var(--ordo-text-dim);">{{ ag.inicio|date:"H:i" }}</div>
+                                </td>
+                                <td>
+                                    {% for doca in ag.docas.all %}
+                                        <span class="badge-conf badge rounded-pill" style="font-size:.68rem;">{{ doca.codigo }}</span>
+                                    {% empty %}—{% endfor %}
+                                </td>
+                                <td class="fw-semibold">{{ ag.numero_pedido }}</td>
+                                <td style="font-size:.75rem; color:var(--ordo-text-dim);">
+                                    {{ ag.get_tipo_carga_display }}
+                                </td>
+                                <td>
+                                    {% if ag.status == 'PRE_AGENDADO' %}
+                                        <span class="badge-pre badge rounded-pill px-2">Pré-agendado</span>
+                                    {% elif ag.status == 'CONFIRMADO' %}
+                                        <span class="badge-conf badge rounded-pill px-2">Confirmado</span>
+                                    {% elif ag.status == 'EM_PATIO' %}
+                                        <span class="badge-patio badge rounded-pill px-2">Em Pátio</span>
+                                    {% elif ag.status == 'EM_DESCARGA' %}
+                                        <span class="badge-desc badge rounded-pill px-2">Em Descarga</span>
+                                    {% else %}
+                                        <span class="badge-pre badge rounded-pill px-2">{{ ag.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+
+                                {# Código de descarga: visível apenas se CONFIRMADO ou em pátio #}
+                                <td>
+                                    {% if ag.status in 'CONFIRMADO,EM_PATIO,EM_DESCARGA' and ag.codigo_descarga %}
+                                        <span style="font-family:monospace; font-size:1rem; font-weight:700;
+                                                     color:var(--ordo-accent); letter-spacing:2px;">
+                                            {{ ag.codigo_descarga }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+
+                                {# Ação: vincular NF-e se dentro do prazo, badge "Expirado" se vencido #}
+                                <td>
+                                    {% if ag.status == 'PRE_AGENDADO' and not ag.nfe_validada %}
+                                        {% if ag.prazo_expirado %}
+                                            <span class="badge-canc badge rounded-pill px-2" style="font-size:.68rem;">
+                                                Prazo Expirado
+                                            </span>
+                                        {% else %}
+                                            <a href="{% url 'industria_nfe' ag.pk %}"
+                                               class="btn-ordo-primary btn btn-sm"
+                                               style="font-size:.72rem;">
+                                                <i class="fa-solid fa-link me-1"></i> Vincular NF-e
+                                            </a>
+                                        {% endif %}
+                                    {% elif ag.nfe_validada %}
+                                        <i class="fa-solid fa-circle-check" style="color:var(--ordo-green);" title="NF-e vinculada"></i>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5" style="color:var(--ordo-text-dim);">
+                    <i class="fa-solid fa-calendar-xmark fa-3x mb-3" style="opacity:.3;"></i>
+                    <p class="mb-1">Nenhum agendamento ativo.</p>
+                    <a href="{% url 'novo_agendamento' %}" class="btn-ordo-primary btn btn-sm mt-2">
+                        <i class="fa-solid fa-plus me-1"></i> Criar primeiro agendamento
+                    </a>
+                </div>
+                {% endif %}
+            </div>{# /card-body #}
+
+            {# ============ HISTÓRICO COLAPSÁVEL (últimos 30 dias) ============ #}
+            {% if historico %}
+            <div class="historico-header" id="historico-toggle" onclick="toggleHistorico()">
+                <span>
+                    <i class="fa-solid fa-clock-rotate-left me-2"></i>
+                    Histórico — últimos 30 dias
+                    <span class="badge-pre badge rounded-pill ms-2" style="font-size:.68rem;">
+                        {{ historico|length }}
+                    </span>
+                </span>
+                <i class="fa-solid fa-chevron-down historico-chevron" id="historico-chevron"></i>
+            </div>
+            <div id="historico-body" style="display:none;">
+                <div class="table-responsive">
+                    <table class="table ordo-table mb-0" style="font-size:.8rem;">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>PO</th>
+                                <th>Tipo</th>
+                                <th>Status Final</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ag in historico %}
+                            <tr>
+                                <td>{{ ag.inicio|date:"d/m/Y H:i" }}</td>
+                                <td>{{ ag.numero_pedido }}</td>
+                                <td>{{ ag.get_tipo_carga_display }}</td>
+                                <td>
+                                    {% if ag.status == 'FINALIZADO' %}
+                                        <span class="badge-fin badge rounded-pill px-2">Finalizado</span>
+                                    {% else %}
+                                        <span class="badge-canc badge rounded-pill px-2">{{ ag.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>{# /card #}
+    </div>
+
+</div>{# /row #}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleHistorico() {
+    var body    = document.getElementById('historico-body');
+    var toggle  = document.getElementById('historico-toggle');
+    var chevron = document.getElementById('historico-chevron');
+
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+        toggle.classList.add('aberto');
+    } else {
+        body.style.display = 'none';
+        toggle.classList.remove('aberto');
+    }
+}
+</script>
+{% endblock %}

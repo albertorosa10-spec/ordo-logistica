@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container text-center">
+    <h2 class="mb-5">Controle de Acesso</h2>
+    
+    <form method="GET" class="mb-5">
+        <div class="input-group input-group-lg shadow-lg">
+            <input type="text" name="chave" class="form-control bg-dark text-white border-info" 
+                   placeholder="Aproxime o leitor ou digite a Chave/Pedido" autofocus>
+            <button class="btn btn-info px-5" type="submit">VALIDAR</button>
+        </div>
+    </form>
+
+    {% if agendamento %}
+        <div class="card p-5 {% if pode_entrar %}bg-success{% else %}bg-danger{% endif %} shadow-lg border-0 animate__animated animate__fadeInUp">
+            <h1 class="display-1 fw-bold text-white">
+                {% if pode_entrar %}LIBERADO{% else %}BLOQUEADO{% endif %}
+            </h1>
+            <div class="row mt-4 text-start">
+                <div class="col-md-6 border-end">
+                    <p class="mb-0 opacity-75">Indústria</p>
+                    <h3>{{ agendamento.fornecedor.razao_social }}</h3>
+                </div>
+                <div class="col-md-6 ps-4">
+                    <p class="mb-0 opacity-75">Doca Destino</p>
+                    <h3>Doca {{ agendamento.doca.numero }}</h3>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

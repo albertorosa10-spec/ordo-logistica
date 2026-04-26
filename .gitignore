@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.env
+db.sqlite3
+media/
+staticfiles/
+*.log
+.railway/
+.DS_Store
+*.swp
+*.Identifier

@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+
+{% block title %}Ordo Tecnologia Logística — Portal de Agendamento{% endblock %}
+{% block body_class %}no-sidebar{% endblock %}
+{% block main_wrapper_class %}{% endblock %}
+
+{% block extra_css %}
+.home-hero {
+    min-height: 100vh;
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(0,180,216,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(0,119,182,0.06) 0%, transparent 60%),
+        var(--ordo-bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+}
+
+.home-logo {
+    font-size: 3rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--ordo-accent), var(--ordo-accent-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -2px;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+.home-logo-sub {
+    font-size: 0.75rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--ordo-text-dim);
+    margin-bottom: 0.75rem;
+}
+.home-tagline {
+    font-size: 1.05rem;
+    color: var(--ordo-text-dim);
+    max-width: 480px;
+    line-height: 1.6;
+    margin-bottom: 3rem;
+}
+
+/* Divisor decorativo */
+.home-divider {
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--ordo-accent), transparent);
+    margin: 0.75rem auto 1.25rem;
+}
+
+/* Cards de acesso */
+.access-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    max-width: 900px;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .access-cards { grid-template-columns: 1fr; max-width: 380px; }
+}
+
+.access-card {
+    background: var(--ordo-surface);
+    border: 1px solid var(--ordo-border);
+    border-radius: 16px;
+    padding: 2rem 1.5rem;
+    text-decoration: none;
+    color: var(--ordo-text);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.access-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.access-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    color: var(--ordo-text);
+}
+
+/* Card 1 — Indústria (accent ciano) */
+.access-card.industria { border-color: rgba(0,180,216,0.25); }
+.access-card.industria::before { background: linear-gradient(90deg, var(--ordo-accent), var(--ordo-accent-2)); }
+.access-card.industria:hover { border-color: var(--ordo-accent); }
+.access-card.industria:hover::before { opacity: 1; }
+.access-card.industria .card-icon { background: rgba(0,180,216,0.1); color: var(--ordo-accent); }
+
+/* Card 2 — Gestão (verde) */
+.access-card.gestao { border-color: rgba(0,212,160,0.2); }
+.access-card.gestao::before { background: linear-gradient(90deg, var(--ordo-green), #00a884); }
+.access-card.gestao:hover { border-color: var(--ordo-green); }
+.access-card.gestao:hover::before { opacity: 1; }
+.access-card.gestao .card-icon { background: rgba(0,212,160,0.1); color: var(--ordo-green); }
+
+/* Card 3 — Portaria (amarelo) */
+.access-card.portaria { border-color: rgba(255,183,3,0.2); }
+.access-card.portaria::before { background: linear-gradient(90deg, var(--ordo-yellow), #e6a000); }
+.access-card.portaria:hover { border-color: var(--ordo-yellow); }
+.access-card.portaria:hover::before { opacity: 1; }
+.access-card.portaria .card-icon { background: rgba(255,183,3,0.1); color: var(--ordo-yellow); }
+
+.card-icon {
+    width: 72px; height: 72px;
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem;
+    transition: transform 0.3s;
+}
+.access-card:hover .card-icon { transform: scale(1.1); }
+
+.card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+}
+.card-desc {
+    font-size: 0.78rem;
+    color: var(--ordo-text-dim);
+    text-align: center;
+    line-height: 1.5;
+    margin: 0;
+}
+.card-cta {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    margin-top: 0.5rem;
+    border: 1px solid currentColor;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+.access-card:hover .card-cta { opacity: 1; }
+
+/* Rodapé da home */
+.home-footer {
+    margin-top: 3rem;
+    font-size: 0.7rem;
+    color: var(--ordo-text-dim);
+    letter-spacing: 0.5px;
+}
+{% endblock %}
+
+{% block content %}
+<div class="home-hero">
+
+    <!-- Logo -->
+    <div class="fade-in">
+        <div class="home-logo">ORDO</div>
+        <div class="home-logo-sub">Tecnologia Logística</div>
+        <div class="home-divider"></div>
+        <p class="home-tagline">
+            Portal de agendamento inteligente com validação fiscal de NF-e.<br>
+            <strong>Descarga sem erros, operação sem paradas.</strong>
+        </p>
+    </div>
+
+    <!-- Cards de acesso -->
+    <div class="access-cards fade-in fade-in-delay-1">
+
+        <!-- CARD 1: Portal da Indústria -->
+        <a href="{% url 'login_industria' %}" class="access-card industria">
+            <div class="card-icon">
+                <i class="fa-solid fa-industry"></i>
+            </div>
+            <div>
+                <p class="card-title">Portal da Indústria</p>
+                <p class="card-desc">
+                    Acesse seu painel exclusivo, crie agendamentos e vincule suas NF-es com segurança.
+                </p>
+            </div>
+            <span class="card-cta" style="color: var(--ordo-accent);">
+                <i class="fa-solid fa-arrow-right-to-bracket me-1"></i> Acessar com CNPJ
+            </span>
+        </a>
+
+        <!-- CARD 2: Gestão Ordo -->
+        <a href="/admin/" class="access-card gestao">
+            <div class="card-icon">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div>
+                <p class="card-title">Gestão Ordo (Admin)</p>
+                <p class="card-desc">
+                    Painel administrativo para a equipe Ordo. Gerencie fornecedores, docas e agendamentos.
+                </p>
+            </div>
+            <span class="card-cta" style="color: var(--ordo-green);">
+                <i class="fa-solid fa-lock me-1"></i> Acesso Restrito
+            </span>
+        </a>
+
+        <!-- CARD 3: Consulta Portaria -->
+        <a href="{% url 'consulta' %}" class="access-card portaria">
+            <div class="card-icon">
+                <i class="fa-solid fa-truck-fast"></i>
+            </div>
+            <div>
+                <p class="card-title">Consulta Portaria</p>
+                <p class="card-desc">
+                    Verifique rapidamente se um veículo tem autorização de entrada pelo número da NF-e ou PO.
+                </p>
+            </div>
+            <span class="card-cta" style="color: var(--ordo-yellow);">
+                <i class="fa-solid fa-magnifying-glass me-1"></i> Consultar Agora
+            </span>
+        </a>
+
+    </div><!-- /access-cards -->
+
+    <div class="home-footer fade-in fade-in-delay-2">
+        &copy; {{ request.META.SERVER_NAME|default:"2026" }} Ordo Tecnologia Logística &mdash;
+        Plataforma v0.6 &middot; Portal seguro com autenticação por CNPJ
+    </div>
+
+</div><!-- /home-hero -->
+{% endblock %}

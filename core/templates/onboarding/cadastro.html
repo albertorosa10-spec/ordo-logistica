@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block title %}Cadastro — Portal da Indústria | Ordo Logística{% endblock %}
+{% block body_class %}no-sidebar{% endblock %}
+{% block main_wrapper_class %}{% endblock %}
+
+{% block extra_css %}
+.cadastro-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    background:
+        radial-gradient(ellipse at 80% 20%, rgba(0,180,216,0.06) 0%, transparent 55%),
+        var(--ordo-bg);
+}
+.cadastro-box { width: 100%; max-width: 480px; }
+.cnpj-status  { font-size: .72rem; margin-top: 5px; min-height: 1rem; }
+.cnpj-loading { color: var(--ordo-text-dim); }
+.cnpj-found   { color: var(--ordo-green); }
+.cnpj-error   { color: var(--ordo-red); }
+
+.field-group { margin-bottom: 1.25rem; }
+
+.btn-cadastro {
+    width: 100%;
+    background: linear-gradient(135deg, var(--ordo-accent), var(--ordo-accent-2));
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: .85rem;
+    font-weight: 700;
+    font-size: .95rem;
+    transition: all .25s;
+}
+.btn-cadastro:hover {
+    opacity: .9;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,180,216,.35);
+    color: white;
+}
+{% endblock %}
+
+{% block content %}
+<div class="cadastro-wrapper">
+    <div class="cadastro-box fade-in">
+
+        <div class="text-center mb-4">
+            <div style="font-size:2rem; font-weight:800; background:linear-gradient(135deg,var(--ordo-accent),var(--ordo-accent-2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; letter-spacing:-1px;">
+                ORDO
+            </div>
+            <div style="font-size:.68rem; letter-spacing:3px; text-transform:uppercase; color:var(--ordo-text-dim);">
+                Ativação do Portal da Indústria
+            </div>
+        </div>
+
+        <div class="ordo-card">
+            <div class="ordo-card-header">
+                <i class="fa-solid fa-user-plus" style="color:var(--ordo-accent)"></i>
+                <span class="fw-semibold">Criar Acesso</span>
+            </div>
+            <div class="ordo-card-body">
+
+                {% if form.non_field_errors %}
+                <div class="alert-ordo-danger p-3 mb-4 rounded-3">
+                    <i class="fa-solid fa-circle-exclamation me-2"></i>
+                    {{ form.non_field_errors.0 }}
+                </div>
+                {% endif %}
+
+                <div class="alert-ordo-info p-3 mb-4 rounded-3" style="font-size:.78rem;">
+                    <i class="fa-solid fa-circle-info me-2"></i>
+                    Apenas CNPJs <strong>pré-autorizados</strong> pela Ordo podem criar acesso.
+                    Contate seu gestor caso seu CNPJ não seja reconhecido.
+                </div>
+
+                <form method="POST" id="form-cadastro" novalidate>
+                    {% csrf_token %}
+
+                    <!-- CNPJ com Lookup Automático -->
+                    <div class="field-group">
+                        <label class="form-label" for="id_cnpj">
+                            <i class="fa-solid fa-building me-1"></i> CNPJ da Indústria
+                        </label>
+                        {{ form.cnpj }}
+                        <div id="cnpj-status" class="cnpj-status"></div>
+                        {% if form.cnpj.errors %}
+                        <div class="text-danger mt-1" style="font-size:.75rem;">{{ form.cnpj.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Razão Social (preenchida via AJAX) -->
+                    <div class="field-group">
+                        <label class="form-label" for="id_razao_social">
+                            <i class="fa-solid fa-id-badge me-1"></i> Razão Social
+                        </label>
+                        {{ form.razao_social }}
+                        <div style="font-size:.7rem; color:var(--ordo-text-dim); margin-top:4px;">
+                            Preenchido automaticamente ao digitar o CNPJ.
+                        </div>
+                    </div>
+
+                    <!-- E-mail -->
+                    <div class="field-group">
+                        <label class="form-label" for="{{ form.email.id_for_label }}">
+                            <i class="fa-solid fa-envelope me-1"></i> {{ form.email.label }}
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                        <div class="text-danger mt-1" style="font-size:.75rem;">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Senha -->
+                    <div class="field-group">
+                        <label class="form-label" for="{{ form.senha.id_for_label }}">
+                            <i class="fa-solid fa-lock me-1"></i> {{ form.senha.label }}
+                        </label>
+                        {{ form.senha }}
+                        {% if form.senha.errors %}
+                        <div class="text-danger mt-1" style="font-size:.75rem;">{{ form.senha.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Confirmar Senha -->
+                    <div class="field-group">
+                        <label class="form-label" for="{{ form.confirmar_senha.id_for_label }}">
+                            <i class="fa-solid fa-lock me-1"></i> {{ form.confirmar_senha.label }}
+                        </label>
+                        {{ form.confirmar_senha }}
+                        {% if form.confirmar_senha.errors %}
+                        <div class="text-danger mt-1" style="font-size:.75rem;">{{ form.confirmar_senha.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn-cadastro btn mt-1" id="btn-cadastro">
+                        <i class="fa-solid fa-rocket me-2"></i> Ativar Meu Acesso
+                    </button>
+
+                </form>
+
+                <div class="text-center mt-3" style="font-size:.78rem; color:var(--ordo-text-dim);">
+                    Já tem acesso? <a href="{% url 'login_industria' %}" style="color:var(--ordo-accent); text-decoration:none; font-weight:500;">Entrar agora</a>
+                </div>
+
+            </div>
+        </div><!-- /card -->
+
+        <div class="text-center mt-3">
+            <a href="{% url 'home' %}" style="font-size:.75rem; color:var(--ordo-text-dim); text-decoration:none;">
+                <i class="fa-solid fa-arrow-left me-1"></i> Voltar para a Home
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const cnpjInput   = document.getElementById('id_cnpj');
+    const razaoInput  = document.getElementById('id_razao_social');
+    const statusDiv   = document.getElementById('cnpj-status');
+    let   debounceTimer;
+
+    function limparCnpj(valor) {
+        return valor.replace(/\D/g, '').slice(0, 14);
+    }
+
+    if (cnpjInput) {
+        // Aceitar apenas dígitos
+        cnpjInput.addEventListener('input', function() {
+            this.value = limparCnpj(this.value);
+            clearTimeout(debounceTimer);
+
+            if (this.value.length === 14) {
+                statusDiv.innerHTML = '<span class="cnpj-loading"><i class="fa-solid fa-spinner fa-spin me-1"></i> Consultando Receita Federal...</span>';
+                if (razaoInput) razaoInput.value = '';
+
+                debounceTimer = setTimeout(() => {
+                    fetch(`/api/cnpj/${this.value}/`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.razao_social) {
+                                if (razaoInput) razaoInput.value = data.razao_social;
+                                statusDiv.innerHTML = `<span class="cnpj-found"><i class="fa-solid fa-circle-check me-1"></i> ${data.razao_social} — ${data.situacao || ''}</span>`;
+                            } else {
+                                statusDiv.innerHTML = '<span class="cnpj-error"><i class="fa-solid fa-circle-xmark me-1"></i> CNPJ não encontrado na Receita Federal.</span>';
+                            }
+                        })
+                        .catch(() => {
+                            statusDiv.innerHTML = '<span class="cnpj-error"><i class="fa-solid fa-wifi me-1"></i> Erro ao consultar. Preencha a razão social manualmente.</span>';
+                            if (razaoInput) razaoInput.removeAttribute('readonly');
+                        });
+                }, 600);
+            } else {
+                statusDiv.innerHTML = '';
+                if (razaoInput) razaoInput.value = '';
+            }
+        });
+    }
+
+    // Feedback no submit
+    document.getElementById('form-cadastro').addEventListener('submit', function() {
+        const btn = document.getElementById('btn-cadastro');
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Ativando acesso...';
+        btn.disabled = true;
+    });
+</script>
+{% endblock %}

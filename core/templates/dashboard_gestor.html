@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Operacional — Ordo Logística</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+  /* ================================================================
+     BASE — variáveis e estrutura da sidebar/topbar
+  ================================================================ */
+  :root {
+    --ordo-bg:        #0B1929;
+    --ordo-surface:   #112240;
+    --ordo-surface-2: #1A2E4A;
+    --ordo-border:    #1E3A5F;
+    --ordo-accent:    #00B4D8;
+    --ordo-accent-2:  #0077B6;
+    --ordo-text:      #CCD6F6;
+    --ordo-text-dim:  #8892B0;
+    --ordo-green:     #00D4A0;
+    --ordo-yellow:    #FFB703;
+    --ordo-red:       #FF4D6D;
+    --ordo-sidebar-w: 260px;
+    --ordo-radius:    12px;
+    --ordo-shadow:    0 4px 24px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background-color: var(--ordo-bg);
+    color: var(--ordo-text);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.92rem;
+    min-height: 100vh;
+  }
+
+  /* ---- SIDEBAR ---- */
+  .ordo-sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--ordo-sidebar-w);
+    height: 100vh;
+    background: var(--ordo-surface);
+    border-right: 1px solid var(--ordo-border);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    padding-bottom: 1.5rem;
+  }
+  .ordo-logo { padding: 1.5rem 1.5rem 1rem; border-bottom: 1px solid var(--ordo-border); }
+  .ordo-logo .logo-mark {
+    font-size: 1.6rem; font-weight: 800;
+    background: linear-gradient(135deg, var(--ordo-accent), var(--ordo-accent-2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; letter-spacing: -0.5px;
+  }
+  .ordo-logo .logo-sub {
+    font-size: 0.7rem; color: var(--ordo-text-dim);
+    text-transform: uppercase; letter-spacing: 1.5px; margin-top: 2px;
+  }
+  .ordo-nav { padding: 1rem 0.75rem; flex: 1; }
+  .ordo-nav-section {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--ordo-text-dim); padding: 0.5rem 0.75rem 0.25rem; margin-top: 0.5rem;
+  }
+  .ordo-nav-link {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.65rem 0.9rem; border-radius: 8px;
+    color: var(--ordo-text-dim); text-decoration: none;
+    transition: all 0.2s ease; font-size: 0.875rem; font-weight: 500; margin-bottom: 2px;
+  }
+  .ordo-nav-link i { width: 18px; text-align: center; font-size: 0.95rem; }
+  .ordo-nav-link:hover { background: var(--ordo-surface-2); color: var(--ordo-accent); }
+  .ordo-nav-link.active {
+    background: linear-gradient(135deg, rgba(0,180,216,0.15), rgba(0,119,182,0.1));
+    color: var(--ordo-accent); border: 1px solid rgba(0,180,216,0.2);
+  }
+  .ordo-sidebar-footer {
+    padding: 0.75rem 1rem; border-top: 1px solid var(--ordo-border);
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .ordo-avatar {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--ordo-accent), var(--ordo-accent-2));
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.85rem; color: white; flex-shrink: 0;
+  }
+  .ordo-user-name { font-size: 0.78rem; font-weight: 600; color: var(--ordo-text); }
+  .ordo-user-role { font-size: 0.68rem; color: var(--ordo-text-dim); }
+
+  /* ---- MAIN + TOPBAR ---- */
+  .ordo-main { margin-left: var(--ordo-sidebar-w); min-height: 100vh; padding: 0; }
+  .ordo-topbar {
+    background: var(--ordo-surface); border-bottom: 1px solid var(--ordo-border);
+    padding: 0.85rem 2rem; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .ordo-page-title { font-size: 1.05rem; font-weight: 600; color: var(--ordo-text); }
+
+  /* ---- DJANGO MESSAGES ---- */
+  .alert-ordo-success {
+    background: rgba(0,212,160,0.08); border: 1px solid rgba(0,212,160,0.25);
+    color: var(--ordo-green); border-radius: 8px;
+  }
+  .alert-ordo-danger {
+    background: rgba(255,77,109,0.08); border: 1px solid rgba(255,77,109,0.25);
+    color: var(--ordo-red); border-radius: 8px;
+  }
+  .alert-ordo-warn {
+    background: rgba(255,183,3,0.08); border: 1px solid rgba(255,183,3,0.25);
+    color: var(--ordo-yellow); border-radius: 8px;
+  }
+  .alert-ordo-info {
+    background: rgba(0,180,216,0.08); border: 1px solid rgba(0,180,216,0.2);
+    color: var(--ordo-accent); border-radius: 8px;
+  }
+
+  /* ================================================================
+     DASHBOARD GESTOR — CSS próprio (tema claro corporativo)
+  ================================================================ */
+  :root {
+    --az-escuro:   #1a2e4a;
+    --az-medio:    #1e3a5f;
+    --az-acao:     #1565c0;
+    --az-claro:    #e3f0ff;
+    --cinza-fundo: #f0f2f5;
+    --cinza-card:  #ffffff;
+    --cinza-borda: #dde1e7;
+    --cinza-texto: #5a6473;
+    --verde:       #2e7d32;
+    --verde-claro: #e8f5e9;
+    --laranja:     #e65100;
+    --laranja-cl:  #fff3e0;
+    --roxo:        #6a1b9a;
+    --roxo-claro:  #f3e5f5;
+    --vermelho:    #c62828;
+    --verm-claro:  #ffebee;
+    --amarelo:     #f9a825;
+    --amar-claro:  #fffde7;
+    --raio:        6px;
+    --sombra:      0 1px 4px rgba(0,0,0,.10);
+    --sombra-md:   0 2px 8px rgba(0,0,0,.12);
+  }
+
+  .dg-content {
+    background: var(--cinza-fundo);
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  /* ---- HEADER INTERNO ---- */
+  .dg-header {
+    background: var(--cinza-card);
+    border-bottom: 1px solid var(--cinza-borda);
+    padding: .85rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--sombra);
+  }
+  .dg-header-left h1 {
+    font-size: 1rem; font-weight: 700; color: var(--az-escuro);
+    margin: 0; font-family: system-ui, -apple-system, sans-serif; letter-spacing: -.3px;
+  }
+  .dg-header-left .dg-subtitulo {
+    font-size: .72rem; color: var(--cinza-texto); margin-top: 1px;
+  }
+  .dg-header-right { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+  .dg-relogio {
+    font-size: .78rem; font-variant-numeric: tabular-nums;
+    color: var(--cinza-texto); font-family: system-ui, monospace;
+    border: 1px solid var(--cinza-borda); border-radius: var(--raio);
+    padding: .3rem .65rem; background: var(--cinza-fundo); white-space: nowrap;
+  }
+  .dg-input-data {
+    border: 1px solid var(--cinza-borda); border-radius: var(--raio);
+    padding: .3rem .6rem; font-size: .8rem; color: var(--az-escuro);
+    background: var(--cinza-card); font-family: system-ui, -apple-system, sans-serif; cursor: pointer;
+  }
+  .dg-input-data:focus { outline: 2px solid var(--az-acao); outline-offset: 1px; }
+  .dg-btn {
+    border: none; border-radius: var(--raio); padding: .3rem .85rem;
+    font-size: .78rem; font-weight: 600; cursor: pointer;
+    font-family: system-ui, -apple-system, sans-serif;
+    transition: opacity .15s, filter .15s; white-space: nowrap;
+  }
+  .dg-btn:hover    { filter: brightness(.92); }
+  .dg-btn-outline  { background: transparent; border: 1px solid var(--cinza-borda); color: var(--az-escuro); }
+  .dg-btn-primario { background: var(--az-acao); color: #fff; }
+  .dg-badge-alerta {
+    background: var(--amarelo); color: #1a1a1a; font-size: .68rem; font-weight: 700;
+    border-radius: 999px; padding: .25rem .6rem;
+    animation: pulso 1.5s ease-in-out infinite alternate;
+  }
+  @keyframes pulso {
+    from { box-shadow: 0 0 0 0 rgba(249,168,37,.6); }
+    to   { box-shadow: 0 0 0 6px rgba(249,168,37,0); }
+  }
+
+  /* ---- KPI CARDS ---- */
+  .dg-kpis {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: .85rem; padding: 1.25rem 1.5rem .25rem;
+  }
+  .dg-kpi {
+    background: var(--cinza-card); border: 1px solid var(--cinza-borda);
+    border-radius: var(--raio); border-left: 4px solid var(--cinza-borda);
+    padding: .9rem 1rem; display: flex; align-items: center; gap: .9rem;
+    box-shadow: var(--sombra); transition: box-shadow .2s;
+  }
+  .dg-kpi:hover { box-shadow: var(--sombra-md); }
+  .dg-kpi-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; opacity: .85;
+  }
+  .dg-kpi-icon svg { width: 18px; height: 18px; }
+  .dg-kpi-body { flex: 1; min-width: 0; }
+  .dg-kpi-label {
+    font-size: .65rem; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--cinza-texto); margin-bottom: 3px; white-space: nowrap;
+  }
+  .dg-kpi-valor {
+    font-size: 1.8rem; font-weight: 800; line-height: 1;
+    color: var(--az-escuro); font-variant-numeric: tabular-nums;
+  }
+  .dg-kpi-detalhe {
+    font-size: .65rem; color: var(--cinza-texto); margin-top: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .dg-kpi-azul  { border-left-color: var(--az-acao);  }
+  .dg-kpi-cinza { border-left-color: #90a4ae;          }
+  .dg-kpi-roxo  { border-left-color: var(--roxo);      }
+  .dg-kpi-verde { border-left-color: var(--verde);     }
+  .dg-kpi-amber { border-left-color: var(--amarelo);   }
+
+  /* ---- PAINEL DE ALERTAS ---- */
+  .dg-alertas {
+    margin: .85rem 1.5rem;
+    background: var(--amar-claro); border: 1px solid #f9a82560;
+    border-left: 4px solid var(--amarelo); border-radius: var(--raio); overflow: hidden;
+  }
+  .dg-alertas-titulo {
+    background: #f9a82514; padding: .6rem 1rem; font-size: .78rem;
+    font-weight: 700; color: #7b6200; border-bottom: 1px solid #f9a82530;
+  }
+  .dg-alerta-item {
+    display: flex; align-items: center; gap: .75rem;
+    padding: .5rem 1rem; border-bottom: 1px solid #f9a82520;
+    font-size: .78rem; color: #3d3000;
+  }
+  .dg-alerta-item:last-child { border-bottom: none; }
+  .dg-alerta-tempo { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .dg-alerta-urgente { color: var(--vermelho); }
+  .dg-alerta-aviso   { color: var(--laranja); }
+  .dg-alerta-link {
+    margin-left: auto; font-size: .72rem; color: var(--az-acao); text-decoration: none;
+    border: 1px solid var(--az-acao); border-radius: 4px; padding: .15rem .5rem; white-space: nowrap;
+  }
+  .dg-alerta-link:hover { background: var(--az-claro); }
+
+  /* ---- LAYOUT DUAS COLUNAS ---- */
+  .dg-layout {
+    display: grid; grid-template-columns: 1fr 260px;
+    gap: .85rem; padding: .85rem 1.5rem 1.5rem; align-items: start;
+  }
+
+  /* ---- TABELA PRINCIPAL ---- */
+  .dg-tabela-wrap {
+    background: var(--cinza-card); border: 1px solid var(--cinza-borda);
+    border-radius: var(--raio); box-shadow: var(--sombra); overflow: hidden;
+  }
+  .dg-tabela-head {
+    background: var(--az-escuro); display: flex; align-items: center;
+    justify-content: space-between; padding: .7rem 1rem;
+  }
+  .dg-tabela-head-titulo { font-size: .8rem; font-weight: 700; color: #fff; letter-spacing: .2px; }
+  .dg-tabela-head-info   { font-size: .68rem; color: rgba(255,255,255,.55); }
+  .dg-table {
+    width: 100%; border-collapse: collapse;
+    font-family: system-ui, -apple-system, sans-serif; font-size: .78rem;
+    color: #1e2a3a;
+  }
+  .dg-table thead tr {
+    background: #edf1f7; position: sticky; top: 0; z-index: 1;
+  }
+  .dg-table thead th {
+    color: var(--cinza-texto); font-size: .65rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .5px; padding: .55rem .75rem;
+    text-align: left; border-bottom: 1px solid var(--cinza-borda); white-space: nowrap;
+  }
+  .dg-table tbody tr {
+    position: relative; z-index: 0;
+    border-bottom: 1px solid #f0f2f5; cursor: pointer; transition: background .12s;
+  }
+  .dg-table tbody tr:hover    { background: #f5f8ff; }
+  .dg-table tbody tr.row-selected { background: #e3f0ff !important; }
+  .dg-table tbody td { color: #1e2a3a; }
+  .tr-inativo { opacity: .55; }
+  .tr-inativo td:first-child { text-decoration: line-through; }
+  .tr-nfe-alerta { border-left: 3px solid var(--amarelo) !important; background: #fffef5; }
+  .dg-table td { padding: .6rem .75rem; vertical-align: middle; color: #1e2a3a; }
+  .dg-td-num { font-size: .68rem; color: var(--cinza-texto); width: 32px; }
+  .dg-td-horario .hora        { font-weight: 700; color: var(--az-escuro); }
+  .dg-td-horario .hora-atraso { font-weight: 700; color: var(--vermelho); }
+  .dg-td-horario .fim-est     { font-size: .65rem; color: var(--cinza-texto); margin-top: 1px; }
+  .badge-doca {
+    display: inline-flex; align-items: center; gap: 3px;
+    background: var(--az-claro); color: var(--az-escuro);
+    font-size: .68rem; font-weight: 700; border-radius: 4px;
+    padding: 2px 6px; margin-right: 3px; white-space: nowrap;
+  }
+  .td-forn-nome {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 160px; font-weight: 600; font-size: .78rem;
+  }
+  .td-forn-score {
+    margin-top: 3px; height: 4px; background: #e0e0e0;
+    border-radius: 2px; overflow: hidden;
+  }
+  .td-forn-score-fill { height: 100%; border-radius: 2px; transition: width .4s; }
+  .dg-status {
+    display: inline-flex; align-items: center; gap: 4px;
+    border-radius: 999px; padding: 3px 9px;
+    font-size: .68rem; font-weight: 700; white-space: nowrap;
+  }
+  .dg-st-pre  { background: #eceff1; color: #455a64; }
+  .dg-st-conf { background: var(--az-claro);    color: var(--az-acao); }
+  .dg-st-patio{ background: var(--laranja-cl);  color: var(--laranja); }
+  .dg-st-desc { background: var(--roxo-claro);  color: var(--roxo);    }
+  .dg-st-fin  { background: var(--verde-claro); color: var(--verde);   }
+  .dg-st-ns   { background: var(--verm-claro);  color: var(--vermelho);}
+  .dg-st-canc { background: #f5f5f5; color: #9e9e9e; }
+  .nfe-ok    { color: var(--verde);       font-weight: 600; font-size: .75rem; }
+  .nfe-prazo { color: var(--cinza-texto); font-size: .72rem; }
+  .nfe-aviso { color: var(--laranja);     font-weight: 700; font-size: .72rem; }
+  .nfe-exp   { color: var(--vermelho);    font-weight: 700; font-size: .72rem; }
+  .nfe-sub   { font-size: .62rem; color: var(--cinza-texto); display: block; margin-top: 1px; }
+
+  /* ---- AÇÕES ---- */
+  .acao-wrap { display: flex; align-items: center; gap: .4rem; flex-wrap: nowrap; }
+  .input-checkin {
+    width: 72px; border: 1px solid var(--cinza-borda); border-radius: 4px;
+    padding: .28rem .4rem; font-size: .82rem; font-weight: 700;
+    text-align: center; letter-spacing: 2px; color: var(--az-escuro);
+    background: #f8f9fc; font-family: system-ui, monospace;
+    outline: none; transition: border-color .15s;
+  }
+  .input-checkin:focus { border-color: var(--az-acao); background: #fff; }
+  .btn-acao {
+    border: none; border-radius: 4px; padding: .3rem .65rem;
+    font-size: .72rem; font-weight: 700; cursor: pointer;
+    font-family: system-ui, -apple-system, sans-serif;
+    transition: filter .15s; white-space: nowrap;
+  }
+  .btn-acao:hover { filter: brightness(.88); }
+  .btn-checkin { background: var(--az-acao); color: #fff; }
+  .btn-iniciar { background: var(--roxo);    color: #fff; }
+  .btn-fin     { background: var(--verde);   color: #fff; }
+  .btn-ver     { background: #eceff1; color: var(--az-escuro); border: 1px solid var(--cinza-borda); }
+  .btn-reag    { background: transparent; color: var(--vermelho); border: 1px solid var(--vermelho); }
+  .acao-texto  { font-size: .7rem; color: var(--cinza-texto); }
+  .dg-empty {
+    text-align: center; padding: 3rem 1rem;
+    color: var(--cinza-texto); font-size: .85rem;
+  }
+  .dg-empty svg { width: 40px; height: 40px; opacity: .25; display: block; margin: 0 auto .75rem; }
+
+  /* ---- SIDEBAR DE DOCAS ---- */
+  .dg-sidebar { display: flex; flex-direction: column; gap: .65rem; }
+  .dg-sidebar-titulo {
+    font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--cinza-texto); padding: .2rem 0; border-bottom: 2px solid var(--cinza-borda); margin-bottom: .2rem;
+  }
+  .doca-card {
+    border-radius: var(--raio); border: 1px solid var(--cinza-borda);
+    padding: .7rem .85rem; box-shadow: var(--sombra); font-family: system-ui, -apple-system, sans-serif;
+  }
+  .doca-card-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem;
+  }
+  .doca-codigo { font-size: .82rem; font-weight: 800; color: var(--az-escuro); }
+  .doca-tipo   { font-size: .62rem; color: var(--cinza-texto); background: #eceff1; border-radius: 3px; padding: 1px 5px; }
+  .doca-barra-track {
+    height: 5px; background: #e0e0e0; border-radius: 3px; overflow: hidden; margin-bottom: .55rem;
+  }
+  .doca-barra-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
+  .doca-status-line {
+    font-size: .72rem; font-weight: 700; display: flex; align-items: center; gap: 4px; margin-bottom: 2px;
+  }
+  .doca-sub { font-size: .65rem; color: var(--cinza-texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .doca-livre  { background: var(--verde-claro); border-color: #a5d6a7; }
+  .doca-livre  .doca-codigo      { color: var(--verde); }
+  .doca-livre  .doca-status-line { color: var(--verde); }
+  .doca-livre  .doca-barra-fill  { background: var(--verde); }
+  .doca-patio  { background: var(--laranja-cl); border-color: #ffcc80; }
+  .doca-patio  .doca-status-line { color: var(--laranja); }
+  .doca-patio  .doca-barra-fill  { background: var(--laranja); }
+  .doca-desc   { background: var(--roxo-claro); border-color: #ce93d8; }
+  .doca-desc   .doca-status-line { color: var(--roxo); }
+  .doca-desc   .doca-barra-fill  { background: var(--roxo); }
+  .doca-conf   { background: #1b5e20; border-color: #2e7d32; }
+  .doca-conf   .doca-codigo      { color: #ffffff; }
+  .doca-conf   .doca-tipo        { background: rgba(255,255,255,.15); color: rgba(255,255,255,.75); }
+  .doca-conf   .doca-status-line { color: #a5d6a7; }
+  .doca-conf   .doca-barra-fill  { background: #a5d6a7; }
+  .doca-conf   .doca-sub         { color: rgba(255,255,255,.65); }
+  .doca-manut  { background: #ffebee; border-color: #ef9a9a; }
+  .doca-manut  .doca-codigo      { color: #c62828; }
+  .doca-manut  .doca-status-line { color: #c62828; }
+  .doca-manut  .doca-barra-fill  { background: #ef9a9a; }
+
+  /* ---- RESPONSIVIDADE ---- */
+  @media (max-width: 1400px) {
+    .dg-kpis   { grid-template-columns: repeat(3, 1fr); }
+    .dg-layout { grid-template-columns: 1fr; }
+    .dg-sidebar {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .65rem;
+    }
+    .dg-sidebar-titulo { grid-column: 1 / -1; }
+    .dg-col-tipo, .dg-col-score { display: none; }
+  }
+  @media (max-width: 1100px) {
+    .dg-kpis   { grid-template-columns: repeat(2, 1fr); }
+    .dg-header { flex-wrap: wrap; gap: .5rem; }
+  }
+  </style>
+</head>
+<body>
+
+<!-- ================================================================
+     SIDEBAR
+================================================================ -->
+<aside class="ordo-sidebar">
+  <div class="ordo-logo">
+    <div class="logo-mark">ORDO</div>
+    <div class="logo-sub">Tecnologia Logística</div>
+  </div>
+
+  <nav class="ordo-nav">
+    <div class="ordo-nav-section">Gestão</div>
+    <a href="{% url 'dashboard' %}" class="ordo-nav-link active">
+      <i class="fa-solid fa-warehouse"></i> Dashboard Pátio
+    </a>
+    <div class="ordo-nav-section">Portaria</div>
+    <a href="{% url 'consulta' %}" class="ordo-nav-link">
+      <i class="fa-solid fa-door-open"></i> Consulta Portaria
+    </a>
+  </nav>
+
+  <div class="ordo-sidebar-footer">
+    <div class="ordo-avatar">{{ request.user.username|slice:":2"|upper }}</div>
+    <div class="overflow-hidden">
+      <div class="ordo-user-name text-truncate">{{ request.user.username }}</div>
+      <div class="ordo-user-role">Gestor Pátio</div>
+    </div>
+    <form method="post" action="{% url 'logout' %}"
+          style="margin-left:auto; display:flex; align-items:center;">
+      {% csrf_token %}
+      <button type="submit" class="text-muted" title="Sair"
+              style="background:none; border:none; padding:0; cursor:pointer; line-height:1;">
+        <i class="fa-solid fa-right-from-bracket fa-sm"></i>
+      </button>
+    </form>
+  </div>
+</aside>
+
+<!-- ================================================================
+     MAIN
+================================================================ -->
+<div class="ordo-main">
+
+  <div class="ordo-topbar">
+    <div class="ordo-page-title">Ordo Logística</div>
+    <small class="text-muted">
+      <i class="fa-regular fa-clock me-1"></i>
+      <span id="relogio-topo">--:--:--</span>
+    </small>
+  </div>
+
+  {% if messages %}
+  <div class="px-4 pt-3">
+    {% for message in messages %}
+    <div class="alert-ordo-{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}danger{% elif message.tags == 'warning' %}warn{% else %}info{% endif %} alert alert-dismissible fade show p-3 mb-2" role="alert">
+      {{ message|safe }}
+      <button type="button" class="btn-close btn-close-white opacity-50" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="dg-content">
+
+    <!-- ============================================================
+         SEÇÃO 1 — HEADER INTERNO DO DASHBOARD
+         ============================================================ -->
+    <header class="dg-header">
+      <div class="dg-header-left">
+        <h1>Dashboard Operacional
+          {% if alertas_prazo %}
+            <span class="dg-badge-alerta" title="{{ alertas_prazo|length }} NF-e com prazo crítico">
+              ⚠ {{ alertas_prazo|length }} alerta{{ alertas_prazo|length|pluralize }}
+            </span>
+          {% endif %}
+        </h1>
+        <div class="dg-subtitulo">
+          {{ titulo_periodo }} &mdash; {{ total }} agendamento{{ total|pluralize }}
+        </div>
+      </div>
+
+      <div class="dg-header-right">
+        <div class="dg-relogio" id="relogio">{{ agora|date:"H:i:s" }}</div>
+        <form method="GET" action="/dashboard/" style="display:contents;">
+          <input type="date" name="data" value="{{ data_filtro }}" class="dg-input-data" id="input-data">
+          <select name="periodo" id="select-periodo" class="dg-input-data" style="width:auto; cursor:pointer;">
+            <option value="dia"    {% if periodo == 'dia'    %}selected{% endif %}>Dia</option>
+            <option value="semana" {% if periodo == 'semana' %}selected{% endif %}>Semana</option>
+            <option value="mes"    {% if periodo == 'mes'    %}selected{% endif %}>Mês</option>
+          </select>
+          <button type="submit" class="dg-btn dg-btn-outline">Filtrar</button>
+          <a href="/dashboard/" class="dg-btn dg-btn-outline">Hoje</a>
+          <button type="button" class="dg-btn dg-btn-primario"
+                  onclick="var u=new URL(location.href);var d=document.getElementById('input-data');var p=document.getElementById('select-periodo');if(d&&d.value)u.searchParams.set('data',d.value);if(p&&p.value)u.searchParams.set('periodo',p.value);location.href=u.toString();">
+            ↻ Atualizar
+          </button>
+        </form>
+      </div>
+    </header>
+
+
+    <!-- ============================================================
+         SEÇÃO 2 — KPI CARDS
+         ============================================================ -->
+    <div class="dg-kpis">
+
+      <div class="dg-kpi dg-kpi-azul">
+        <div class="dg-kpi-icon" style="background:#e3f0ff;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1565c0" stroke-width="2" stroke-linecap="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <div class="dg-kpi-body">
+          <div class="dg-kpi-label">Total do Dia</div>
+          <div class="dg-kpi-valor" style="color:var(--az-acao);">{{ total }}</div>
+          <div class="dg-kpi-detalhe">{{ titulo_periodo }}</div>
+        </div>
+      </div>
+
+      <div class="dg-kpi {% if alertas_prazo %}dg-kpi-amber{% else %}dg-kpi-cinza{% endif %}">
+        <div class="dg-kpi-icon" style="background:#eceff1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#607d8b" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="dg-kpi-body">
+          <div class="dg-kpi-label">Pré-agendados</div>
+          <div class="dg-kpi-valor" style="color:#455a64;">{{ pre_agendados }}</div>
+          <div class="dg-kpi-detalhe {% if alertas_prazo %}dg-alerta-aviso{% endif %}">
+            {% if alertas_prazo %}⚠ {{ alertas_prazo|length }} com NF-e crítica{% else %}Aguardando NF-e{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="dg-kpi dg-kpi-azul">
+        <div class="dg-kpi-icon" style="background:#e3f0ff;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1565c0" stroke-width="2" stroke-linecap="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="dg-kpi-body">
+          <div class="dg-kpi-label">Confirmados</div>
+          <div class="dg-kpi-valor" style="color:var(--az-acao);">{{ confirmados }}</div>
+          <div class="dg-kpi-detalhe">NF-e validada</div>
+        </div>
+      </div>
+
+      <div class="dg-kpi dg-kpi-roxo">
+        <div class="dg-kpi-icon" style="background:var(--roxo-claro);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#6a1b9a" stroke-width="2" stroke-linecap="round">
+            <rect x="1" y="3" width="15" height="13" rx="1"/>
+            <path d="M16 8h4l3 3v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/>
+            <circle cx="18.5" cy="18.5" r="2.5"/>
+          </svg>
+        </div>
+        <div class="dg-kpi-body">
+          <div class="dg-kpi-label">Em Operação</div>
+          <div class="dg-kpi-valor" style="color:var(--roxo);">{{ em_operacao }}</div>
+          <div class="dg-kpi-detalhe">{{ em_patio }} pátio · {{ em_descarga }} descarga</div>
+        </div>
+      </div>
+
+      <div class="dg-kpi dg-kpi-verde">
+        <div class="dg-kpi-icon" style="background:var(--verde-claro);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2" stroke-linecap="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <div class="dg-kpi-body">
+          <div class="dg-kpi-label">Finalizados</div>
+          <div class="dg-kpi-valor" style="color:var(--verde);">{{ finalizados }}</div>
+          <div class="dg-kpi-detalhe">
+            {% if noshow %}⚠ {{ noshow }} no-show{% else %}Sem ocorrências{% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ============================================================
+         SEÇÃO 3 — PAINEL DE ALERTAS
+         ============================================================ -->
+    {% if alertas_prazo %}
+    <div class="dg-alertas">
+      <div class="dg-alertas-titulo">
+        ⚠ Atenção &mdash; NF-e com prazo crítico ({{ alertas_prazo|length }} ocorrência{{ alertas_prazo|length|pluralize }})
+      </div>
+      {% for item in alertas_prazo %}
+      <div class="dg-alerta-item">
+        <span style="font-size:1rem;">{% if item.urgente %}🔴{% else %}🟠{% endif %}</span>
+        <div>
+          <strong>PO {{ item.ag.numero_pedido }}</strong>
+          — {{ item.ag.fornecedor.razao_social|truncatechars:30 }}
+          — Descarga: {{ item.ag.inicio|date:"d/m H:i" }}
+        </div>
+        <span class="dg-alerta-tempo {% if item.urgente %}dg-alerta-urgente{% else %}dg-alerta-aviso{% endif %}">
+          {{ item.minutos }}min restantes
+        </span>
+        <a class="dg-alerta-link" href="#ag-{{ item.ag.pk }}">↓ Ver linha</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+
+    <!-- ============================================================
+         LAYOUT DUAS COLUNAS: tabela + sidebar docas
+         ============================================================ -->
+    <div class="dg-layout">
+
+      <!-- SEÇÃO 4 — TABELA PRINCIPAL -->
+      <div class="dg-tabela-wrap">
+        <div class="dg-tabela-head">
+          <span class="dg-tabela-head-titulo">Agendamentos &mdash; {{ titulo_periodo }}</span>
+          <span class="dg-tabela-head-info">
+            Atualiza a cada 60s &nbsp;·&nbsp; Última sincronização: {{ agora|date:"H:i" }}
+          </span>
+        </div>
+
+        {% if agendamentos %}
+        <div style="overflow-x:auto;">
+          <table class="dg-table">
+            <thead>
+              <tr>
+                <th class="dg-col-num">#</th>
+                <th>Horário</th>
+                <th>Doca(s)</th>
+                <th>Fornecedor</th>
+                <th>PO</th>
+                <th class="dg-col-tipo">Tipo</th>
+                <th>Status</th>
+                <th>NF-e</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ag in agendamentos %}
+              <tr id="ag-{{ ag.pk }}"
+                  class="{% if ag.status == 'NO_SHOW' or ag.status == 'CANCELADO' %}tr-inativo{% endif %}{% if ag.prazo_expirado and not ag.nfe_validada %} tr-nfe-alerta{% endif %}"
+                  onclick="selecionarLinha(this)">
+
+                <td class="dg-td-num">{{ forloop.counter }}</td>
+
+                <td class="dg-td-horario">
+                  <div class="{% if not ag.nfe_validada and ag.inicio < agora and ag.status == 'PRE_AGENDADO' %}hora-atraso{% else %}hora{% endif %}">
+                    {{ ag.inicio|date:"H:i" }}
+                  </div>
+                  {% if ag.fim_estimado %}
+                  <div class="fim-est">até {{ ag.fim_estimado|date:"H:i" }}</div>
+                  {% endif %}
+                </td>
+
+                <td>
+                  {% for doca in ag.docas.all %}
+                  <span class="badge-doca">
+                    {{ doca.codigo }}{% if doca.temperatura_controlada %}&nbsp;❄{% endif %}
+                  </span>
+                  {% empty %}
+                  <span style="color:var(--cinza-texto); font-size:.7rem;">—</span>
+                  {% endfor %}
+                </td>
+
+                <td>
+                  <div class="td-forn-nome" title="{{ ag.fornecedor.razao_social }}">
+                    {{ ag.fornecedor.razao_social|truncatechars:22 }}
+                  </div>
+                  <div class="td-forn-score dg-col-score">
+                    <div class="td-forn-score-fill"
+                         style="width:{{ ag.fornecedor.score_pontualidade|floatformat:0 }}%;
+                                background:{% if ag.fornecedor.score_pontualidade >= 80 %}var(--verde){% elif ag.fornecedor.score_pontualidade >= 50 %}var(--amarelo){% else %}var(--vermelho){% endif %};">
+                    </div>
+                  </div>
+                </td>
+
+                <td style="font-size:.78rem; font-weight:600; white-space:nowrap;">
+                  {{ ag.numero_pedido }}
+                </td>
+
+                <td class="dg-col-tipo" style="font-size:.72rem; color:var(--cinza-texto); white-space:nowrap;">
+                  {{ ag.get_tipo_carga_display }}
+                </td>
+
+                <td>
+                  {% if ag.status == 'PRE_AGENDADO' or ag.status == 'AGUARDANDO_FISCAL' %}
+                    <span class="dg-status dg-st-pre">○ Pré-ag.</span>
+                  {% elif ag.status == 'CONFIRMADO' %}
+                    <span class="dg-status dg-st-conf">◉ Confirmado</span>
+                  {% elif ag.status == 'EM_PATIO' %}
+                    <span class="dg-status dg-st-patio">▶ Em Pátio</span>
+                  {% elif ag.status == 'EM_DESCARGA' %}
+                    <span class="dg-status dg-st-desc">⟳ Descarga</span>
+                  {% elif ag.status == 'FINALIZADO' %}
+                    <span class="dg-status dg-st-fin">✓ Finalizado</span>
+                  {% elif ag.status == 'NO_SHOW' %}
+                    <span class="dg-status dg-st-ns">✗ No-show</span>
+                  {% elif ag.status == 'CANCELADO' %}
+                    <span class="dg-status dg-st-canc">⊘ Cancelado</span>
+                  {% else %}
+                    <span class="dg-status dg-st-pre">{{ ag.get_status_display }}</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  {% if ag.nfe_validada %}
+                    <span class="nfe-ok">✔ Vinculada</span>
+                    {% if ag.nfe_vinculada_em %}
+                    <span class="nfe-sub">{{ ag.nfe_vinculada_em|date:"d/m H:i" }}</span>
+                    {% endif %}
+                  {% elif ag.prazo_expirado %}
+                    <span class="nfe-exp">✘ Expirado</span>
+                  {% elif ag.prazo_vinculo_nfe %}
+                    {% with prazo=ag.prazo_vinculo_nfe %}
+                      {% if ag.status == 'PRE_AGENDADO' or ag.status == 'AGUARDANDO_FISCAL' %}
+                        <span class="{% if prazo < agora %}nfe-exp{% else %}nfe-prazo{% endif %}">
+                          Até {{ prazo|date:"d/m H:i" }}
+                        </span>
+                      {% endif %}
+                    {% endwith %}
+                  {% else %}
+                    <span style="color:var(--cinza-texto); font-size:.7rem;">—</span>
+                  {% endif %}
+                </td>
+
+                <td onclick="event.stopPropagation()">
+                  <div class="acao-wrap">
+                    {% if ag.status == 'CONFIRMADO' %}
+                    <form method="post" action="{% url 'gestor_checkin' ag.pk %}" id="form-checkin-{{ ag.pk }}">
+                      {% csrf_token %}
+                      <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
+                      <input type="text" name="codigo_descarga" class="input-checkin"
+                             maxlength="4" pattern="\d{4}" placeholder="0000"
+                             autocomplete="off" inputmode="numeric"
+                             data-form-id="form-checkin-{{ ag.pk }}"
+                             title="Código de descarga de 4 dígitos">
+                      <button type="submit" class="btn-acao btn-checkin">Check-in</button>
+                    </form>
+
+                    {% elif ag.status == 'EM_PATIO' %}
+                    <div style="font-size:.68rem; color:var(--laranja); margin-bottom:3px;">
+                      ▶ Entrou {% if ag.horario_entrada_patio %}{{ ag.horario_entrada_patio|date:"H:i" }}{% endif %}
+                    </div>
+                    <form method="post" action="{% url 'gestor_status' ag.pk %}" class="form-status">
+                      {% csrf_token %}
+                      <input type="hidden" name="novo_status" value="EM_DESCARGA">
+                      <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
+                      <button type="submit" class="btn-acao btn-iniciar"
+                              data-mensagem="Iniciar descarga para {{ ag.fornecedor.razao_social|truncatechars:25 }} (PO: {{ ag.numero_pedido }})?">
+                        ▶ Iniciar Descarga
+                      </button>
+                    </form>
+
+                    {% elif ag.status == 'EM_DESCARGA' %}
+                    <div style="font-size:.68rem; color:var(--roxo); margin-bottom:3px;">
+                      ⟳ Descarga desde {% if ag.horario_inicio_descarga %}{{ ag.horario_inicio_descarga|date:"H:i" }}{% endif %}
+                    </div>
+                    <form method="post" action="{% url 'gestor_status' ag.pk %}" class="form-status">
+                      {% csrf_token %}
+                      <input type="hidden" name="novo_status" value="FINALIZADO">
+                      <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
+                      <button type="submit" class="btn-acao btn-fin"
+                              data-mensagem="Finalizar descarga de {{ ag.fornecedor.razao_social|truncatechars:25 }} (PO: {{ ag.numero_pedido }})?">
+                        ✓ Finalizar
+                      </button>
+                    </form>
+
+                    {% elif ag.status == 'FINALIZADO' %}
+                    <span class="acao-texto">
+                      ✓ Fim:&nbsp;
+                      {% if ag.horario_finalizacao %}{{ ag.horario_finalizacao|date:"H:i" }}
+                      {% elif ag.horario_chegada_real %}{{ ag.horario_chegada_real|date:"H:i" }}
+                      {% else %}—{% endif %}
+                    </span>
+
+                    {% elif ag.status == 'NO_SHOW' %}
+                    <a href="/admin/core/agendamento/{{ ag.pk }}/change/" class="btn-acao btn-reag">Reagendar</a>
+
+                    {% elif ag.status == 'PRE_AGENDADO' %}
+                    <a href="/admin/core/agendamento/{{ ag.pk }}/change/" class="btn-acao btn-ver">Ver</a>
+
+                    {% elif ag.status == 'AGUARDANDO_FISCAL' %}
+                    <a href="/fiscal/agendamento/{{ ag.pk }}/" class="btn-acao btn-checkin">Aprovar</a>
+
+                    {% else %}
+                    <span class="acao-texto">—</span>
+                    {% endif %}
+                  </div>
+                </td>
+
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% else %}
+        <div class="dg-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <line x1="9" y1="16" x2="15" y2="16" stroke-dasharray="2"/>
+          </svg>
+          Nenhum agendamento para <strong>{{ titulo_periodo }}</strong>.
+        </div>
+        {% endif %}
+
+      </div>
+
+
+      <!-- SEÇÃO 5 — SIDEBAR DE DOCAS -->
+      <aside class="dg-sidebar">
+        <div class="dg-sidebar-titulo">Estado das Docas</div>
+
+        {% for item in docas_status %}
+        <div class="doca-card {% if not item.doca.ativa %}doca-manut{% elif item.ag_ativo and item.ag_ativo.status == 'EM_DESCARGA' %}doca-desc{% elif item.ag_ativo and item.ag_ativo.status == 'EM_PATIO' %}doca-patio{% elif item.ag_prox %}doca-conf{% else %}doca-livre{% endif %}">
+
+          <div class="doca-card-header">
+            <span class="doca-codigo">{{ item.doca.codigo }}</span>
+            <span class="doca-tipo">{{ item.doca.get_tipo_maximo_display|default:item.doca.tipo_maximo }}</span>
+          </div>
+
+          <div class="doca-barra-track">
+            <div class="doca-barra-fill" style="width:{{ item.ocup_pct }}%;"></div>
+          </div>
+
+          {% if not item.doca.ativa %}
+            <div class="doca-status-line">🔧 Manutenção</div>
+            <div class="doca-sub">Fora de operação</div>
+          {% elif item.ag_ativo %}
+            <div class="doca-status-line">
+              {% if item.ag_ativo.status == 'EM_DESCARGA' %}⟳ Em Descarga{% else %}▶ Em Pátio{% endif %}
+            </div>
+            <div class="doca-sub" title="{{ item.ag_ativo.fornecedor.razao_social }}">
+              {{ item.ag_ativo.fornecedor.razao_social|truncatechars:22 }}
+            </div>
+            {% if item.ag_ativo.fim_estimado %}
+            <div class="doca-sub">Até {{ item.ag_ativo.fim_estimado|date:"H:i" }}</div>
+            {% endif %}
+          {% elif item.ag_prox %}
+            <div class="doca-status-line">◉ Próximo</div>
+            <div class="doca-sub" title="{{ item.ag_prox.fornecedor.razao_social }}">
+              {{ item.ag_prox.fornecedor.razao_social|truncatechars:22 }}
+            </div>
+            <div class="doca-sub">{{ item.ag_prox.inicio|date:"H:i" }}</div>
+          {% else %}
+            <div class="doca-status-line">✓ Disponível</div>
+            <div class="doca-sub">Sem operação ativa</div>
+          {% endif %}
+
+          <div style="font-size:.62rem; color:var(--cinza-texto); margin-top:.35rem;">
+            {{ item.total_dia }} ag. hoje &nbsp;·&nbsp;
+            {% if item.doca.temperatura_controlada %}❄ Temp. controlada{% else %}Amb. normal{% endif %}
+          </div>
+
+        </div>
+        {% empty %}
+        <div style="font-size:.75rem; color:var(--cinza-texto); text-align:center; padding:1rem;">
+          Nenhuma doca cadastrada.
+        </div>
+        {% endfor %}
+
+      </aside>
+
+    </div>
+
+  </div>{# /dg-content #}
+</div>{# /ordo-main #}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* Relógio da topbar */
+(function() {
+  function tick() {
+    var el = document.getElementById('relogio-topo');
+    if (el) el.textContent = new Date().toLocaleTimeString('pt-BR');
+  }
+  tick(); setInterval(tick, 1000);
+})();
+
+/* Relógio do header interno */
+(function() {
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function tick() {
+    var d = new Date(), el = document.getElementById('relogio');
+    if (el) el.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+  tick(); setInterval(tick, 1000);
+})();
+
+/* Auto-submit check-in ao 4º dígito */
+document.querySelectorAll('.input-checkin').forEach(function(input) {
+  input.addEventListener('input', function() {
+    this.value = this.value.replace(/\D/g, '').slice(0, 4);
+    if (this.value.length === 4) {
+      var form = document.getElementById(this.getAttribute('data-form-id'));
+      if (form) form.submit();
+    }
+  });
+  input.addEventListener('click', function(e) { e.stopPropagation(); });
+});
+
+/* Confirmação de ações críticas */
+document.querySelectorAll('.form-status button[data-mensagem]').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    if (!confirm(this.getAttribute('data-mensagem'))) {
+      e.preventDefault(); e.stopPropagation();
+    }
+  });
+});
+
+/* Highlight de linha */
+function selecionarLinha(tr) {
+  document.querySelectorAll('.dg-table tbody tr.row-selected').forEach(function(r) {
+    r.classList.remove('row-selected');
+  });
+  tr.classList.add('row-selected');
+}
+
+/* Atualização automática a cada 60s */
+(function() {
+  setTimeout(function() {
+    var url = new URL(window.location.href);
+    var inputData = document.getElementById('input-data');
+    if (inputData && inputData.value) url.searchParams.set('data', inputData.value);
+    window.location.href = url.toString();
+  }, 60000);
+})();
+
+/* Fade-out automático de alertas Django após 8s */
+(function() {
+  document.querySelectorAll('.alert-dismissible').forEach(function(el) {
+    setTimeout(function() {
+      el.style.transition = 'opacity .6s ease';
+      el.style.opacity = '0';
+      setTimeout(function() { el.remove(); }, 650);
+    }, 8000);
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,370 @@
+{% extends 'base.html' %}
+
+{% block title %}Triagem Fiscal — Ag. #{{ agendamento.pk }} | Ordo{% endblock %}
+{% block page_title %}Triagem Fiscal{% endblock %}
+{% block page_subtitle %}Agendamento #{{ agendamento.pk }} — {{ agendamento.fornecedor.razao_social|truncatechars:40 }}{% endblock %}
+{% block nav_fiscal %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'fiscal_dashboard' %}" class="btn-ordo-ghost btn btn-sm">
+    <i class="fa-solid fa-arrow-left me-1"></i> Voltar à Fila
+</a>
+{% endblock %}
+
+{% block extra_css %}
+.campo-label {
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--ordo-text-dim); margin-bottom: 4px;
+}
+.campo-valor {
+    font-size: .92rem; font-weight: 600; color: var(--ordo-text);
+}
+.chave-display {
+    font-family: monospace; font-size: .75rem; color: var(--ordo-accent);
+    background: rgba(0,180,216,.06); border: 1px solid rgba(0,180,216,.15);
+    border-radius: 6px; padding: .35rem .65rem; word-break: break-all;
+    letter-spacing: .4px; line-height: 1.6;
+}
+/* ---- Cards de decisão ---- */
+.nfe-decisao-card {
+    border: 2px solid var(--ordo-border);
+    border-radius: 12px; overflow: hidden;
+    margin-bottom: 1.25rem;
+    transition: border-color .2s;
+    background: var(--ordo-surface);
+}
+.nfe-decisao-card.estado-aprovar  { border-color: var(--ordo-green); }
+.nfe-decisao-card.estado-rejeitar { border-color: var(--ordo-red); }
+.nfe-card-header {
+    background: var(--ordo-surface-2);
+    border-bottom: 1px solid var(--ordo-border);
+    padding: .7rem 1rem;
+    display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+}
+.nfe-idx-badge {
+    font-size: .65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--ordo-text-dim);
+    background: rgba(136,146,176,.1); border-radius: 999px;
+    padding: .25rem .65rem;
+}
+.nfe-card-body { padding: 1rem 1.25rem; }
+.xml-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: .7rem 1.25rem; margin-bottom: 1rem;
+}
+@media (max-width: 640px) { .xml-grid { grid-template-columns: 1fr; } }
+/* ---- Radio de decisão ---- */
+.decisao-grupo {
+    display: flex; gap: .75rem; margin-bottom: .75rem;
+}
+.radio-opcao {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    gap: .5rem; padding: .6rem .75rem;
+    border: 1.5px solid var(--ordo-border); border-radius: 8px;
+    cursor: pointer; font-size: .82rem; font-weight: 600;
+    transition: all .15s; user-select: none;
+}
+.radio-opcao input[type="radio"] { display: none; }
+.radio-opcao-aprovar  { color: var(--ordo-green); }
+.radio-opcao-rejeitar { color: var(--ordo-red); }
+.radio-opcao-aprovar.selecionado  { background: rgba(0,212,160,.1);  border-color: var(--ordo-green); }
+.radio-opcao-rejeitar.selecionado { background: rgba(255,77,109,.1); border-color: var(--ordo-red); }
+/* ---- Motivo ---- */
+.motivo-wrapper { display: none; }
+.motivo-input {
+    width: 100%; background: var(--ordo-surface-2);
+    border: 1px solid var(--ordo-border); color: var(--ordo-text);
+    border-radius: 8px; padding: .55rem .75rem; font-size: .82rem;
+    resize: vertical; min-height: 60px; font-family: inherit;
+}
+.motivo-input:focus { outline: 2px solid var(--ordo-red); border-color: var(--ordo-red); }
+/* ---- Botão submit ---- */
+.btn-processar {
+    width: 100%; background: var(--ordo-accent); color: #000;
+    border: none; border-radius: 10px; padding: .75rem 1.5rem;
+    font-weight: 700; font-size: .9rem; cursor: pointer;
+    transition: filter .15s; margin-top: .5rem;
+}
+.btn-processar:hover { filter: brightness(.9); }
+{% endblock %}
+
+{% block content %}
+<div class="row g-4 fade-in">
+
+    {# ---- COLUNA ESQUERDA: dados do agendamento + histórico ---- #}
+    <div class="col-lg-4">
+
+        <div class="ordo-card mb-4">
+            <div class="ordo-card-header">
+                <i class="fa-solid fa-calendar-days" style="color:var(--ordo-accent);"></i>
+                <span class="fw-semibold">Dados do Agendamento</span>
+                <span class="ms-auto badge rounded-pill px-2 py-1"
+                      style="font-size:.65rem; background:rgba(255,183,3,.12); color:var(--ordo-yellow); border:1px solid rgba(255,183,3,.3);">
+                    Aguardando Fiscal
+                </span>
+            </div>
+            <div class="ordo-card-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="campo-label">Fornecedor</div>
+                        <div class="campo-valor">{{ agendamento.fornecedor.razao_social }}</div>
+                        <div style="font-size:.72rem; color:var(--ordo-text-dim); font-family:monospace; margin-top:2px;">
+                            {{ agendamento.fornecedor.cnpj }}
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="campo-label">Pedido de Compra (PO)</div>
+                        <div class="campo-valor" style="font-family:monospace; font-size:1rem; color:var(--ordo-accent);">
+                            {{ agendamento.numero_pedido }}
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="campo-label">Data</div>
+                        <div class="campo-valor">{{ agendamento.inicio|date:"d/m/Y" }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="campo-label">Horário</div>
+                        <div class="campo-valor" style="color:var(--ordo-accent);">{{ agendamento.inicio|date:"H:i" }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="campo-label">Doca(s)</div>
+                        <div class="campo-valor">
+                            {% for doca in agendamento.docas.all %}
+                                <span class="badge-conf badge rounded-pill me-1">{{ doca.codigo }}</span>
+                            {% empty %}—{% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="campo-label">Tipo de Carga</div>
+                        <div class="campo-valor">{{ agendamento.get_tipo_carga_display }}</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="campo-label">NF-es Enviadas</div>
+                        <div class="campo-valor">{{ nfe_list|length }} arquivo{{ nfe_list|length|pluralize }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Histórico #}
+        {% if agendamento.logs.all %}
+        <div class="ordo-card">
+            <div class="ordo-card-header">
+                <i class="fa-solid fa-clock-rotate-left" style="color:var(--ordo-text-dim);"></i>
+                <span class="fw-semibold" style="font-size:.82rem;">Histórico</span>
+            </div>
+            <div class="ordo-card-body p-0">
+                <table class="table ordo-table mb-0" style="font-size:.75rem;">
+                    <thead>
+                        <tr><th>Data</th><th>De → Para</th><th>Usuário</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for log in agendamento.logs.all|dictsortreversed:"data" %}
+                        <tr>
+                            <td style="white-space:nowrap; color:var(--ordo-text-dim);">{{ log.data|date:"d/m H:i" }}</td>
+                            <td style="white-space:nowrap;">
+                                <span style="color:var(--ordo-text-dim);">{{ log.status_anterior|default:"—" }}</span>
+                                <i class="fa-solid fa-arrow-right mx-1" style="font-size:.6rem;"></i>
+                                <span style="color:var(--ordo-text);">{{ log.status_novo }}</span>
+                            </td>
+                            <td style="color:var(--ordo-text-dim); word-break:break-word; max-width:120px;">
+                                {{ log.usuario|default:"—" }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    {# ---- COLUNA DIREITA: decisões por NF-e ---- #}
+    <div class="col-lg-8">
+
+        {% if not nfe_list %}
+        <div class="ordo-card">
+            <div class="ordo-card-body text-center py-4">
+                <i class="fa-solid fa-file-circle-xmark fa-2x mb-2" style="color:var(--ordo-text-dim); opacity:.5;"></i>
+                <p style="font-size:.85rem; color:var(--ordo-text-dim);">
+                    Nenhum arquivo XML vinculado a este agendamento.
+                </p>
+            </div>
+        </div>
+        {% else %}
+
+        <form method="post" id="form-decisoes" novalidate>
+            {% csrf_token %}
+
+            {% for item in nfe_list %}
+            <div class="nfe-decisao-card" id="card-{{ item.nfe.pk }}">
+
+                <div class="nfe-card-header">
+                    <span class="nfe-idx-badge">
+                        NF-e {{ forloop.counter }} / {{ nfe_list|length }}
+                    </span>
+                    {% if item.resumo %}
+                    <span style="font-size:.8rem; font-weight:700; color:var(--ordo-text);">
+                        Nota {{ item.resumo.numero_nf }}/{{ item.resumo.serie }}
+                    </span>
+                    <span style="font-size:.75rem; color:var(--ordo-green); margin-left:auto;">
+                        {{ item.resumo.valor_total }}
+                    </span>
+                    {% else %}
+                    <span style="font-size:.78rem; color:var(--ordo-text-dim);">Dados não extraídos</span>
+                    {% endif %}
+                </div>
+
+                <div class="nfe-card-body">
+
+                    {# Chave de acesso #}
+                    <div class="mb-3">
+                        <div class="campo-label mb-1">Chave de Acesso</div>
+                        <div class="chave-display">{{ item.nfe.chave }}</div>
+                    </div>
+
+                    {# Grid de dados do XML #}
+                    {% if item.resumo %}
+                    <div class="xml-grid mb-3">
+                        <div>
+                            <div class="campo-label">Data de Emissão</div>
+                            <div class="campo-valor">{{ item.resumo.data_emissao }}</div>
+                        </div>
+                        <div>
+                            <div class="campo-label">Valor Total</div>
+                            <div class="campo-valor" style="color:var(--ordo-green);">{{ item.resumo.valor_total }}</div>
+                        </div>
+                        <div>
+                            <div class="campo-label">Emitente</div>
+                            <div class="campo-valor">{{ item.resumo.razao_emit|truncatechars:30 }}</div>
+                        </div>
+                        <div>
+                            <div class="campo-label">CNPJ Emitente</div>
+                            <div class="campo-valor" style="font-family:monospace; font-size:.8rem;">{{ item.resumo.cnpj_emit }}</div>
+                        </div>
+                        <div style="grid-column:1/-1;">
+                            <div class="campo-label">CNPJ Destinatário</div>
+                            <div class="campo-valor" style="font-family:monospace; font-size:.8rem; color:var(--ordo-accent);">
+                                {{ item.resumo.cnpj_dest }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {# Radio: Aprovar / Rejeitar #}
+                    <div class="decisao-grupo">
+                        <label class="radio-opcao radio-opcao-aprovar"
+                               id="lbl-aprovar-{{ item.nfe.pk }}"
+                               for="radio-aprovar-{{ item.nfe.pk }}">
+                            <input type="radio"
+                                   id="radio-aprovar-{{ item.nfe.pk }}"
+                                   name="decisao_{{ item.nfe.pk }}"
+                                   value="aprovar">
+                            <i class="fa-solid fa-circle-check"></i> Aprovar
+                        </label>
+                        <label class="radio-opcao radio-opcao-rejeitar"
+                               id="lbl-rejeitar-{{ item.nfe.pk }}"
+                               for="radio-rejeitar-{{ item.nfe.pk }}">
+                            <input type="radio"
+                                   id="radio-rejeitar-{{ item.nfe.pk }}"
+                                   name="decisao_{{ item.nfe.pk }}"
+                                   value="rejeitar">
+                            <i class="fa-solid fa-ban"></i> Rejeitar
+                        </label>
+                    </div>
+
+                    {# Motivo — visível só quando Rejeitar selecionado #}
+                    <div class="motivo-wrapper" id="motivo-wrapper-{{ item.nfe.pk }}">
+                        <textarea name="motivo_{{ item.nfe.pk }}"
+                                  id="motivo-{{ item.nfe.pk }}"
+                                  class="motivo-input"
+                                  placeholder="Descreva a divergência encontrada nesta NF-e…"
+                                  maxlength="500"></textarea>
+                    </div>
+
+                </div>
+            </div>
+            {% endfor %}
+
+            <button type="submit" class="btn-processar" id="btn-processar">
+                <i class="fa-solid fa-gavel me-2"></i>
+                Processar {{ nfe_list|length }} decisão{{ nfe_list|length|pluralize:"ão,ões" }}
+            </button>
+
+        </form>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  'use strict';
+
+  document.querySelectorAll('.nfe-decisao-card').forEach(function (card) {
+    var radios       = card.querySelectorAll('input[type="radio"]');
+    var motivoWrapper = card.querySelector('.motivo-wrapper');
+    var motivoInput   = card.querySelector('.motivo-input');
+
+    radios.forEach(function (radio) {
+      radio.addEventListener('change', function () {
+        var val = this.value;
+
+        // Atualiza borda do card
+        card.classList.remove('estado-aprovar', 'estado-rejeitar');
+        card.classList.add('estado-' + val);
+
+        // Atualiza destaque dos labels
+        card.querySelectorAll('.radio-opcao').forEach(function (lbl) {
+          lbl.classList.remove('selecionado');
+        });
+        this.closest('.radio-opcao').classList.add('selecionado');
+
+        // Mostra/oculta motivo
+        if (motivoWrapper) {
+          var mostrar = val === 'rejeitar';
+          motivoWrapper.style.display = mostrar ? 'block' : 'none';
+          if (motivoInput) motivoInput.required = mostrar;
+        }
+      });
+    });
+  });
+
+  // Validação client-side antes de submeter
+  var form = document.getElementById('form-decisoes');
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      var cards = document.querySelectorAll('.nfe-decisao-card');
+      var ok = true;
+      cards.forEach(function (card) {
+        var checked = card.querySelector('input[type="radio"]:checked');
+        if (!checked) {
+          ok = false;
+          card.style.outline = '2px solid var(--ordo-yellow)';
+        } else {
+          card.style.outline = '';
+          if (checked.value === 'rejeitar') {
+            var motivo = card.querySelector('.motivo-input');
+            if (!motivo || !motivo.value.trim()) {
+              ok = false;
+              motivo.style.outline = '2px solid var(--ordo-red)';
+            } else {
+              motivo.style.outline = '';
+            }
+          }
+        }
+      });
+      if (!ok) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        alert('Preencha a decisão (e motivo, se rejeitar) para todas as NF-es antes de submeter.');
+      }
+    });
+  }
+
+})();
+</script>
+{% endblock %}

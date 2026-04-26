@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ status_label }} — Ordo{% endblock %}
+{% block page_title %}{{ status_label }}{% endblock %}
+{% block page_subtitle %}{{ fornecedor.razao_social }}{% endblock %}
+{% block nav_dash_ind %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'dashboard_industria' %}" class="btn-ordo-ghost btn btn-sm">
+    <i class="fa-solid fa-arrow-left me-1"></i> Dashboard
+</a>
+{% endblock %}
+
+{% block content %}
+
+{# ---- ABAS DE NAVEGAÇÃO ENTRE STATUS ---- #}
+<div class="d-flex gap-2 flex-wrap mb-4 fade-in">
+    {% for slug, label in statuses %}
+    <a href="{% url 'industria_lista' %}?status={{ slug }}"
+       class="btn btn-sm {% if status_filtro == slug %}btn-ordo-primary{% else %}btn-ordo-ghost{% endif %}">
+        {{ label }}
+    </a>
+    {% endfor %}
+</div>
+
+{# ---- TABELA OU ESTADO VAZIO ---- #}
+{% if agendamentos %}
+<div class="ordo-card fade-in fade-in-delay-1">
+    <div class="ordo-card-header justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+            <i class="fa-solid fa-list" style="color:var(--ordo-accent);"></i>
+            <span class="fw-semibold">{{ status_label }}</span>
+            <span class="badge-conf badge rounded-pill ms-1" style="font-size:.68rem;">{{ agendamentos|length }}</span>
+        </div>
+        {% if status_filtro == 'PRE_AGENDADO' %}
+        <a href="{% url 'novo_agendamento' %}" class="btn-ordo-primary btn btn-sm">
+            <i class="fa-solid fa-plus me-1"></i> Novo Agendamento
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="ordo-card-body p-0">
+        <div class="table-responsive">
+            <table class="table ordo-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Data / Hora</th>
+                        <th>Doca(s)</th>
+                        <th>PO</th>
+                        <th>Tipo</th>
+                        <th>Status</th>
+                        {% if status_filtro == 'FINALIZADO' %}
+                        <th>Cód. Descarga</th>
+                        {% elif status_filtro == 'PRE_AGENDADO' %}
+                        <th>NF-e</th>
+                        {% endif %}
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ag in agendamentos %}
+                    <tr style="cursor:pointer;" onclick="location.href='{% url 'industria_detalhe' ag.pk %}'"
+                        title="Ver detalhes">
+                        <td>
+                            <div class="fw-semibold">{{ ag.inicio|date:"d/m/Y" }}</div>
+                            <div style="font-size:.72rem; color:var(--ordo-text-dim);">{{ ag.inicio|date:"H:i" }}</div>
+                        </td>
+                        <td>
+                            {% for doca in ag.docas.all %}
+                                <span class="badge-conf badge rounded-pill" style="font-size:.68rem;">{{ doca.codigo }}</span>
+                            {% empty %}—{% endfor %}
+                        </td>
+                        <td class="fw-semibold">{{ ag.numero_pedido }}</td>
+                        <td style="font-size:.75rem; color:var(--ordo-text-dim);">{{ ag.get_tipo_carga_display }}</td>
+                        <td>
+                            {% if ag.status == 'PRE_AGENDADO' %}
+                                <span class="badge-pre badge rounded-pill px-2">Pré-agendado</span>
+                            {% elif ag.status == 'AGUARDANDO_FISCAL' %}
+                                <span class="badge-patio badge rounded-pill px-2">Análise Fiscal</span>
+                            {% elif ag.status == 'CONFIRMADO' %}
+                                <span class="badge-conf badge rounded-pill px-2">Confirmado</span>
+                            {% elif ag.status == 'EM_PATIO' %}
+                                <span class="badge-patio badge rounded-pill px-2">Em Pátio</span>
+                            {% elif ag.status == 'EM_DESCARGA' %}
+                                <span class="badge-desc badge rounded-pill px-2">Em Descarga</span>
+                            {% elif ag.status == 'FINALIZADO' %}
+                                <span class="badge-fin badge rounded-pill px-2">Finalizado</span>
+                            {% else %}
+                                <span class="badge-canc badge rounded-pill px-2">{{ ag.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+
+                        {# Coluna condicional por status #}
+                        {% if status_filtro == 'FINALIZADO' %}
+                        <td>
+                            {% if ag.codigo_descarga %}
+                            <span style="font-family:monospace; font-size:.9rem; font-weight:700;
+                                         color:var(--ordo-accent); letter-spacing:2px;">
+                                {{ ag.codigo_descarga }}
+                            </span>
+                            {% else %}—{% endif %}
+                        </td>
+                        {% elif status_filtro == 'PRE_AGENDADO' %}
+                        <td>
+                            {% if ag.nfe_validada %}
+                                <i class="fa-solid fa-circle-check" style="color:var(--ordo-green);" title="NF-e vinculada"></i>
+                            {% elif ag.prazo_expirado %}
+                                <span style="font-size:.72rem; color:var(--ordo-red);">Prazo expirado</span>
+                            {% else %}
+                                <span style="font-size:.72rem; color:var(--ordo-yellow);">Pendente</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+
+                        <td onclick="event.stopPropagation()">
+                            <a href="{% url 'industria_detalhe' ag.pk %}"
+                               class="btn-ordo-ghost btn btn-sm"
+                               style="font-size:.72rem; padding:.25rem .6rem;">
+                                <i class="fa-solid fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% else %}
+{# ---- ESTADO VAZIO ---- #}
+<div class="ordo-card fade-in">
+    <div class="ordo-card-body text-center py-5">
+        <i class="fa-solid fa-calendar-xmark fa-3x mb-3" style="color:var(--ordo-text-dim); opacity:.35;"></i>
+        <p class="mb-1 fw-semibold">SEM AGENDAMENTOS {{ status_label|upper }}</p>
+        <p style="font-size:.82rem; color:var(--ordo-text-dim);" class="mb-3">
+            Nenhum agendamento encontrado neste status.
+        </p>
+        {% if status_filtro == 'PRE_AGENDADO' or status_filtro == 'CONFIRMADO' %}
+        <a href="{% url 'novo_agendamento' %}" class="btn-ordo-primary btn btn-sm">
+            <i class="fa-solid fa-plus me-1"></i> Criar Agendamento
+        </a>
+        {% else %}
+        <a href="{% url 'dashboard_industria' %}" class="btn-ordo-ghost btn btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i> Voltar ao Dashboard
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

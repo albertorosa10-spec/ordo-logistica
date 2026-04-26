@@ -1,0 +1,852 @@
+{% extends 'base.html' %}
+{# ================================================================
+   NOVO AGENDAMENTO — Portal da Indústria
+   Template: industria/novo_agendamento.html
+   Versão: 0.8.0 — Slots fixos, Toggle de Docas, Painel SLA
+   ================================================================ #}
+
+{% block title %}Novo Agendamento — Portal da Indústria | Ordo{% endblock %}
+{% block page_title %}Novo Agendamento{% endblock %}
+{% block page_subtitle %}Preencha os dados para solicitar um slot de descarga{% endblock %}
+{% block nav_dash_ind %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'dashboard_industria' %}" class="btn-ordo-ghost btn btn-sm">
+  <i class="fa-solid fa-arrow-left me-1"></i> Voltar ao Dashboard
+</a>
+{% endblock %}
+
+
+{# ================================================================
+   CSS — Tema "Midnight Blue" exclusivo deste formulário
+   ================================================================ #}
+{% block extra_css %}
+<style>
+/* ---------------------------------------------------------------
+   VARIÁVEIS LOCAIS
+   --------------------------------------------------------------- */
+:root {
+  --na-bg:          #0b1929;
+  --na-surface:     #112240;
+  --na-surface-2:   #152d4a;
+  --na-border:      rgba(100,130,180,.18);
+  --na-accent:      #00b4d8;
+  --na-accent-glow: rgba(0,180,216,.15);
+  --na-green:       #00d4a0;
+  --na-yellow:      #ffb703;
+  --na-red:         #ff4d6d;
+  --na-text:        #e2e8f0;
+  --na-text-dim:    #7a8faa;
+  --na-radius:      12px;
+  --na-radius-sm:    8px;
+  --na-shadow:      0 8px 32px rgba(0,0,0,.35);
+}
+
+/* ---------------------------------------------------------------
+   LAYOUT PRINCIPAL
+   --------------------------------------------------------------- */
+.na-wrapper {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+/* ---------------------------------------------------------------
+   CARD PRINCIPAL DO FORMULÁRIO
+   --------------------------------------------------------------- */
+.na-card {
+  background: var(--na-surface);
+  border: 1px solid var(--na-border);
+  border-radius: var(--na-radius);
+  box-shadow: var(--na-shadow);
+  overflow: hidden;
+}
+.na-card-header {
+  background: linear-gradient(135deg, #0d1f35 0%, #1a3558 100%);
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid var(--na-border);
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+}
+.na-card-header-icon {
+  width: 42px; height: 42px;
+  background: var(--na-accent-glow);
+  border: 1px solid rgba(0,180,216,.3);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--na-accent);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.na-card-header-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--na-text);
+  margin: 0;
+  letter-spacing: -.2px;
+}
+.na-card-header-sub {
+  font-size: .72rem;
+  color: var(--na-text-dim);
+  margin-top: 2px;
+}
+.na-card-body {
+  padding: 1.75rem;
+}
+
+/* ---------------------------------------------------------------
+   LABELS E SECTION HEADERS
+   --------------------------------------------------------------- */
+.na-section-label {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--na-accent);
+  margin-bottom: .6rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.na-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--na-border);
+}
+.na-field-label {
+  display: block;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--na-text-dim);
+  margin-bottom: .45rem;
+  letter-spacing: .2px;
+}
+.na-field-label .na-req {
+  color: var(--na-red);
+  margin-left: 2px;
+}
+
+/* ---------------------------------------------------------------
+   INPUTS COMUNS
+   --------------------------------------------------------------- */
+.na-input,
+.na-date-input,
+.na-hora-select,
+.na-select {
+  width: 100%;
+  background: var(--na-surface-2);
+  border: 1px solid var(--na-border);
+  border-radius: var(--na-radius-sm);
+  color: var(--na-text);
+  font-size: .88rem;
+  padding: .65rem .9rem;
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: border-color .2s, box-shadow .2s;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+}
+.na-input::placeholder         { color: var(--na-text-dim); }
+.na-input:focus,
+.na-date-input:focus,
+.na-hora-select:focus,
+.na-select:focus {
+  border-color: var(--na-accent);
+  box-shadow: 0 0 0 3px var(--na-accent-glow);
+}
+
+/* Corrigir cor do text em inputs de data (Chrome, Safari) */
+.na-date-input::-webkit-calendar-picker-indicator { filter: invert(.6); }
+input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
+
+/* Select custom arrow */
+.na-hora-select,
+.na-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a8faa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 2rem;
+  cursor: pointer;
+}
+.na-hora-select option,
+.na-select option {
+  background: #112240;
+  color: #e2e8f0;
+}
+
+/* ---------------------------------------------------------------
+   GRID DE CAMPOS
+   --------------------------------------------------------------- */
+.na-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+.na-grid-3 {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr;
+  gap: 1.25rem;
+}
+.na-field     { margin-bottom: 1.25rem; }
+.na-field:last-child { margin-bottom: 0; }
+
+/* ---------------------------------------------------------------
+   WIDGET DE HORÁRIO (SLOTS)
+   --------------------------------------------------------------- */
+.na-hora-wrap {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+.na-hora-icon {
+  width: 40px; height: 40px;
+  background: rgba(0,180,216,.1);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--na-accent);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------
+   WIDGET TOGGLE DE DOCAS
+   --------------------------------------------------------------- */
+.na-docas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: .65rem;
+  margin-top: .1rem;
+}
+.na-doca-btn {
+  position: relative;
+  cursor: pointer;
+}
+/* Ocultar o checkbox nativo */
+.na-doca-btn input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0; height: 0;
+}
+.na-doca-face {
+  border: 1.5px solid var(--na-border);
+  border-radius: var(--na-radius-sm);
+  padding: .75rem .5rem;
+  text-align: center;
+  background: var(--na-surface-2);
+  transition: all .2s;
+  user-select: none;
+}
+.na-doca-face:hover {
+  border-color: rgba(0,180,216,.4);
+  background: rgba(0,180,216,.05);
+}
+/* Checked: selecionado */
+.na-doca-btn input:checked + .na-doca-face {
+  border-color: var(--na-accent);
+  background: rgba(0,180,216,.12);
+  box-shadow: 0 0 0 2px var(--na-accent-glow);
+}
+.na-doca-code {
+  font-size: .95rem;
+  font-weight: 800;
+  color: var(--na-text);
+  display: block;
+}
+.na-doca-btn input:checked + .na-doca-face .na-doca-code {
+  color: var(--na-accent);
+}
+.na-doca-type {
+  font-size: .62rem;
+  color: var(--na-text-dim);
+  display: block;
+  margin-top: 3px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+.na-doca-temp {
+  font-size: .68rem;
+  color: #60a5fa;
+  margin-top: 3px;
+  display: block;
+}
+.na-doca-check {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 16px; height: 16px;
+  background: var(--na-accent);
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #000;
+}
+.na-doca-btn input:checked ~ .na-doca-check {
+  display: flex;
+}
+
+/* Single-doca mode: simula radio */
+.na-single-doca .na-doca-btn { }
+.na-doca-aviso {
+  font-size: .72rem;
+  color: var(--na-yellow);
+  background: rgba(255,183,3,.08);
+  border: 1px solid rgba(255,183,3,.2);
+  border-radius: 6px;
+  padding: .4rem .75rem;
+  margin-bottom: .75rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+/* ---------------------------------------------------------------
+   PAINEL SLA — PRAZO DA NF-e
+   --------------------------------------------------------------- */
+.na-sla-panel {
+  background: linear-gradient(135deg, rgba(0,180,216,.07) 0%, rgba(0,212,160,.05) 100%);
+  border: 1px solid rgba(0,180,216,.2);
+  border-radius: var(--na-radius-sm);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  transition: all .35s;
+}
+.na-sla-panel.escondido {
+  opacity: .35;
+  filter: blur(1px);
+  pointer-events: none;
+}
+.na-sla-icon {
+  width: 38px; height: 38px;
+  background: rgba(0,180,216,.1);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--na-accent);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.na-sla-body { flex: 1; }
+.na-sla-titulo {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--na-accent);
+  margin-bottom: .35rem;
+}
+.na-sla-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem .75rem;
+}
+.na-sla-item { font-size: .78rem; }
+.na-sla-item-label  { color: var(--na-text-dim); font-size: .65rem; text-transform: uppercase; letter-spacing: .4px; }
+.na-sla-item-value  { color: var(--na-text); font-weight: 700; margin-top: 1px; }
+.na-sla-item-value.urgente { color: var(--na-red); }
+.na-sla-item-value.ok      { color: var(--na-green); }
+
+/* ---------------------------------------------------------------
+   RODAPÉ DO FORMULÁRIO (ações)
+   --------------------------------------------------------------- */
+.na-footer {
+  background: rgba(11,25,41,.6);
+  border-top: 1px solid var(--na-border);
+  padding: 1.1rem 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.na-btn-submit {
+  background: linear-gradient(135deg, var(--na-accent) 0%, #0088aa 100%);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  padding: .65rem 2rem;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: filter .15s, transform .1s;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.na-btn-submit:hover   { filter: brightness(1.08); transform: translateY(-1px); }
+.na-btn-submit:active  { transform: translateY(0); }
+.na-btn-submit:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
+}
+.na-btn-cancel {
+  background: transparent;
+  border: 1px solid var(--na-border);
+  color: var(--na-text-dim);
+  border-radius: 8px;
+  padding: .65rem 1.25rem;
+  font-size: .85rem;
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+  text-decoration: none;
+  transition: border-color .2s, color .2s;
+}
+.na-btn-cancel:hover {
+  border-color: var(--na-text-dim);
+  color: var(--na-text);
+}
+
+/* ---------------------------------------------------------------
+   ERROS DE VALIDAÇÃO
+   --------------------------------------------------------------- */
+.na-error-list {
+  background: rgba(255,77,109,.08);
+  border: 1px solid rgba(255,77,109,.25);
+  border-radius: var(--na-radius-sm);
+  padding: .75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+.na-error-list li {
+  font-size: .8rem;
+  color: #ff4d6d;
+  list-style: none;
+  padding: 2px 0;
+}
+.na-error-list li::before { content: '⚑ '; }
+.na-field-error {
+  font-size: .72rem;
+  color: var(--na-red);
+  margin-top: .35rem;
+}
+
+/* ---------------------------------------------------------------
+   OCULTADO (checkbox nativo das docas)
+   --------------------------------------------------------------- */
+.na-docas-hidden { display: none; }
+
+/* ---------------------------------------------------------------
+   RESPONSIVIDADE
+   --------------------------------------------------------------- */
+@media (max-width: 680px) {
+  .na-grid-2,
+  .na-grid-3 { grid-template-columns: 1fr; }
+  .na-footer  { flex-direction: column-reverse; }
+  .na-btn-submit { width: 100%; justify-content: center; }
+  .na-sla-info   { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+
+{# ================================================================
+   CONTEÚDO
+   ================================================================ #}
+{% block content %}
+<div class="na-wrapper fade-in">
+<form method="POST" novalidate id="form-agendamento">
+{% csrf_token %}
+
+{# ============ CARD PRINCIPAL ============ #}
+<div class="na-card">
+
+  {# --- HEADER DO CARD --- #}
+  <div class="na-card-header">
+    <div class="na-card-header-icon">
+      <i class="fa-solid fa-calendar-plus"></i>
+    </div>
+    <div>
+      <div class="na-card-header-title">Pré-agendamento de Descarga</div>
+      <div class="na-card-header-sub">
+        Fornecedor: <strong style="color:var(--na-text);">{{ fornecedor.razao_social }}</strong>
+        &nbsp;·&nbsp; CNPJ: {{ fornecedor.cnpj }}
+      </div>
+    </div>
+  </div>
+
+  {# --- BODY DO CARD --- #}
+  <div class="na-card-body">
+
+    {# ---- Erros globais do form ---- #}
+    {% if form.non_field_errors %}
+    <ul class="na-error-list">
+      {% for erro in form.non_field_errors %}
+      <li>{{ erro }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    <!-- ====================================================
+         SEÇÃO 1: PEDIDO DE COMPRA
+         ==================================================== -->
+    <div class="na-section-label">
+      <i class="fa-solid fa-file-invoice" style="font-size:.7rem;"></i>
+      Identificação do Pedido
+    </div>
+
+    <div class="na-field">
+      <label class="na-field-label" for="id_numero_pedido">
+        Número do Pedido de Compra (PO) <span class="na-req">*</span>
+      </label>
+      {{ form.numero_pedido }}
+      {% if form.numero_pedido.errors %}
+      <div class="na-field-error">{{ form.numero_pedido.errors.0 }}</div>
+      {% endif %}
+    </div>
+
+    <!-- ====================================================
+         SEÇÃO 2: DATA E HORÁRIO
+         ==================================================== -->
+    <div class="na-section-label">
+      <i class="fa-solid fa-calendar-day" style="font-size:.7rem;"></i>
+      Data e Horário do Agendamento
+    </div>
+
+    <div class="na-grid-2">
+
+      {# Data: seletor nativo de data #}
+      <div class="na-field">
+        <label class="na-field-label" for="id_data">
+          Data <span class="na-req">*</span>
+        </label>
+        {{ form.data }}
+        {% if form.data.errors %}
+        <div class="na-field-error">{{ form.data.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      {# Hora: seletor de slots fixos 07h-17h #}
+      <div class="na-field">
+        <label class="na-field-label" for="id_hora_slot">
+          Horário <span class="na-req">*</span>
+        </label>
+        <div class="na-hora-wrap">
+          <div class="na-hora-icon">
+            <i class="fa-solid fa-clock"></i>
+          </div>
+          <div style="flex:1;">{{ form.hora_slot }}</div>
+        </div>
+        <div style="font-size:.65rem; color:var(--na-text-dim); margin-top:.3rem;">
+          Slots disponíveis: 07:00 às 17:00 (intervalo de 1 hora)
+        </div>
+        {% if form.hora_slot.errors %}
+        <div class="na-field-error">{{ form.hora_slot.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+    </div>{# /na-grid-2 #}
+
+    <!-- ====================================================
+         SEÇÃO 3: TIPO DE CARGA E QUANTIDADE
+         ==================================================== -->
+    <div class="na-section-label">
+      <i class="fa-solid fa-box-open" style="font-size:.7rem;"></i>
+      Carga
+    </div>
+
+    <div class="na-grid-2">
+
+      <div class="na-field">
+        <label class="na-field-label" for="id_tipo_carga">
+          Tipo de Carga <span class="na-req">*</span>
+        </label>
+        {{ form.tipo_carga }}
+        {% if form.tipo_carga.errors %}
+        <div class="na-field-error">{{ form.tipo_carga.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="na-field">
+        <label class="na-field-label" for="id_qtd_itens">
+          Qtd. Itens / Caixas <span class="na-req">*</span>
+        </label>
+        {{ form.qtd_itens }}
+        <div style="font-size:.65rem; color:var(--na-text-dim); margin-top:.3rem;">
+          Usado para calcular a duração estimada da descarga.
+        </div>
+        {% if form.qtd_itens.errors %}
+        <div class="na-field-error">{{ form.qtd_itens.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- ====================================================
+         SEÇÃO 4: DOCAS (WIDGET TOGGLE)
+         ==================================================== -->
+    <div class="na-section-label">
+      <i class="fa-solid fa-warehouse" style="font-size:.7rem;"></i>
+      Seleção de Doca{{ permite_multi|yesno:",s" }}
+    </div>
+
+    {# Aviso de single-doca #}
+    {% if not permite_multi %}
+    <div class="na-doca-aviso">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      Seu perfil permite <strong>apenas 1 doca</strong> por agendamento.
+    </div>
+    {% endif %}
+
+    {% if form.docas.errors %}
+    <div class="na-field-error" style="margin-bottom:.75rem;">{{ form.docas.errors.0 }}</div>
+    {% endif %}
+
+    {# Grid de botões Toggle — um por doca ativa #}
+    <div class="na-docas-grid {% if not permite_multi %}na-single-doca{% endif %}"
+         id="docas-grid">
+      {% for doca in docas_ativas %}
+      <label class="na-doca-btn" id="label-doca-{{ doca.pk }}">
+        <input type="checkbox"
+               name="docas"
+               value="{{ doca.pk }}"
+               id="doca-{{ doca.pk }}"
+               {% if not permite_multi %}data-single="true"{% endif %}
+               {% if form.docas.value and doca.pk|stringformat:"s" in form.docas.value|join:"," %}checked{% endif %}>
+        <div class="na-doca-face">
+          <span class="na-doca-code">{{ doca.codigo }}</span>
+          <span class="na-doca-type">{{ doca.tipo_maximo }}</span>
+          {% if doca.temperatura_controlada %}
+          <span class="na-doca-temp">❄ Temp. controlada</span>
+          {% endif %}
+        </div>
+        {# Ícone de check sobreposto quando selecionado #}
+        <span class="na-doca-check" aria-hidden="true">✓</span>
+      </label>
+      {% empty %}
+      <div style="color:var(--na-text-dim); font-size:.82rem; grid-column:1/-1;">
+        <i class="fa-solid fa-circle-exclamation me-1"></i>
+        Nenhuma doca disponível no momento. Contate o gestor.
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- ====================================================
+         PAINEL SLA — Calculado dinamicamente pelo JS
+         ==================================================== -->
+    <div class="na-sla-panel escondido" id="sla-panel">
+      <div class="na-sla-icon">
+        <i class="fa-solid fa-stopwatch"></i>
+      </div>
+      <div class="na-sla-body">
+        <div class="na-sla-titulo">
+          <i class="fa-solid fa-circle-info me-1"></i>
+          Prazo de Vínculo da NF-e (SLA automatico)
+        </div>
+        <div class="na-sla-info">
+          <div class="na-sla-item">
+            <div class="na-sla-item-label">Horário da Descarga</div>
+            <div class="na-sla-item-value" id="sla-descarga">—</div>
+          </div>
+          <div class="na-sla-item">
+            <div class="na-sla-item-label">Duração Estimada</div>
+            <div class="na-sla-item-value" id="sla-duracao">—</div>
+          </div>
+          <div class="na-sla-item">
+            <div class="na-sla-item-label">Prazo Limite NF-e</div>
+            <div class="na-sla-item-value" id="sla-prazo">—</div>
+          </div>
+          <div class="na-sla-item">
+            <div class="na-sla-item-label">Tempo Restante p/ Vincular</div>
+            <div class="na-sla-item-value" id="sla-restante">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>{# /na-card-body #}
+
+  {# --- RODAPÉ DO CARD --- #}
+  <div class="na-footer">
+    <a href="{% url 'dashboard_industria' %}" class="na-btn-cancel">
+      <i class="fa-solid fa-times me-1"></i> Cancelar
+    </a>
+    <button type="submit" class="na-btn-submit" id="btn-submit">
+      <i class="fa-solid fa-calendar-check"></i>
+      Confirmar Pré-agendamento
+    </button>
+  </div>
+
+</div>{# /na-card #}
+</form>
+</div>{# /na-wrapper #}
+{% endblock %}
+
+
+{# ================================================================
+   JAVASCRIPT VANILLA
+   ================================================================ #}
+{% block extra_js %}
+<script>
+(function() {
+  'use strict';
+
+  /* ---------------------------------------------------------------
+     REFERÊNCIAS DOM
+     --------------------------------------------------------------- */
+  var inputData    = document.getElementById('id_data');
+  var selectHora   = document.getElementById('id_hora_slot');
+  var selectTipo   = document.getElementById('id_tipo_carga');
+  var inputQtd     = document.getElementById('id_qtd_itens');
+  var slaPanel     = document.getElementById('sla-panel');
+  var btnSubmit    = document.getElementById('btn-submit');
+
+  /* ---------------------------------------------------------------
+     1. DEFINIR DATA MÍNIMA = AMANHÃ
+     --------------------------------------------------------------- */
+  var hoje = new Date();
+  var amanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
+  var anoA   = amanha.getFullYear();
+  var mesA   = String(amanha.getMonth() + 1).padStart(2, '0');
+  var diaA   = String(amanha.getDate()).padStart(2, '0');
+  if (inputData) {
+    inputData.min = anoA + '-' + mesA + '-' + diaA;
+  }
+
+  /* ---------------------------------------------------------------
+     2. DURAÇÃO ESTIMADA (espelha a lógica do model em JS)
+        Fórmula: (30 + qtd * 1) * multiplicador_tipo
+     --------------------------------------------------------------- */
+  var MULT = { 'PAL': 0.80, 'BAT': 1.50, 'FRA': 1.20 };
+
+  function calcularDuracao() {
+    var qtd  = parseInt((inputQtd && inputQtd.value) || '1', 10) || 1;
+    var tipo = (selectTipo && selectTipo.value) || 'PAL';
+    var mult = MULT[tipo] || 1.0;
+    return Math.floor((30 + qtd) * mult);  // minutos
+  }
+
+  function formatarMinutos(min) {
+    var h = Math.floor(min / 60);
+    var m = min % 60;
+    if (h > 0 && m > 0) return h + 'h ' + String(m).padStart(2, '0') + 'min';
+    if (h > 0)           return h + 'h';
+    return m + 'min';
+  }
+
+  /* ---------------------------------------------------------------
+     3. CÁLCULO DE SLA (NF-e deve ser vinculada 24h antes do início)
+     --------------------------------------------------------------- */
+  function atualizarSLA() {
+    var data = inputData ? inputData.value   : '';
+    var hora = selectHora ? selectHora.value : '';
+
+    if (!data || !hora) {
+      slaPanel.classList.add('escondido');
+      return;
+    }
+
+    // Montar datetime do agendamento
+    var partes = hora.split(':');
+    var hh = parseInt(partes[0], 10);
+    var mm = parseInt(partes[1] || '0', 10);
+    var dtAgendado = new Date(data + 'T' + String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0') + ':00');
+
+    if (isNaN(dtAgendado.getTime())) {
+      slaPanel.classList.add('escondido');
+      return;
+    }
+
+    // Prazo NF-e = 24h antes do agendamento
+    var dtPrazo = new Date(dtAgendado.getTime() - 24 * 60 * 60 * 1000);
+    var agora   = new Date();
+    var duracao = calcularDuracao();
+
+    // Tempo restante para vincular a NF-e
+    var restanteMs  = dtPrazo - agora;
+    var restanteMin = Math.floor(restanteMs / 60000);
+
+    // Formatar
+    function fmtDt(d) {
+      return (
+        String(d.getDate()).padStart(2,'0') + '/' +
+        String(d.getMonth()+1).padStart(2,'0') + '/' +
+        d.getFullYear() + ' ' +
+        String(d.getHours()).padStart(2,'0') + ':' +
+        String(d.getMinutes()).padStart(2,'0')
+      );
+    }
+
+    document.getElementById('sla-descarga').textContent = fmtDt(dtAgendado);
+    document.getElementById('sla-duracao').textContent  = '≈ ' + formatarMinutos(duracao);
+    document.getElementById('sla-prazo').textContent    = fmtDt(dtPrazo);
+
+    var elRestante = document.getElementById('sla-restante');
+
+    if (restanteMin <= 0) {
+      elRestante.textContent  = 'Prazo expirado';
+      elRestante.className    = 'na-sla-item-value urgente';
+      btnSubmit.disabled      = true;
+      btnSubmit.title         = 'O prazo para vincular a NF-e já expirou.';
+    } else if (restanteMin < 360) {          // < 6 horas → urgente
+      elRestante.textContent  = formatarMinutos(restanteMin) + ' restantes ⚠';
+      elRestante.className    = 'na-sla-item-value urgente';
+      btnSubmit.disabled      = false;
+      btnSubmit.title         = '';
+    } else {
+      elRestante.textContent  = formatarMinutos(restanteMin) + ' restantes';
+      elRestante.className    = 'na-sla-item-value ok';
+      btnSubmit.disabled      = false;
+      btnSubmit.title         = '';
+    }
+
+    slaPanel.classList.remove('escondido');
+  }
+
+  /* ---------------------------------------------------------------
+     4. MODO SINGLE-DOCA: ao clicar num checkbox, deseleciona os demais
+     --------------------------------------------------------------- */
+  var permiteMulti = {% if permite_multi %}true{% else %}false{% endif %};
+
+  document.querySelectorAll('#docas-grid input[type="checkbox"]').forEach(function(chk) {
+    chk.addEventListener('change', function() {
+      if (!permiteMulti && this.checked) {
+        // Deselecionar todos os outros
+        document.querySelectorAll('#docas-grid input[type="checkbox"]').forEach(function(outro) {
+          if (outro !== chk) {
+            outro.checked = false;
+          }
+        });
+      }
+    });
+  });
+
+  /* ---------------------------------------------------------------
+     5. BIND DE EVENTOS — atualiza SLA ao muda data, hora ou qtd
+     --------------------------------------------------------------- */
+  if (inputData)  inputData.addEventListener('change', atualizarSLA);
+  if (selectHora) selectHora.addEventListener('change', atualizarSLA);
+  if (inputQtd)   inputQtd.addEventListener('input', atualizarSLA);
+  if (selectTipo) selectTipo.addEventListener('change', atualizarSLA);
+
+  // Inicialização: recalcula SLA ao carregar (útil em re-submit com erros)
+  atualizarSLA();
+
+  /* ---------------------------------------------------------------
+     6. VALIDAÇÃO ADICIONAL ANTES DO SUBMIT
+        Garante que pelo menos 1 doca está selecionada
+     --------------------------------------------------------------- */
+  document.getElementById('form-agendamento').addEventListener('submit', function(e) {
+    var checkadas = document.querySelectorAll('#docas-grid input[type="checkbox"]:checked');
+    if (checkadas.length === 0) {
+      e.preventDefault();
+      alert('Selecione pelo menos uma doca para continuar.');
+      return;
+    }
+    if (!permiteMulti && checkadas.length > 1) {
+      e.preventDefault();
+      alert('Seu perfil permite apenas 1 doca por agendamento.');
+      return;
+    }
+    // Feedback visual de carregamento
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Salvando...';
+  });
+
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Ordo Tecnologia Logística — Portal de Agendamento e Validação de NF-e">
+    <title>{% block title %}Ordo Logística{% endblock %}</title>
+
+    <!-- Bootstrap 5.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6.5 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* ======================================
+           ORDO — Design System Dark Blue v0.6
+        ====================================== */
+        :root {
+            --ordo-bg:         #0B1929;
+            --ordo-surface:    #112240;
+            --ordo-surface-2:  #1A2E4A;
+            --ordo-border:     #1E3A5F;
+            --ordo-accent:     #00B4D8;
+            --ordo-accent-2:   #0077B6;
+            --ordo-text:       #CCD6F6;
+            --ordo-text-dim:   #8892B0;
+            --ordo-green:      #00D4A0;
+            --ordo-yellow:     #FFB703;
+            --ordo-red:        #FF4D6D;
+            --ordo-sidebar-w:  260px;
+            --ordo-radius:     12px;
+            --ordo-shadow:     0 4px 24px rgba(0,0,0,0.35);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--ordo-bg);
+            color: var(--ordo-text);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.92rem;
+            min-height: 100vh;
+        }
+
+        /* ---- SIDEBAR ---- */
+        .ordo-sidebar {
+            position: fixed;
+            top: 0; left: 0;
+            width: var(--ordo-sidebar-w);
+            height: 100vh;
+            background: var(--ordo-surface);
+            border-right: 1px solid var(--ordo-border);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            padding-bottom: 1.5rem;
+        }
+
+        .ordo-logo {
+            padding: 1.5rem 1.5rem 1rem;
+            border-bottom: 1px solid var(--ordo-border);
+        }
+        .ordo-logo .logo-mark {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--ordo-accent), var(--ordo-accent-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+        .ordo-logo .logo-sub {
+            font-size: 0.7rem;
+            color: var(--ordo-text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 2px;
+        }
+
+        .ordo-nav { padding: 1rem 0.75rem; flex: 1; }
+
+        .ordo-nav-section {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--ordo-text-dim);
+            padding: 0.5rem 0.75rem 0.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .ordo-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 0.9rem;
+            border-radius: 8px;
+            color: var(--ordo-text-dim);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        .ordo-nav-link i { width: 18px; text-align: center; font-size: 0.95rem; }
+        .ordo-nav-link:hover {
+            background: var(--ordo-surface-2);
+            color: var(--ordo-accent);
+        }
+        .ordo-nav-link.active {
+            background: linear-gradient(135deg, rgba(0,180,216,0.15), rgba(0,119,182,0.1));
+            color: var(--ordo-accent);
+            border: 1px solid rgba(0,180,216,0.2);
+        }
+
+        .ordo-sidebar-footer {
+            padding: 0.75rem 1rem;
+            border-top: 1px solid var(--ordo-border);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .ordo-avatar {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--ordo-accent), var(--ordo-accent-2));
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .ordo-user-name { font-size: 0.78rem; font-weight: 600; color: var(--ordo-text); }
+        .ordo-user-role { font-size: 0.68rem; color: var(--ordo-text-dim); }
+
+        /* ---- MAIN CONTENT ---- */
+        .ordo-main {
+            margin-left: var(--ordo-sidebar-w);
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        .ordo-topbar {
+            background: var(--ordo-surface);
+            border-bottom: 1px solid var(--ordo-border);
+            padding: 0.85rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        .ordo-page-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--ordo-text);
+        }
+        .ordo-page-subtitle {
+            font-size: 0.75rem;
+            color: var(--ordo-text-dim);
+        }
+
+        .ordo-content { padding: 2rem; }
+
+        /* ---- CARDS ---- */
+        .ordo-card {
+            background: var(--ordo-surface);
+            border: 1px solid var(--ordo-border);
+            border-radius: var(--ordo-radius);
+            transition: all 0.25s ease;
+            overflow: hidden;
+        }
+        .ordo-card:hover {
+            border-color: var(--ordo-accent);
+            box-shadow: 0 0 0 1px rgba(0,180,216,0.15), var(--ordo-shadow);
+            transform: translateY(-2px);
+        }
+        .ordo-card-header {
+            padding: 1.25rem 1.5rem 1rem;
+            border-bottom: 1px solid var(--ordo-border);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .ordo-card-body { padding: 1.5rem; }
+
+        /* KPI Cards */
+        .ordo-kpi {
+            background: var(--ordo-surface);
+            border: 1px solid var(--ordo-border);
+            border-radius: var(--ordo-radius);
+            padding: 1.25rem 1.5rem;
+            transition: all 0.25s ease;
+        }
+        .ordo-kpi:hover { border-color: var(--ordo-accent); transform: translateY(-2px); }
+        .ordo-kpi-value {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        .ordo-kpi-label {
+            font-size: 0.725rem;
+            color: var(--ordo-text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .ordo-kpi-icon {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        /* ---- BADGES ---- */
+        .badge-pre   { background: rgba(136,146,176,0.15); color: #8892B0; border: 1px solid rgba(136,146,176,0.3); }
+        .badge-conf  { background: rgba(0,180,216,0.15);   color: var(--ordo-accent); border: 1px solid rgba(0,180,216,0.3); }
+        .badge-patio { background: rgba(255,183,3,0.15);   color: var(--ordo-yellow); border: 1px solid rgba(255,183,3,0.3); }
+        .badge-desc  { background: rgba(100,50,200,0.15);  color: #a78bfa; border: 1px solid rgba(100,50,200,0.3); }
+        .badge-fin   { background: rgba(0,212,160,0.15);   color: var(--ordo-green);  border: 1px solid rgba(0,212,160,0.3); }
+        .badge-canc  { background: rgba(255,77,109,0.15);  color: var(--ordo-red);    border: 1px solid rgba(255,77,109,0.3); }
+
+        /* ---- BOTÕES ---- */
+        .btn-ordo-primary {
+            background: linear-gradient(135deg, var(--ordo-accent), var(--ordo-accent-2));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 0.55rem 1.25rem;
+            transition: all 0.2s;
+            letter-spacing: 0.2px;
+        }
+        .btn-ordo-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0,180,216,0.35);
+            color: white;
+        }
+
+        .btn-ordo-ghost {
+            background: transparent;
+            border: 1px solid var(--ordo-border);
+            color: var(--ordo-text-dim);
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 0.55rem 1.25rem;
+            transition: all 0.2s;
+        }
+        .btn-ordo-ghost:hover {
+            border-color: var(--ordo-accent);
+            color: var(--ordo-accent);
+        }
+
+        /* ---- TABELA ---- */
+        .ordo-table { color: var(--ordo-text); }
+        .ordo-table thead th {
+            background: var(--ordo-surface-2);
+            color: var(--ordo-text-dim);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            border-color: var(--ordo-border);
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+        }
+        .ordo-table tbody tr {
+            border-color: var(--ordo-border);
+            transition: background 0.15s;
+        }
+        .ordo-table tbody tr:hover { background: rgba(0,180,216,0.04); }
+        .ordo-table tbody td {
+            border-color: var(--ordo-border);
+            padding: 0.8rem 1rem;
+            vertical-align: middle;
+        }
+
+        /* ---- FORMS ---- */
+        .form-control, .form-select {
+            background: var(--ordo-surface-2) !important;
+            border: 1px solid var(--ordo-border) !important;
+            color: var(--ordo-text) !important;
+            border-radius: 8px !important;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--ordo-accent) !important;
+            box-shadow: 0 0 0 3px rgba(0,180,216,0.15) !important;
+            outline: none !important;
+        }
+        .form-control::placeholder { color: var(--ordo-text-dim) !important; }
+        .form-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--ordo-text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 0.4rem;
+        }
+
+        /* ---- ALERTAS ---- */
+        .alert-ordo-warn {
+            background: rgba(255,183,3,0.08);
+            border: 1px solid rgba(255,183,3,0.25);
+            color: var(--ordo-yellow);
+            border-radius: 8px;
+        }
+        .alert-ordo-danger {
+            background: rgba(255,77,109,0.08);
+            border: 1px solid rgba(255,77,109,0.25);
+            color: var(--ordo-red);
+            border-radius: 8px;
+        }
+        .alert-ordo-success {
+            background: rgba(0,212,160,0.08);
+            border: 1px solid rgba(0,212,160,0.25);
+            color: var(--ordo-green);
+            border-radius: 8px;
+        }
+        .alert-ordo-info {
+            background: rgba(0,180,216,0.08);
+            border: 1px solid rgba(0,180,216,0.2);
+            color: var(--ordo-accent);
+            border-radius: 8px;
+        }
+
+        /* ---- PÁGINA SEM SIDEBAR (login/home) ---- */
+        body.no-sidebar .ordo-main { margin-left: 0; }
+
+        /* ---- ANIMAÇÕES ---- */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeInUp 0.4s ease both; }
+        .fade-in-delay-1 { animation-delay: 0.1s; }
+        .fade-in-delay-2 { animation-delay: 0.2s; }
+        .fade-in-delay-3 { animation-delay: 0.3s; }
+
+        /* ---- SCROLLBAR ---- */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--ordo-bg); }
+        ::-webkit-scrollbar-thumb { background: var(--ordo-border); border-radius: 3px; }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+{% if request.user.is_authenticated and not request.resolver_match.url_name == 'home' %}
+<!-- ======== SIDEBAR ======== -->
+<aside class="ordo-sidebar">
+    <div class="ordo-logo">
+        <div class="logo-mark">ORDO</div>
+        <div class="logo-sub">Tecnologia Logística</div>
+    </div>
+
+    <nav class="ordo-nav">
+        {% if is_gestor_patio %}
+            <div class="ordo-nav-section">Gestão</div>
+            <a href="{% url 'dashboard' %}" class="ordo-nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <i class="fa-solid fa-warehouse"></i> Dashboard Pátio
+            </a>
+            <div class="ordo-nav-section">Portaria</div>
+            <a href="{% url 'consulta' %}" class="ordo-nav-link {% if request.resolver_match.url_name == 'consulta' %}active{% endif %}">
+                <i class="fa-solid fa-door-open"></i> Consulta Portaria
+            </a>
+        {% elif is_analista_fiscal %}
+            <div class="ordo-nav-section">Fiscal</div>
+            <a href="{% url 'fiscal_dashboard' %}" class="ordo-nav-link {% if request.resolver_match.url_name == 'fiscal_dashboard' or request.resolver_match.url_name == 'fiscal_aprovar' %}active{% endif %}">
+                <i class="fa-solid fa-file-magnifying-glass"></i> Análise Fiscal
+            </a>
+        {% elif is_portaria %}
+            <div class="ordo-nav-section">Portaria</div>
+            <a href="{% url 'consulta' %}" class="ordo-nav-link {% if request.resolver_match.url_name == 'consulta' %}active{% endif %}">
+                <i class="fa-solid fa-door-open"></i> Consulta Portaria
+            </a>
+        {% else %}
+            <div class="ordo-nav-section">Portal da Indústria</div>
+            <a href="{% url 'dashboard_industria' %}" class="ordo-nav-link {% if request.resolver_match.url_name == 'dashboard_industria' %}active{% endif %}">
+                <i class="fa-solid fa-chart-line"></i> Meu Dashboard
+            </a>
+            <a href="{% url 'novo_agendamento' %}" class="ordo-nav-link {% if request.resolver_match.url_name == 'novo_agendamento' %}active{% endif %}">
+                <i class="fa-solid fa-calendar-plus"></i> Novo Agendamento
+            </a>
+            <a href="{% url 'industria_perfil' %}" class="ordo-nav-link {% if request.resolver_match.url_name == 'industria_perfil' %}active{% endif %}">
+                <i class="fa-solid fa-building"></i> Meu Perfil
+            </a>
+        {% endif %}
+    </nav>
+
+    <!-- Rodapé da Sidebar: Usuário logado -->
+    <div class="ordo-sidebar-footer">
+        <div class="ordo-avatar">
+            {{ request.user.username|slice:":2"|upper }}
+        </div>
+        <div class="overflow-hidden">
+            <div class="ordo-user-name text-truncate">
+                {% if request.user.fornecedor_perfil %}
+                    {{ request.user.fornecedor_perfil.razao_social|truncatechars:22 }}
+                {% else %}
+                    {{ request.user.username }}
+                {% endif %}
+            </div>
+            <div class="ordo-user-role">
+                {% if is_gestor_patio %}Gestor Pátio{% elif is_analista_fiscal %}Analista Fiscal{% elif is_portaria %}Portaria{% else %}Fornecedor{% endif %}
+            </div>
+        </div>
+        <form method="post" action="{% url 'logout' %}"
+              style="margin-left:auto; display:flex; align-items:center;">
+            {% csrf_token %}
+            <button type="submit" class="text-muted" title="Sair"
+                    style="background:none; border:none; padding:0; cursor:pointer; line-height:1;">
+                <i class="fa-solid fa-right-from-bracket fa-sm"></i>
+            </button>
+        </form>
+    </div>
+</aside>
+{% endif %}
+
+<!-- ======== MAIN ======== -->
+<div class="ordo-main">
+
+    {% if request.user.is_authenticated and not request.resolver_match.url_name == 'home' %}
+    <div class="ordo-topbar">
+        <div>
+            <div class="ordo-page-title">{% block page_title %}Ordo Logística{% endblock %}</div>
+            <div class="ordo-page-subtitle">{% block page_subtitle %}{% endblock %}</div>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            {% block topbar_actions %}{% endblock %}
+            <small class="text-muted d-none d-md-block">
+                <i class="fa-regular fa-clock me-1"></i>
+                <span id="relogio">--:--:--</span>
+            </small>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Messages Django -->
+    {% if messages %}
+    <div class="px-4 pt-3">
+        {% for message in messages %}
+        <div class="alert-ordo-{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}danger{% elif message.tags == 'warning' %}warn{% else %}info{% endif %} alert alert-dismissible fade show p-3 mb-2" role="alert">
+            {{ message|safe }}
+            <button type="button" class="btn-close btn-close-white opacity-50" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="{% block main_wrapper_class %}ordo-content{% endblock %}">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Relógio em tempo real na topbar
+    function atualizarRelogio() {
+        const el = document.getElementById('relogio');
+        if (el) {
+            const now = new Date();
+            el.textContent = now.toLocaleTimeString('pt-BR');
+        }
+    }
+    setInterval(atualizarRelogio, 1000);
+    atualizarRelogio();
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

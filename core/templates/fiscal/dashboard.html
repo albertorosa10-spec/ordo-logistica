@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}Análise Fiscal — Ordo{% endblock %}
+{% block page_title %}Análise Fiscal{% endblock %}
+{% block page_subtitle %}NF-e aguardando triagem manual{% endblock %}
+{% block nav_fiscal %}active{% endblock %}
+
+{% block topbar_actions %}{% endblock %}
+
+{% block extra_css %}
+.fiscal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,183,3,.12);
+    color: var(--ordo-yellow);
+    border: 1px solid rgba(255,183,3,.3);
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: .72rem;
+    font-weight: 700;
+}
+.fiscal-badge.vazio {
+    background: rgba(0,212,160,.08);
+    color: var(--ordo-green);
+    border-color: rgba(0,212,160,.25);
+}
+.prazo-ok   { color: var(--ordo-text-dim); font-size: .75rem; }
+.prazo-warn { color: var(--ordo-yellow);   font-size: .75rem; font-weight: 700; }
+.prazo-crit { color: var(--ordo-red);      font-size: .75rem; font-weight: 700; }
+{% endblock %}
+
+{% block content %}
+
+{# ---- CABEÇALHO COM CONTADOR ---- #}
+<div class="d-flex align-items-center justify-content-between mb-4 fade-in">
+    <div>
+        {% if total > 0 %}
+        <span class="fiscal-badge">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            {{ total }} aguardando triagem
+        </span>
+        {% else %}
+        <span class="fiscal-badge vazio">
+            <i class="fa-solid fa-circle-check"></i>
+            Nenhuma NF-e pendente
+        </span>
+        {% endif %}
+    </div>
+    <small class="text-muted">Última consulta: {{ agora|date:"H:i:s" }}</small>
+</div>
+
+{% if aguardando %}
+<div class="ordo-card fade-in">
+    <div class="ordo-card-header">
+        <i class="fa-solid fa-file-magnifying-glass" style="color:var(--ordo-yellow);"></i>
+        <span class="fw-semibold">NF-e em Análise Fiscal</span>
+    </div>
+    <div class="ordo-card-body p-0">
+        <div class="table-responsive">
+            <table class="table ordo-table mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Fornecedor</th>
+                        <th>PO</th>
+                        <th>Descarga</th>
+                        <th>Doca(s)</th>
+                        <th>Tipo</th>
+                        <th>Prazo NF-e</th>
+                        <th>Chave NF-e</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ag in aguardando %}
+                    {% with prazo=ag.prazo_vinculo_nfe %}
+                    {% if prazo %}
+                        {% with delta=prazo|timeuntil %}
+                        <tr>
+                    {% endwith %}
+                    {% else %}
+                        <tr>
+                    {% endif %}
+                        <td class="text-muted" style="font-size:.75rem;">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="fw-semibold" style="font-size:.85rem;">
+                                {{ ag.fornecedor.razao_social|truncatechars:28 }}
+                            </div>
+                            <div style="font-size:.68rem; color:var(--ordo-text-dim); font-family:monospace;">
+                                {{ ag.fornecedor.cnpj }}
+                            </div>
+                        </td>
+                        <td class="fw-semibold">{{ ag.numero_pedido }}</td>
+                        <td>
+                            <div class="fw-semibold">{{ ag.inicio|date:"d/m/Y" }}</div>
+                            <div style="font-size:.75rem; color:var(--ordo-accent);">{{ ag.inicio|date:"H:i" }}</div>
+                        </td>
+                        <td>
+                            {% for doca in ag.docas.all %}
+                                <span class="badge-conf badge rounded-pill" style="font-size:.68rem;">{{ doca.codigo }}</span>
+                            {% empty %}—{% endfor %}
+                        </td>
+                        <td style="font-size:.75rem; color:var(--ordo-text-dim);">{{ ag.get_tipo_carga_display }}</td>
+                        <td>
+                            {% if ag.prazo_vinculo_nfe %}
+                                {% with prazo=ag.prazo_vinculo_nfe %}
+                                {% if prazo < agora %}
+                                    <span class="prazo-crit">
+                                        <i class="fa-solid fa-circle-xmark me-1"></i>Expirado
+                                    </span>
+                                {% else %}
+                                    {% with restante_s=prazo|timeuntil:agora %}
+                                    <span class="{% if ag.inicio|timesince:agora < '6' %}prazo-warn{% else %}prazo-ok{% endif %}">
+                                        até {{ prazo|date:"d/m H:i" }}
+                                    </span>
+                                    {% endwith %}
+                                {% endif %}
+                                {% endwith %}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td style="font-size:.68rem; color:var(--ordo-text-dim); font-family:monospace;">
+                            {% if ag.chave_nfe %}
+                                {{ ag.chave_nfe|slice:":10" }}…{{ ag.chave_nfe|slice:"-4:" }}
+                            {% else %}
+                                <span style="color:var(--ordo-red);">Sem XML</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'fiscal_aprovar' ag.pk %}"
+                               class="btn-ordo-primary btn btn-sm"
+                               style="font-size:.72rem; white-space:nowrap;">
+                                <i class="fa-solid fa-gavel me-1"></i> Analisar
+                            </a>
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="ordo-card fade-in">
+    <div class="ordo-card-body text-center py-5">
+        <i class="fa-solid fa-circle-check fa-3x mb-3" style="color:var(--ordo-green); opacity:.5;"></i>
+        <p class="fw-semibold mb-1">Fila limpa</p>
+        <p style="font-size:.82rem; color:var(--ordo-text-dim);">
+            Nenhuma NF-e aguardando triagem fiscal no momento.
+        </p>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
