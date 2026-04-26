@@ -1,5 +1,6 @@
 [deploy]
-startCommand = "python manage.py migrate && python manage.py criar_admin && python manage.py criar_grupos && gunicorn setup.wsgi --log-file - --workers 1 --threads 2 --timeout 120 --bind 0.0.0.0:$PORT"
+releaseCommand = "python manage.py migrate && python manage.py criar_admin && python manage.py criar_grupos"
+startCommand = "gunicorn setup.wsgi --log-file - --workers 1 --threads 2 --timeout 120 --preload --bind 0.0.0.0:$PORT"
 healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
