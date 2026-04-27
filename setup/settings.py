@@ -74,14 +74,27 @@ TEMPLATES = [
 WSGI_APPLICATION = 'setup.wsgi.application'
 
 # ==========================================
-# DATABASE CONFIGURATION (LOCAL SQLITE)
+# DATABASE CONFIGURATION (HÍBRIDO)
 # ==========================================
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+import dj_database_url
+
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=0,
+            conn_health_checks=False,
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # ==========================================
 # VALIDAÇÃO DE SENHAS
