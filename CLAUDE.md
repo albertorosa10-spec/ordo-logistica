@@ -1,4 +1,5 @@
 # ORDO LOGÍSTICA — CLAUDE.md
+# Versão: 4.0 | 26/04/2026
 # Lido automaticamente pelo Claude Code a cada sessão
 
 ## PROJETO
@@ -8,107 +9,128 @@ Dev: Alberto Rosa (Analista de Inteligência Tributária → Tax Tech)
 
 ## STACK
 - Python 3.12.3 / Django 6.0.4
-- SQLite3 local (testes) / PostgreSQL Railway (produção)
+- SQLite3 local / PostgreSQL Railway (produção)
 - HTML5 + CSS3 + Vanilla JS (templates Django)
-- Deploy: Railway — não Vercel (Django é server-side)
+- Deploy: Railway — nunca Vercel
 - Ambiente: WSL Ubuntu / localhost:8080
+- GitHub: https://github.com/albertorosa10-spec/ordo-logistica
+- Railway: https://jubilant-vitality-production.up.railway.app
+- Claude Code: Sonnet 4.6 — uma tarefa por prompt, /clear entre tarefas
 
 ## ESTRUTURA
 ```
 agendamento_logistico/
-├── CLAUDE.md           ← este arquivo
-├── context.md          ← skill file para Antigravity
+├── CLAUDE.md
+├── context.md
+├── PLANO_TECNICO.md
 ├── Procfile
-├── railway.toml
-├── runtime.txt         ← python-3.12.3
+├── railway.toml        ← 1 worker, 2 threads, timeout 120
+├── runtime.txt
 ├── requirements.txt
 ├── manage.py
 ├── setup/
-│   ├── settings.py     ← híbrido SQLite/PostgreSQL
+│   ├── settings.py     ← híbrido SQLite/PostgreSQL + e-mail Gmail + context_processors
 │   ├── urls.py
 │   └── wsgi.py
 └── core/
-    ├── models.py       ← v0.8.1
-    ├── views.py        ← v0.8.1
-    ├── forms.py        ← v0.6.0
+    ├── models.py       ← Agendamento, NFeArquivo (aprovado BooleanField null=True)
+    ├── views.py        ← fiscal_dashboard, fiscal_aprovar, segregação por grupo
+    ├── forms.py        ← MultipleFileField para upload múltiplo XML
     ├── admin.py
-    ├── integrations.py ← parser XML NF-e + BrasilAPI
+    ├── integrations.py
     ├── urls.py
-    ├── management/commands/criar_admin.py
+    ├── context_processors.py  ← is_gestor_patio, is_analista_fiscal, is_portaria
+    ├── management/commands/
+    │   ├── criar_admin.py
+    │   └── criar_grupos.py    ← gestor_patio, analista_fiscal, portaria
     └── templates/
-        ├── base.html
-        ├── home.html
-        ├── login.html
-        ├── dashboard_gestor.html   ← dashboard do gestor (simplificado)
+        ├── base.html          ← sidebar condicional por grupo
+        ├── 403.html
+        ├── dashboard_gestor.html  ← HTML STANDALONE (não extends base.html)
         ├── portaria/consulta.html
-        ├── industria/dashboard.html
-        ├── industria/novo_agendamento.html
-        ├── industria/upload_nfe.html
-        └── onboarding/cadastro.html
+        ├── fiscal/
+        │   ├── dashboard.html
+        │   └── aprovar.html   ← card por NFeArquivo, decisão individual
+        └── industria/
+            ├── dashboard.html
+            ├── novo_agendamento.html
+            ├── upload_nfe.html        ← múltiplos XMLs (até 100)
+            ├── detalhe_agendamento.html
+            ├── perfil.html
+            └── agendamentos_status.html
 ```
 
-## MODELOS PRINCIPAIS
-- `EmpresaOperadora` — CNPJ da Direta (destinatário das NF-es)
-- `Doca` — recurso físico do pátio
-- `Fornecedor` — indústria parceira, vinculada a User Django
-- `Agendamento` — PO + NF-e + status + timestamps
-- `AgendamentoDoca` — ManyToMany intermediária
-- `LogAgendamento` — auditoria de status
+## URLS DO SISTEMA
+```
+/admin/                          → Django Admin (superuser)
+/dashboard/                      → Dashboard Gestor (grupo gestor_patio)
+/fiscal/                         → Análise Fiscal (grupo analista_fiscal)
+/fiscal/agendamento/<pk>/        → Triagem individual NF-e
+/industria/dashboard/            → Portal Indústria
+/industria/agendamento/<id>/     → Detalhe agendamento
+/industria/perfil/               → Perfil + logout
+/industria/agendamentos/?status= → Listagem por status
+/portaria/                       → Consulta portaria
+```
+
+## GRUPOS E ACESSOS
+```
+gestor_patio    → /dashboard/ + /portaria/
+analista_fiscal → /fiscal/ + /fiscal/agendamento/<pk>/
+portaria        → /portaria/
+superuser       → tudo
+indústria       → /industria/* + /portaria/
+```
 
 ## CICLO DE STATUS
 ```
-PRE_AGENDADO → CONFIRMADO → EM_PATIO → EM_DESCARGA → FINALIZADO
-AGUARDANDO_FISCAL (triagem manual quando NF-e tem divergência)
-CANCELADO / NO_SHOW
+PRE_AGENDADO → (upload XML + e-mail) → AGUARDANDO_FISCAL
+AGUARDANDO_FISCAL → (fiscal aprova) → CONFIRMADO
+CONFIRMADO → (check-in 4 dígitos) → EM_PATIO
+EM_PATIO → EM_DESCARGA → FINALIZADO
+Rejeição: volta PRE_AGENDADO + motivo no LogAgendamento
 ```
 
-## REGRAS DE NEGÓCIO CRÍTICAS
-- Fornecedor loga com CNPJ (14 dígitos) + senha
-- Upload XML → e-mail automático para fiscal@diretadistribuidor.com.br
-- Conferência da NF-e é MANUAL pelo setor fiscal (não automática)
-- Prazo NF-e: 24h antes da descarga
-- Mock Winthor: chaves terminando em `123` aprovadas
-- Shadow buffer: 15min entre agendamentos
-- Horário operacional: 07h-18h
+## MODELOS IMPORTANTES
+- NFeArquivo: agendamento FK, chave, arquivo, aprovado (null=pending, True=ok, delete=rejected)
+- Agendamento.chave_nfe: max_length=4500 (múltiplas chaves separadas por vírgula)
+- Migrations aplicadas: 0001..0006
 
-## FLUXO MVP (simplificado)
-1. Indústria agenda (PO + doca + horário)
-2. Indústria faz upload do XML da NF-e
-3. Sistema dispara e-mail para fiscal@ com XML anexo
-4. Fiscal confere manualmente e aprova no admin
-5. Gestor faz check-in com código de descarga
-6. Gestor avança status: EM_PATIO → EM_DESCARGA → FINALIZADO
+## REGRAS CRÍTICAS
+- dashboard_gestor.html é HTML STANDALONE — não usa {% extends %} nem {% url %}
+- Paths hardcoded: /fiscal/agendamento/{{ ag.pk }}/
+- Antigravity NÃO editar templates (traduz tags Django para português)
+- E-mail: sem EMAIL_HOST_USER → console backend; com → Gmail SMTP
 
-## SERVIDOR LOCAL
-```bash
-cd ~/agendamento_logistico
-source venv/bin/activate
-python manage.py runserver 8080
-# Acessa: http://127.0.0.1:8080
-```
-
-## SEED DATA NECESSÁRIO (admin)
-1. EmpresaOperadora — CNPJ da Direta
-2. Docas — D01 a D05
-3. Fornecedores — com Users vinculados (username = CNPJ)
-
-## DEPLOY RAILWAY
+## RAILWAY
 - URL: jubilant-vitality-production.up.railway.app
-- DATABASE_URL: postgres.railway.internal (interno, não público)
-- conn_max_age=0 obrigatório para evitar timeout
-- railway.toml define startCommand com migrate + criar_admin + gunicorn
+- GitHub: albertorosa10-spec/ordo-logistica (branch main)
+- CI/CD: push → deploy automático (verificar webhook)
+- DATABASE_URL: postgres.railway.internal (interno)
+- railway.toml: migrate + criar_admin + criar_grupos + gunicorn 1 worker 2 threads
+- PROBLEMA ATUAL: SIGKILL (OOM) no deploy — investigar alocação de RAM no serviço
 
-## PRÓXIMOS PASSOS (em ordem)
-1. Substituir dashboard_gestor.html pela versão simplificada
-2. Implementar disparo de e-mail no upload de NF-e (Gmail SMTP)
-3. Testar fluxo completo: agendamento → upload → e-mail → aprovação → check-in
-4. Criar repositório GitHub + conectar ao Railway (CI/CD)
-5. Testes com indústrias piloto
+## VARIÁVEIS RAILWAY NECESSÁRIAS
+```
+DATABASE_URL                → postgres.railway.internal/...
+DJANGO_SUPERUSER_USERNAME   → alberto
+DJANGO_SUPERUSER_PASSWORD   → (ver no Railway Variables)
+DJANGO_SUPERUSER_EMAIL      → alberto_rosa10@icloud.com
+EMAIL_HOST_USER             → (Gmail de envio)
+EMAIL_HOST_PASSWORD         → (senha de app 16 dígitos)
+```
+
+## PRÓXIMOS PASSOS
+1. 🔴 Resolver SIGKILL no Railway (OOM) — verificar RAM alocada, tentar --workers 1 --threads 2
+2. ⏳ Configurar variáveis de e-mail no Railway
+3. ⏳ Testar fluxo completo em produção
+4. ⏳ Testes com indústrias piloto
 
 ## REGRAS DO AGENTE
-- Editar arquivos diretamente — não gerar para copiar/colar
-- Mudanças cirúrgicas — não reescrever arquivos inteiros sem necessidade
-- Diagnóstico antes de agir — ver o arquivo antes de editar
-- Nunca sugerir Vercel para Django
-- Sempre rodar `python manage.py check` após alterações em models/views
-- Se der erro, ler o traceback completo antes de propor solução
+- Sonnet 4.6 — não trocar para Opus
+- Uma tarefa por prompt
+- /clear entre tarefas distintas
+- Diagnóstico antes de agir
+- Mudanças cirúrgicas
+- Nunca sugerir Vercel
+- python manage.py check após mudanças em models/views

@@ -23,8 +23,6 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://web-production-24311.up.railway.app',
-    'https://jubilant-vitality-production.up.railway.app',
     'http://127.0.0.1:8000',
     'http://localhost:8000',
 ]
@@ -75,38 +73,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'setup.wsgi.application'
 
 # ==========================================
-# DATABASE CONFIGURATION (HÍBRIDO PROTEGIDO)
+# DATABASE CONFIGURATION (LOCAL ONLY)
 # ==========================================
-import sys
-import dj_database_url
-
-# O Railway injeta variáveis nativas. Usamos isso como nosso "radar" de ambiente.
-IS_RAILWAY = 'RAILWAY_ENVIRONMENT_NAME' in os.environ or 'RAILWAY_PROJECT_ID' in os.environ
-
-if IS_RAILWAY:
-    # ESTAMOS NA NUVEM! Uso obrigatório do PostgreSQL.
-    DATABASE_URL = os.environ.get('DATABASE_URL')
-    
-    if not DATABASE_URL:
-        print("🚨 ERRO FATAL ORDO: O sistema detectou que está no Railway, mas a DATABASE_URL está vazia!")
-        print("O deploy foi abortado para impedir a criação de um banco SQLite temporário na memória RAM.")
-        sys.exit(1) # Corta o mal pela raiz e mata o processo na hora.
-        
-    DATABASES = {
-        'default': dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=0,
-            conn_health_checks=False,
-        )
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
-    # ESTAMOS NO SEU COMPUTADOR! Uso seguro do SQLite local.
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 # ==========================================
 # VALIDAÇÃO DE SENHAS
