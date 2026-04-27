@@ -75,13 +75,23 @@ TEMPLATES = [
 WSGI_APPLICATION = 'setup.wsgi.application'
 
 # ==========================================
-# DATABASE CONFIGURATION (HÍBRIDO)
+# DATABASE CONFIGURATION (HÍBRIDO PROTEGIDO)
 # ==========================================
+import sys
 import dj_database_url
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
+# O Railway injeta variáveis nativas. Usamos isso como nosso "radar" de ambiente.
+IS_RAILWAY = 'RAILWAY_ENVIRONMENT_NAME' in os.environ or 'RAILWAY_PROJECT_ID' in os.environ
 
-if DATABASE_URL:
+if IS_RAILWAY:
+    # ESTAMOS NA NUVEM! Uso obrigatório do PostgreSQL.
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    
+    if not DATABASE_URL:
+        print("🚨 ERRO FATAL ORDO: O sistema detectou que está no Railway, mas a DATABASE_URL está vazia!")
+        print("O deploy foi abortado para impedir a criação de um banco SQLite temporário na memória RAM.")
+        sys.exit(1) # Corta o mal pela raiz e mata o processo na hora.
+        
     DATABASES = {
         'default': dj_database_url.parse(
             DATABASE_URL,
@@ -90,6 +100,7 @@ if DATABASE_URL:
         )
     }
 else:
+    # ESTAMOS NO SEU COMPUTADOR! Uso seguro do SQLite local.
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
