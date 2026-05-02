@@ -82,7 +82,7 @@ class Fornecedor(models.Model):
 class Agendamento(models.Model):
     STATUS_CHOICES = [
         ('PRE_AGENDADO',      'Pré-agendado'),
-        ('AGUARDANDO_FISCAL', 'Em Análise Fiscal'), # Triagem manual
+        ('AGUARDANDO_FISCAL', 'Pré-entrada Fiscal'), # Triagem manual
         ('CONFIRMADO',        'Confirmado'),
         ('EM_PATIO',          'Em pátio'),
         ('EM_DESCARGA',       'Em descarga'),
@@ -137,7 +137,7 @@ class Agendamento(models.Model):
         if self.status == 'NO_SHOW':
             return {'code': 'ATR', 'label': 'No-show'}
         if self.status == 'AGUARDANDO_FISCAL':
-            return {'code': 'FIS', 'label': 'Em Análise Fiscal'}
+            return {'code': 'FIS', 'label': 'Pré-entrada Fiscal'}
         
         # 2. Dedução por timestamps operacional
         if self.horario_finalizacao:

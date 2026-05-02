@@ -562,7 +562,7 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
       </div>
 
       <div class="na-field">
-        <label class="na-field-label" for="id_qtd_itens">
+        <label class="na-field-label" for="id_qtd_itens" id="label-qtd-itens">
           Qtd. Itens / Caixas <span class="na-req">*</span>
         </label>
         {{ form.qtd_itens }}
@@ -825,6 +825,26 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
 
   // Inicialização: recalcula SLA ao carregar (útil em re-submit com erros)
   atualizarSLA();
+
+  /* ---------------------------------------------------------------
+     7. LABEL DINÂMICO DO CAMPO DE QUANTIDADE
+        PAL → "Qtd. Pallets" / BAT ou FRA → "Qtd. Caixas"
+     --------------------------------------------------------------- */
+  var labelQtd = document.getElementById('label-qtd-itens');
+
+  function atualizarLabelQtd() {
+    if (!labelQtd || !selectTipo || !inputQtd) return;
+    var isPal = selectTipo.value === 'PAL';
+    var textoLabel = isPal ? 'Qtd. Pallets' : 'Qtd. Caixas';
+    var placeholder = isPal ? 'Ex: 24' : 'Ex: 500';
+    labelQtd.childNodes[0].textContent = textoLabel + ' ';
+    inputQtd.placeholder = placeholder;
+  }
+
+  if (selectTipo) selectTipo.addEventListener('change', atualizarLabelQtd);
+
+  // Aplicar label correto no carregamento da página
+  atualizarLabelQtd();
 
   /* ---------------------------------------------------------------
      6. VALIDAÇÃO ADICIONAL ANTES DO SUBMIT

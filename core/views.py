@@ -13,7 +13,6 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
-from django.core.mail import EmailMessage
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_GET
@@ -251,38 +250,10 @@ def upload_nfe(request, agendamento_id):
             agendamento.status    = 'AGUARDANDO_FISCAL'
             agendamento.save()
 
-            # E-mail único com todos os XMLs como anexo
-            try:
-                n     = len(dados)
-                plurar = 's' if n > 1 else ''
-                corpo = (
-                    f"{n} NF-e{plurar} recebida{plurar} para triagem manual.\n\n"
-                    f"Agendamento : #{agendamento.pk}\n"
-                    f"Fornecedor  : {agendamento.fornecedor.razao_social} ({agendamento.fornecedor.cnpj})\n"
-                    f"PO          : {agendamento.numero_pedido}\n"
-                    f"Descarga    : {agendamento.inicio.strftime('%d/%m/%Y %H:%M')}\n"
-                    f"Chave(s)    : {', '.join(chaves)}\n\n"
-                    f"Acesse o portal para aprovar ou rejeitar: /fiscal/agendamento/{agendamento.pk}/"
-                )
-                email_msg = EmailMessage(
-                    subject=(
-                        f"[PO: {agendamento.numero_pedido}] {agendamento.fornecedor.razao_social}"
-                        f" — XML NF-e ({n} arquivo{plurar})"
-                    ),
-                    body=corpo,
-                    to=['fiscal@diretadistribuidor.com.br'],
-                    cc=['xml1@diretadistribuidor.com.br'],
-                )
-                for d in dados:
-                    email_msg.attach(d['nome'], d['conteudo'], 'application/xml')
-                email_msg.send(fail_silently=False)
-            except Exception:
-                pass  # Falha no e-mail não interrompe o fluxo
-
             messages.warning(
                 request,
-                f"⚠️ {len(dados)} NF-e(s) recebida(s). Seu agendamento entrou em 'Análise Fiscal'. "
-                "Aguarde a liberação do nosso setor interno para obter seu código de descarga."
+                f"⚠️ {len(dados)} NF-e(s) recebida(s). Seu agendamento entrou em 'Pré-entrada Fiscal'. "
+                "Aguarde a liberação do nosso setor interno para confirmar sua entrada."
             )
             return redirect('dashboard_industria')
 
@@ -497,15 +468,18 @@ def gestor_checkin(request, agendamento_id):
     if not _tem_acesso(request.user, 'gestor_patio'):
         return render(request, '403.html', status=403)
     agendamento = get_object_or_404(Agendamento, pk=agendamento_id)
-    
+
     if request.method == 'POST':
-        codigo = request.POST.get('codigo_descarga')
-        try:
-            agendamento.fazer_checkin(codigo)
-            messages.success(request, "✅ Check-in realizado!")
-        except ValidationError as e:
-            messages.error(request, e.message)
-            
+        if agendamento.status == 'CONFIRMADO':
+            agora = timezone.now()
+            agendamento.horario_entrada_patio = agora
+            agendamento.horario_chegada_real = agora
+            agendamento.status = 'EM_PATIO'
+            agendamento.save()
+            messages.success(request, f"✅ Entrada no Pátio registrada para #{agendamento.pk}!")
+        else:
+            messages.error(request, "Agendamento não está com status CONFIRMADO.")
+
     return redirect(f"/dashboard/?data={request.POST.get('data_filtro', '')}")
 
 @login_required

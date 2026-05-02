@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Operacional — Ordo Logística</title>
+  <title>Dashboard Operacional — Zakaz</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
@@ -14,11 +14,11 @@
      BASE — variáveis e estrutura da sidebar/topbar
   ================================================================ */
   :root {
-    --ordo-bg:        #0B1929;
+    --ordo-bg:        #0A1628;
     --ordo-surface:   #112240;
     --ordo-surface-2: #1A2E4A;
     --ordo-border:    #1E3A5F;
-    --ordo-accent:    #00B4D8;
+    --ordo-accent:    #00C896;
     --ordo-accent-2:  #0077B6;
     --ordo-text:      #CCD6F6;
     --ordo-text-dim:  #8892B0;
@@ -349,14 +349,6 @@
 
   /* ---- AÇÕES ---- */
   .acao-wrap { display: flex; align-items: center; gap: .4rem; flex-wrap: nowrap; }
-  .input-checkin {
-    width: 72px; border: 1px solid var(--cinza-borda); border-radius: 4px;
-    padding: .28rem .4rem; font-size: .82rem; font-weight: 700;
-    text-align: center; letter-spacing: 2px; color: var(--az-escuro);
-    background: #f8f9fc; font-family: system-ui, monospace;
-    outline: none; transition: border-color .15s;
-  }
-  .input-checkin:focus { border-color: var(--az-acao); background: #fff; }
   .btn-acao {
     border: none; border-radius: 4px; padding: .3rem .65rem;
     font-size: .72rem; font-weight: 700; cursor: pointer;
@@ -443,7 +435,7 @@
 ================================================================ -->
 <aside class="ordo-sidebar">
   <div class="ordo-logo">
-    <div class="logo-mark">ORDO</div>
+    <div class="logo-mark">ZAKAZ</div>
     <div class="logo-sub">Tecnologia Logística</div>
   </div>
 
@@ -481,7 +473,7 @@
 <div class="ordo-main">
 
   <div class="ordo-topbar">
-    <div class="ordo-page-title">Ordo Logística</div>
+    <div class="ordo-page-title">Zakaz</div>
     <small class="text-muted">
       <i class="fa-regular fa-clock me-1"></i>
       <span id="relogio-topo">--:--:--</span>
@@ -765,15 +757,10 @@
                 <td onclick="event.stopPropagation()">
                   <div class="acao-wrap">
                     {% if ag.status == 'CONFIRMADO' %}
-                    <form method="post" action="{% url 'gestor_checkin' ag.pk %}" id="form-checkin-{{ ag.pk }}">
+                    <form method="post" action="{% url 'gestor_checkin' ag.pk %}">
                       {% csrf_token %}
                       <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
-                      <input type="text" name="codigo_descarga" class="input-checkin"
-                             maxlength="4" pattern="\d{4}" placeholder="0000"
-                             autocomplete="off" inputmode="numeric"
-                             data-form-id="form-checkin-{{ ag.pk }}"
-                             title="Código de descarga de 4 dígitos">
-                      <button type="submit" class="btn-acao btn-checkin">Check-in</button>
+                      <button type="submit" class="btn-acao btn-checkin">▶ Entrada no Pátio</button>
                     </form>
 
                     {% elif ag.status == 'EM_PATIO' %}
@@ -928,18 +915,6 @@
   }
   tick(); setInterval(tick, 1000);
 })();
-
-/* Auto-submit check-in ao 4º dígito */
-document.querySelectorAll('.input-checkin').forEach(function(input) {
-  input.addEventListener('input', function() {
-    this.value = this.value.replace(/\D/g, '').slice(0, 4);
-    if (this.value.length === 4) {
-      var form = document.getElementById(this.getAttribute('data-form-id'));
-      if (form) form.submit();
-    }
-  });
-  input.addEventListener('click', function(e) { e.stopPropagation(); });
-});
 
 /* Confirmação de ações críticas */
 document.querySelectorAll('.form-status button[data-mensagem]').forEach(function(btn) {

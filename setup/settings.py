@@ -132,21 +132,20 @@ LOGOUT_REDIRECT_URL = '/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ==========================================
-# E-MAIL
-# Produção: define EMAIL_HOST_USER no Railway.
-# Dev: sem variável → imprime no console.
+# E-MAIL — DESABILITADO
+# Envio automático removido. Manter bloco
+# comentado para reativar futuramente.
 # ==========================================
 
-_email_host = os.environ.get('EMAIL_HOST_USER')
-
-if _email_host:
-    EMAIL_BACKEND         = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST            = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-    EMAIL_PORT            = int(os.environ.get('EMAIL_PORT', 587))
-    EMAIL_USE_TLS         = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
-    EMAIL_HOST_USER       = _email_host
-    EMAIL_HOST_PASSWORD   = os.environ.get('EMAIL_HOST_PASSWORD', '')
-    DEFAULT_FROM_EMAIL    = os.environ.get('DEFAULT_FROM_EMAIL', _email_host)
-else:
-    EMAIL_BACKEND      = 'django.core.mail.backends.console.EmailBackend'
-    DEFAULT_FROM_EMAIL = 'ordo@localhost'
+# _email_host = os.environ.get('EMAIL_HOST_USER')
+# if _email_host:
+#     EMAIL_BACKEND         = 'django.core.mail.backends.smtp.EmailBackend'
+#     EMAIL_HOST            = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+#     EMAIL_PORT            = int(os.environ.get('EMAIL_PORT', 587))
+#     EMAIL_USE_TLS         = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+#     EMAIL_HOST_USER       = _email_host
+#     EMAIL_HOST_PASSWORD   = os.environ.get('EMAIL_HOST_PASSWORD', '')
+#     DEFAULT_FROM_EMAIL    = os.environ.get('DEFAULT_FROM_EMAIL', _email_host)
+# else:
+#     EMAIL_BACKEND      = 'django.core.mail.backends.console.EmailBackend'
+#     DEFAULT_FROM_EMAIL = 'zakaz@localhost'

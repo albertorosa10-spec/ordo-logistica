@@ -1,4 +1,4 @@
-# ORDO LOGÍSTICA — CLAUDE.md
+# ZAKAZ — CLAUDE.md
 # Versão: 4.0 | 26/04/2026
 # Lido automaticamente pelo Claude Code a cada sessão
 
@@ -64,7 +64,7 @@ agendamento_logistico/
 ```
 /admin/                          → Django Admin (superuser)
 /dashboard/                      → Dashboard Gestor (grupo gestor_patio)
-/fiscal/                         → Análise Fiscal (grupo analista_fiscal)
+/fiscal/                         → Pré-entrada Fiscal (grupo analista_fiscal)
 /fiscal/agendamento/<pk>/        → Triagem individual NF-e
 /industria/dashboard/            → Portal Indústria
 /industria/agendamento/<id>/     → Detalhe agendamento
@@ -84,9 +84,9 @@ indústria       → /industria/* + /portaria/
 
 ## CICLO DE STATUS
 ```
-PRE_AGENDADO → (upload XML + e-mail) → AGUARDANDO_FISCAL
+PRE_AGENDADO → (upload XML) → AGUARDANDO_FISCAL
 AGUARDANDO_FISCAL → (fiscal aprova) → CONFIRMADO
-CONFIRMADO → (check-in 4 dígitos) → EM_PATIO
+CONFIRMADO → (botão Entrada no Pátio) → EM_PATIO
 EM_PATIO → EM_DESCARGA → FINALIZADO
 Rejeição: volta PRE_AGENDADO + motivo no LogAgendamento
 ```
