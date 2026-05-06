@@ -407,12 +407,18 @@
                 {% if is_gestor_patio %}Gestor Pátio{% elif is_analista_fiscal %}Analista Fiscal{% elif is_portaria %}Portaria{% else %}Fornecedor{% endif %}
             </div>
         </div>
-        <form method="post" action="{% url 'logout' %}"
-              style="margin-left:auto; display:flex; align-items:center;">
+        <form method="post" action="{% url 'logout' %}" style="margin-left:auto;">
             {% csrf_token %}
-            <button type="submit" class="text-muted" title="Sair"
-                    style="background:none; border:none; padding:0; cursor:pointer; line-height:1;">
-                <i class="fa-solid fa-right-from-bracket fa-sm"></i>
+            <button type="submit" title="Encerrar sessão"
+                    style="background:none; border:1px solid rgba(255,77,109,.25);
+                           border-radius:6px; padding:.25rem .55rem; cursor:pointer;
+                           color:rgba(255,77,109,.7); font-size:.72rem; font-weight:600;
+                           display:flex; align-items:center; gap:.35rem;
+                           transition:all .15s; line-height:1.2;"
+                    onmouseover="this.style.borderColor='rgba(255,77,109,.6)';this.style.color='#ff4d6d';"
+                    onmouseout="this.style.borderColor='rgba(255,77,109,.25)';this.style.color='rgba(255,77,109,.7)';">
+                <i class="fa-solid fa-right-from-bracket" style="font-size:.75rem;"></i>
+                Sair
             </button>
         </form>
     </div>

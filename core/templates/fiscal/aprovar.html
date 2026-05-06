@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Triagem Fiscal — Ag. #{{ agendamento.pk }} | Ordo{% endblock %}
+{% block title %}Triagem Fiscal — Ag. #{{ agendamento.pk }} | Zakaz{% endblock %}
 {% block page_title %}Triagem Fiscal{% endblock %}
 {% block page_subtitle %}Agendamento #{{ agendamento.pk }} — {{ agendamento.fornecedor.razao_social|truncatechars:40 }}{% endblock %}
 {% block nav_fiscal %}active{% endblock %}
@@ -289,7 +289,7 @@
 
             <button type="submit" class="btn-processar" id="btn-processar">
                 <i class="fa-solid fa-gavel me-2"></i>
-                Processar {{ nfe_list|length }} decisão{{ nfe_list|length|pluralize:"ão,ões" }}
+                Processar {{ nfe_list|length }} decis{{ nfe_list|length|pluralize:"ão,ões" }}
             </button>
 
         </form>

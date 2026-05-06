@@ -9,7 +9,7 @@ from datetime import timedelta, datetime
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
@@ -17,7 +17,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_GET
 
-from .models import Agendamento, Fornecedor, EmpresaOperadora, Doca, LogAgendamento, NFeArquivo
+from .models import Agendamento, Fornecedor, EmpresaOperadora, Doca, LogAgendamento, NFeArquivo, SHADOW_BUFFER
 
 
 def _tem_acesso(user, grupo):
@@ -77,9 +77,57 @@ def login_industria(request):
 
 def logout_view(request):
     if request.method == 'POST':
+        is_staff = request.user.is_authenticated and (
+            request.user.is_superuser or
+            request.user.groups.filter(
+                name__in=['gestor_patio', 'analista_fiscal', 'portaria']
+            ).exists()
+        )
         logout(request)
-        messages.success(request, "Sessão encerrada com sucesso.")
+        return redirect('/staff/login/' if is_staff else 'home')
     return redirect('home')
+
+def _staff_home_url(user, next_url=None):
+    """
+    Retorna a URL de destino pós-login para usuários staff.
+    Prioridade: parâmetro ?next= → dashboard do grupo → home.
+    """
+    if next_url:
+        return next_url
+    if user.is_superuser or user.groups.filter(name='gestor_patio').exists():
+        return 'dashboard'
+    if user.groups.filter(name='analista_fiscal').exists():
+        return 'fiscal_dashboard'
+    if user.groups.filter(name='portaria').exists():
+        return 'consulta'
+    return 'dashboard'
+
+
+def staff_login(request):
+    """Login dedicado para colaboradores staff (gestor, fiscal, portaria)."""
+    if request.user.is_authenticated:
+        return redirect(_staff_home_url(request.user, request.GET.get('next')))
+
+    error = None
+    username = ''
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+        user = authenticate(request, username=username, password=password)
+
+        if user is None:
+            error = "Usuário ou senha incorretos."
+        elif not user.is_staff:
+            error = "Acesso restrito a colaboradores."
+        else:
+            login(request, user)
+            return redirect(_staff_home_url(user, request.GET.get('next')))
+
+    return render(request, 'staff_login.html', {
+        'error':    error,
+        'username': username,
+    })
 
 # ==========================================
 # ONBOARDING & API
@@ -171,13 +219,52 @@ def novo_agendamento(request):
 
     form = NovoAgendamentoForm(request.POST or None, fornecedor=fornecedor)
     if request.method == 'POST' and form.is_valid():
-        agendamento = form.save(commit=False)
-        agendamento.fornecedor = fornecedor
-        agendamento.inicio = form.cleaned_data['inicio']
-        agendamento.save()
-        form.save_m2m()
-        messages.success(request, "✅ Agendamento criado! Vincule a NF-e para confirmar.")
-        return redirect('dashboard_industria')
+        inicio             = form.cleaned_data['inicio']
+        docas_selecionadas = form.cleaned_data['docas']
+        tipo_carga         = form.cleaned_data['tipo_carga']
+        qtd_itens          = form.cleaned_data['qtd_itens']
+
+        # --- Verificação de conflito de doca ---
+        # Replica a fórmula de calcular_duracao() + buffer para obter o fim estimado
+        _MULT = {'PAL': 0.80, 'BAT': 1.50, 'FRA': 1.20}
+        duracao_min = int((30 + qtd_itens) * _MULT.get(tipo_carga, 1.0))
+        fim_novo    = inicio + timedelta(minutes=duracao_min + SHADOW_BUFFER)
+
+        # Status que representam ocupação real da doca
+        _STATUS_OCUPA = [
+            'PRE_AGENDADO', 'AGUARDANDO_FISCAL',
+            'CONFIRMADO', 'EM_PATIO', 'EM_DESCARGA',
+        ]
+        conflito_qs = Agendamento.objects.filter(
+            docas__in=docas_selecionadas,
+            fim_estimado__isnull=False,
+            fim_estimado__gt=inicio,   # existente termina depois que o novo começa
+            inicio__lt=fim_novo,       # existente começa antes que o novo termine
+            status__in=_STATUS_OCUPA,
+        ).select_related('fornecedor').prefetch_related('docas')
+
+        if conflito_qs.exists():
+            ag_conf  = conflito_qs.first()
+            docas_em_conflito = [
+                d.codigo for d in ag_conf.docas.all()
+                if d in list(docas_selecionadas)
+            ]
+            doca_str = ', '.join(docas_em_conflito) if docas_em_conflito else 'selecionada'
+            form.add_error(
+                None,
+                f'Conflito de horário na doca {doca_str}: agendamento #{ag_conf.pk} '
+                f'já ocupa este horário ({ag_conf.inicio:%d/%m/%Y às %H:%M} – '
+                f'{ag_conf.fim_estimado:%H:%M}). '
+                f'Escolha outra doca ou um horário diferente.'
+            )
+        else:
+            agendamento = form.save(commit=False)
+            agendamento.fornecedor = fornecedor
+            agendamento.inicio     = inicio
+            agendamento.save()
+            form.save_m2m()
+            messages.success(request, "✅ Agendamento criado! Vincule a NF-e para confirmar.")
+            return redirect('dashboard_industria')
 
     return render(request, 'industria/novo_agendamento.html', {
         'form':         form,
@@ -334,7 +421,7 @@ def lista_agendamentos_status(request):
 # GESTÃO DE PÁTIO & FISCAL (STAFF)
 # ==========================================
 
-@login_required
+@login_required(login_url='/staff/login/')
 def dashboard_logistica(request):
     """Dashboard do Gestor com KPIs, alertas e status das docas."""
     if not _tem_acesso(request.user, 'gestor_patio'):
@@ -399,27 +486,30 @@ def dashboard_logistica(request):
                     'urgente': minutos < 60
                 })
 
-    # Docas Status (para a sidebar)
-    docas_ativas = Doca.objects.filter(ativa=True).order_by('codigo')
+    # Docas Status (para a sidebar) — todas as docas, ativas ou não
+    todas_docas = Doca.objects.all().order_by('codigo')
     docas_status = []
-    for doca in docas_ativas:
-        ag_ativo = agendamentos.filter(docas=doca, status__in=['EM_PATIO', 'EM_DESCARGA']).first()
-        ag_prox = agendamentos.filter(
-            docas=doca,
-            status__in=['PRE_AGENDADO', 'AGUARDANDO_FISCAL', 'CONFIRMADO'],
-            inicio__gt=agora,
-        ).first()
-        
+    for doca in todas_docas:
+        if doca.ativa:
+            ag_ativo = agendamentos.filter(docas=doca, status__in=['EM_PATIO', 'EM_DESCARGA']).first()
+            ag_prox = agendamentos.filter(
+                docas=doca,
+                status__in=['PRE_AGENDADO', 'AGUARDANDO_FISCAL', 'CONFIRMADO'],
+                inicio__gt=agora,
+            ).first()
+            total_ag_doca = agendamentos.filter(docas=doca).count()
+        else:
+            ag_ativo = None
+            ag_prox = None
+            total_ag_doca = 0
         # Ocupação: percentual do dia útil (11 horas operacionais)
-        total_ag_doca = agendamentos.filter(docas=doca).count()
         ocup_pct = min(100, (total_ag_doca * 60 / 660) * 100)
-        
         docas_status.append({
             'doca': doca,
             'ag_ativo': ag_ativo,
             'ag_prox': ag_prox,
             'total_dia': total_ag_doca,
-            'ocup_pct': ocup_pct
+            'ocup_pct': ocup_pct,
         })
 
     contexto = {
@@ -439,12 +529,12 @@ def dashboard_logistica(request):
         'alertas_prazo': alertas_prazo,
         'docas_status': docas_status,
         'agora': agora,
-        'docas': docas_ativas,
+        'docas': todas_docas,
     }
     
     return render(request, 'dashboard_gestor.html', contexto)
 
-@login_required
+@login_required(login_url='/staff/login/')
 def gestor_aprovar_fiscal(request, agendamento_id):
     """Aprovação manual de NF-e que falhou na validação automática."""
     if not _tem_acesso(request.user, 'gestor_patio'):
@@ -463,7 +553,7 @@ def gestor_aprovar_fiscal(request, agendamento_id):
 
     return redirect('dashboard')
 
-@login_required
+@login_required(login_url='/staff/login/')
 def gestor_checkin(request, agendamento_id):
     if not _tem_acesso(request.user, 'gestor_patio'):
         return render(request, '403.html', status=403)
@@ -482,7 +572,7 @@ def gestor_checkin(request, agendamento_id):
 
     return redirect(f"/dashboard/?data={request.POST.get('data_filtro', '')}")
 
-@login_required
+@login_required(login_url='/staff/login/')
 def gestor_status(request, agendamento_id):
     if not _tem_acesso(request.user, 'gestor_patio'):
         return render(request, '403.html', status=403)
@@ -490,20 +580,72 @@ def gestor_status(request, agendamento_id):
     
     if request.method == 'POST':
         acao = request.POST.get('novo_status')
-        try:
-            if acao == 'EM_DESCARGA': agendamento.iniciar_descarga()
-            elif acao == 'FINALIZADO': agendamento.finalizar_descarga()
-            messages.success(request, f"✅ Status atualizado: {agendamento.status_dinamico['label']}")
-        except ValidationError as e:
-            messages.error(request, e.message)
+        if acao == 'EM_DESCARGA':
+            agendamento.status = 'EM_DESCARGA'
+            agendamento.horario_inicio_descarga = timezone.now()
+            agendamento.save()
+            LogAgendamento.objects.create(
+                agendamento=agendamento,
+                usuario=request.user,
+                status_anterior='EM_PATIO',
+                status_novo='EM_DESCARGA',
+            )
+            messages.success(request, f"✅ Status atualizado: EM_DESCARGA")
+        elif acao == 'FINALIZADO':
+            agendamento.status = 'FINALIZADO'
+            agendamento.horario_finalizacao = timezone.now()
+            agendamento.save()
+            LogAgendamento.objects.create(
+                agendamento=agendamento,
+                usuario=request.user,
+                status_anterior='EM_DESCARGA',
+                status_novo='FINALIZADO',
+            )
+            messages.success(request, f"✅ Status atualizado: FINALIZADO")
 
-    return redirect(f"/dashboard/?data={request.POST.get('data_filtro', '')}")
+    return redirect('/dashboard/')
+
+
+@login_required(login_url='/staff/login/')
+def gestor_detalhe(request, pk):
+    if not _tem_acesso(request.user, 'gestor_patio'):
+        return render(request, '403.html', status=403)
+    agendamento = get_object_or_404(Agendamento, pk=pk)
+    logs = agendamento.logs.all().order_by('data')
+    nfes = agendamento.nfe_arquivos.all()
+
+    duracao_total = None
+    duracao_descarga = None
+    if agendamento.horario_finalizacao and agendamento.horario_entrada_patio:
+        delta = agendamento.horario_finalizacao - agendamento.horario_entrada_patio
+        mins = int(delta.total_seconds() / 60)
+        duracao_total = f"{mins // 60}h {mins % 60:02d}min"
+    if agendamento.horario_finalizacao and agendamento.horario_inicio_descarga:
+        delta = agendamento.horario_finalizacao - agendamento.horario_inicio_descarga
+        mins = int(delta.total_seconds() / 60)
+        duracao_descarga = f"{mins // 60}h {mins % 60:02d}min"
+
+    _rank = {
+        'PRE_AGENDADO': 0, 'AGUARDANDO_FISCAL': 1, 'CONFIRMADO': 2,
+        'EM_PATIO': 3, 'EM_DESCARGA': 4, 'FINALIZADO': 5,
+    }
+    status_rank = _rank.get(agendamento.status, 0)
+
+    return render(request, 'gestor_detalhe.html', {
+        'agendamento': agendamento,
+        'logs': logs,
+        'nfes': nfes,
+        'duracao_total': duracao_total,
+        'duracao_descarga': duracao_descarga,
+        'status_rank': status_rank,
+    })
+
 
 # ==========================================
 # PORTAL FISCAL (STAFF)
 # ==========================================
 
-@login_required
+@login_required(login_url='/staff/login/')
 def fiscal_dashboard(request):
     """Lista agendamentos aguardando triagem fiscal."""
     if not _tem_acesso(request.user, 'analista_fiscal'):
@@ -521,7 +663,7 @@ def fiscal_dashboard(request):
         'agora':      timezone.now(),
     })
 
-@login_required
+@login_required(login_url='/staff/login/')
 def fiscal_aprovar(request, pk):
     """Triagem fiscal individual por NFeArquivo."""
     if not _tem_acesso(request.user, 'analista_fiscal'):
@@ -620,10 +762,25 @@ def fiscal_aprovar(request, pk):
     })
 
 
-@login_required
+@login_required(login_url='/staff/login/')
 def consulta_portaria(request):
     if not _tem_acesso(request.user, 'portaria'):
         return render(request, '403.html', status=403)
-    chave = request.GET.get('chave', '').strip()
-    agendamento = Agendamento.objects.filter(chave_nfe=chave).first() if chave else None
-    return render(request, 'portaria/consulta.html', {'agendamento': agendamento, 'buscou': bool(chave)})
+    chave  = request.GET.get('chave',  '').strip()
+    pedido = request.GET.get('pedido', '').strip()
+    agendamento = None
+    if chave:
+        agendamento = Agendamento.objects.filter(chave_nfe__icontains=chave).first()
+    elif pedido:
+        agendamento = (
+            Agendamento.objects
+            .filter(numero_pedido__iexact=pedido)
+            .order_by('-inicio')
+            .first()
+        )
+    pode_entrar = agendamento is not None and agendamento.status == 'CONFIRMADO'
+    return render(request, 'portaria/consulta.html', {
+        'agendamento': agendamento,
+        'buscou':      bool(chave or pedido),
+        'pode_entrar': pode_entrar,
+    })

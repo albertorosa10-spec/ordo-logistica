@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ag. #{{ agendamento.pk }} — {{ agendamento.fornecedor.razao_social|truncatechars:30 }} | Zakaz</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+  :root {
+    --ordo-bg:        #0A1628;
+    --ordo-surface:   #112240;
+    --ordo-surface-2: #1A2E4A;
+    --ordo-border:    #1E3A5F;
+    --ordo-accent:    #00C896;
+    --ordo-accent-2:  #0077B6;
+    --ordo-text:      #CCD6F6;
+    --ordo-text-dim:  #8892B0;
+    --ordo-green:     #00D4A0;
+    --ordo-yellow:    #FFB703;
+    --ordo-red:       #FF4D6D;
+    --ordo-sidebar-w: 260px;
+    --ordo-radius:    12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--ordo-bg);
+    color: var(--ordo-text);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.92rem;
+    min-height: 100vh;
+  }
+
+  /* ---- SIDEBAR ---- */
+  .ordo-sidebar {
+    position: fixed; top: 0; left: 0;
+    width: var(--ordo-sidebar-w); height: 100vh;
+    background: var(--ordo-surface);
+    border-right: 1px solid var(--ordo-border);
+    display: flex; flex-direction: column;
+    z-index: 100; padding-bottom: 1.5rem;
+  }
+  .ordo-logo { padding: 1.5rem 1.5rem 1rem; border-bottom: 1px solid var(--ordo-border); }
+  .ordo-logo .logo-mark {
+    font-size: 1.6rem; font-weight: 800;
+    background: linear-gradient(135deg, var(--ordo-accent), var(--ordo-accent-2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; letter-spacing: -0.5px;
+  }
+  .ordo-logo .logo-sub { font-size: 0.7rem; color: var(--ordo-text-dim); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 2px; }
+  .ordo-nav { padding: 1rem 0.75rem; flex: 1; }
+  .ordo-nav-section { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ordo-text-dim); padding: 0.5rem 0.75rem 0.25rem; margin-top: 0.5rem; }
+  .ordo-nav-link {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.65rem 0.9rem; border-radius: 8px;
+    color: var(--ordo-text-dim); text-decoration: none;
+    transition: all 0.2s; font-size: 0.875rem; font-weight: 500; margin-bottom: 2px;
+  }
+  .ordo-nav-link i { width: 18px; text-align: center; font-size: 0.95rem; }
+  .ordo-nav-link:hover { background: var(--ordo-surface-2); color: var(--ordo-accent); }
+  .ordo-nav-link.active {
+    background: linear-gradient(135deg, rgba(0,180,216,.15), rgba(0,119,182,.1));
+    color: var(--ordo-accent); border: 1px solid rgba(0,180,216,.2);
+  }
+  .ordo-sidebar-footer {
+    padding: 0.75rem 1rem; border-top: 1px solid var(--ordo-border);
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .ordo-avatar {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--ordo-accent), var(--ordo-accent-2));
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.85rem; color: #fff; flex-shrink: 0;
+  }
+  .ordo-user-name { font-size: .78rem; font-weight: 600; color: var(--ordo-text); }
+  .ordo-user-role { font-size: .68rem; color: var(--ordo-text-dim); }
+
+  /* ---- MAIN ---- */
+  .ordo-main { margin-left: var(--ordo-sidebar-w); min-height: 100vh; }
+  .ordo-topbar {
+    background: var(--ordo-surface); border-bottom: 1px solid var(--ordo-border);
+    padding: 0.85rem 2rem; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .ordo-page-title { font-size: 1.05rem; font-weight: 600; color: var(--ordo-text); }
+  .ordo-topbar-back {
+    display: flex; align-items: center; gap: .5rem;
+    color: var(--ordo-text-dim); text-decoration: none; font-size: .85rem;
+    padding: .3rem .75rem; border: 1px solid var(--ordo-border);
+    border-radius: 8px; transition: all .15s;
+  }
+  .ordo-topbar-back:hover { color: var(--ordo-accent); border-color: var(--ordo-accent); }
+
+  /* ---- CONTEÚDO ---- */
+  .det-body { padding: 1.75rem 2rem; max-width: 960px; }
+
+  /* ---- CABEÇALHO DA PÁGINA ---- */
+  .det-header {
+    background: var(--ordo-surface);
+    border: 1px solid var(--ordo-border);
+    border-radius: var(--ordo-radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .det-fornecedor { font-size: 1.15rem; font-weight: 700; color: var(--ordo-text); }
+  .det-cnpj { font-size: .72rem; color: var(--ordo-text-dim); font-family: monospace; margin-top: 3px; }
+  .det-meta { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: .65rem; }
+  .det-meta-item { }
+  .det-meta-label { font-size: .62rem; text-transform: uppercase; letter-spacing: .5px; color: var(--ordo-text-dim); }
+  .det-meta-valor { font-size: .88rem; font-weight: 600; color: var(--ordo-text); margin-top: 2px; }
+  .det-meta-valor.accent { color: var(--ordo-accent); font-family: monospace; }
+
+  /* ---- BADGE DE STATUS ---- */
+  .det-badge {
+    display: inline-flex; align-items: center; gap: .4rem;
+    border-radius: 999px; padding: .35rem 1rem;
+    font-size: .78rem; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+  }
+  .det-badge-pre   { background: rgba(136,146,176,.1);  color: #8892b0;            border: 1px solid rgba(136,146,176,.3); }
+  .det-badge-fisc  { background: rgba(255,183,3,.12);   color: var(--ordo-yellow); border: 1px solid rgba(255,183,3,.35); }
+  .det-badge-conf  { background: rgba(0,119,182,.15);   color: #5bc0eb;            border: 1px solid rgba(0,119,182,.3); }
+  .det-badge-patio { background: rgba(230,81,0,.12);    color: #ffab76;            border: 1px solid rgba(230,81,0,.3); }
+  .det-badge-desc  { background: rgba(106,27,154,.15);  color: #ce93d8;            border: 1px solid rgba(106,27,154,.3); }
+  .det-badge-fin   { background: rgba(0,212,160,.12);   color: var(--ordo-green);  border: 1px solid rgba(0,212,160,.3); }
+  .det-badge-canc  { background: rgba(255,77,109,.1);   color: var(--ordo-red);    border: 1px solid rgba(255,77,109,.3); }
+  .det-badge-ns    { background: rgba(255,77,109,.1);   color: var(--ordo-red);    border: 1px solid rgba(255,77,109,.3); }
+
+  /* ---- TIMELINE — dot futuro (tracejado) ---- */
+  .tl-dot-future { background: transparent; border: 2px dashed var(--ordo-border); color: var(--ordo-text-dim); }
+  .tl-item-future::before { background: repeating-linear-gradient(to bottom, var(--ordo-border) 0, var(--ordo-border) 4px, transparent 4px, transparent 8px) !important; }
+  .tl-dot-active { background: rgba(255,183,3,.15); border: 2px solid var(--ordo-yellow); color: var(--ordo-yellow); }
+
+  /* ---- SEÇÃO / CARD ---- */
+  .det-card {
+    background: var(--ordo-surface);
+    border: 1px solid var(--ordo-border);
+    border-radius: var(--ordo-radius);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+  }
+  .det-card-header {
+    background: var(--ordo-surface-2);
+    border-bottom: 1px solid var(--ordo-border);
+    padding: .65rem 1.25rem;
+    display: flex; align-items: center; gap: .6rem;
+    font-size: .75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--ordo-text-dim);
+  }
+  .det-card-header i { color: var(--ordo-accent); font-size: .85rem; }
+  .det-card-body { padding: 1.25rem; }
+
+  /* ---- TIMELINE ---- */
+  .timeline { list-style: none; padding: 0; }
+  .tl-item {
+    display: flex; gap: 1rem; padding-bottom: 1.25rem;
+    position: relative;
+  }
+  .tl-item:not(:last-child)::before {
+    content: '';
+    position: absolute; left: 11px; top: 24px;
+    width: 2px; bottom: 0;
+    background: var(--ordo-border);
+  }
+  .tl-dot {
+    width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .6rem; font-weight: 700;
+  }
+  .tl-dot-ok    { background: rgba(0,212,160,.2);  border: 2px solid var(--ordo-green);  color: var(--ordo-green); }
+  .tl-dot-dim   { background: var(--ordo-surface-2); border: 2px solid var(--ordo-border); color: var(--ordo-text-dim); }
+  .tl-content { flex: 1; padding-top: 2px; }
+  .tl-label { font-size: .78rem; font-weight: 600; color: var(--ordo-text); }
+  .tl-time  { font-size: .72rem; color: var(--ordo-accent); font-family: monospace; margin-top: 2px; }
+  .tl-dim   { font-size: .72rem; color: var(--ordo-text-dim); margin-top: 2px; }
+  .tl-dur   {
+    display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .7rem; font-weight: 600; color: var(--ordo-yellow);
+    background: rgba(255,183,3,.1); border: 1px solid rgba(255,183,3,.25);
+    border-radius: 6px; padding: .2rem .55rem; margin-top: 4px;
+  }
+
+  /* ---- GRID DE DADOS ---- */
+  .det-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: .85rem 1.25rem;
+  }
+  .det-field-label { font-size: .62rem; text-transform: uppercase; letter-spacing: .5px; color: var(--ordo-text-dim); margin-bottom: 3px; }
+  .det-field-val   { font-size: .88rem; font-weight: 600; color: var(--ordo-text); }
+  .det-field-val.mono { font-family: monospace; font-size: .78rem; color: var(--ordo-accent); word-break: break-all; }
+
+  /* ---- BADGE NF-e ---- */
+  .nfe-badge {
+    display: inline-flex; align-items: center; gap: .35rem;
+    border-radius: 6px; padding: .25rem .6rem; font-size: .72rem; font-weight: 700;
+  }
+  .nfe-ok   { background: rgba(0,212,160,.1); color: var(--ordo-green);  border: 1px solid rgba(0,212,160,.25); }
+  .nfe-pend { background: rgba(255,183,3,.1); color: var(--ordo-yellow); border: 1px solid rgba(255,183,3,.25); }
+
+  /* ---- DOCA CHIP ---- */
+  .doca-chip {
+    display: inline-flex; align-items: center; gap: .3rem;
+    background: rgba(0,180,216,.08); border: 1px solid rgba(0,180,216,.2);
+    color: var(--ordo-accent); border-radius: 6px; padding: .3rem .75rem;
+    font-size: .82rem; font-weight: 700; margin-right: .4rem; margin-bottom: .4rem;
+  }
+
+  /* ---- LOG TABLE ---- */
+  .log-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+  .log-table thead tr { border-bottom: 1px solid var(--ordo-border); }
+  .log-table thead th { padding: .5rem .75rem; font-size: .62rem; text-transform: uppercase; letter-spacing: .5px; color: var(--ordo-text-dim); font-weight: 600; }
+  .log-table tbody tr { border-bottom: 1px solid rgba(30,58,95,.5); }
+  .log-table tbody tr:last-child { border-bottom: none; }
+  .log-table tbody td { padding: .55rem .75rem; vertical-align: middle; }
+  .log-ts  { color: var(--ordo-text-dim); font-family: monospace; white-space: nowrap; }
+  .log-usr { color: var(--ordo-text-dim); }
+  .log-arrow { color: var(--ordo-text-dim); font-size: .7rem; }
+  .log-status-ant { color: var(--ordo-text-dim); }
+  .log-status-nov { color: var(--ordo-text); font-weight: 600; }
+
+  @media (max-width: 900px) {
+    .ordo-sidebar { display: none; }
+    .ordo-main { margin-left: 0; }
+    .det-body { padding: 1rem; }
+  }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="ordo-sidebar">
+  <div class="ordo-logo">
+    <div class="logo-mark">ZAKAZ</div>
+    <div class="logo-sub">Tecnologia Logística</div>
+  </div>
+  <nav class="ordo-nav">
+    <div class="ordo-nav-section">Gestão</div>
+    <a href="/dashboard/" class="ordo-nav-link active">
+      <i class="fa-solid fa-warehouse"></i> Dashboard Pátio
+    </a>
+    <div class="ordo-nav-section">Portaria</div>
+    <a href="{% url 'consulta' %}" class="ordo-nav-link">
+      <i class="fa-solid fa-door-open"></i> Consulta Portaria
+    </a>
+  </nav>
+  <div class="ordo-sidebar-footer">
+    <div class="ordo-avatar">{{ request.user.username|slice:":2"|upper }}</div>
+    <div class="overflow-hidden">
+      <div class="ordo-user-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ request.user.username }}</div>
+      <div class="ordo-user-role">Gestor Pátio</div>
+    </div>
+    <form method="post" action="{% url 'logout' %}" style="margin-left:auto;">
+      {% csrf_token %}
+      <button type="submit" title="Sair"
+              style="background:none;border:none;padding:0;cursor:pointer;color:var(--ordo-text-dim);">
+        <i class="fa-solid fa-right-from-bracket fa-sm"></i>
+      </button>
+    </form>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="ordo-main">
+
+  <div class="ordo-topbar">
+    <div class="ordo-page-title">
+      Detalhe — Ag. #{{ agendamento.pk }}
+    </div>
+    <a href="/dashboard/" class="ordo-topbar-back">
+      <i class="fa-solid fa-arrow-left"></i> Voltar ao Dashboard
+    </a>
+  </div>
+
+  <div class="det-body">
+
+    <!-- ============================================================
+         A) CABEÇALHO
+    ============================================================ -->
+    <div class="det-header">
+      <div style="flex:1; min-width:0;">
+        <div class="det-fornecedor">{{ agendamento.fornecedor.razao_social }}</div>
+        <div class="det-cnpj">CNPJ {{ agendamento.fornecedor.cnpj }}</div>
+        <div class="det-meta">
+          <div class="det-meta-item">
+            <div class="det-meta-label">Pedido de Compra</div>
+            <div class="det-meta-valor accent">{{ agendamento.numero_pedido }}</div>
+          </div>
+          <div class="det-meta-item">
+            <div class="det-meta-label">Tipo de Carga</div>
+            <div class="det-meta-valor">{{ agendamento.get_tipo_carga_display }}</div>
+          </div>
+          <div class="det-meta-item">
+            <div class="det-meta-label">{% if agendamento.tipo_carga == 'PAL' %}Qtd. Pallets{% else %}Qtd. Caixas{% endif %}</div>
+            <div class="det-meta-valor">{{ agendamento.qtd_itens }}</div>
+          </div>
+          <div class="det-meta-item">
+            <div class="det-meta-label">Agendado para</div>
+            <div class="det-meta-valor">{{ agendamento.inicio|date:"d/m/Y H:i" }}</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        {% if agendamento.status == 'PRE_AGENDADO' %}
+          <span class="det-badge det-badge-pre"><i class="fa-solid fa-circle"></i> Pré-agendado</span>
+        {% elif agendamento.status == 'AGUARDANDO_FISCAL' %}
+          <span class="det-badge det-badge-fisc"><i class="fa-solid fa-magnifying-glass"></i> Pré-entrada Fiscal</span>
+        {% elif agendamento.status == 'CONFIRMADO' %}
+          <span class="det-badge det-badge-conf"><i class="fa-solid fa-circle-check"></i> Confirmado</span>
+        {% elif agendamento.status == 'EM_PATIO' %}
+          <span class="det-badge det-badge-patio"><i class="fa-solid fa-truck-ramp-box"></i> Em Pátio</span>
+        {% elif agendamento.status == 'EM_DESCARGA' %}
+          <span class="det-badge det-badge-desc"><i class="fa-solid fa-boxes-stacked"></i> Em Descarga</span>
+        {% elif agendamento.status == 'FINALIZADO' %}
+          <span class="det-badge det-badge-fin"><i class="fa-solid fa-flag-checkered"></i> Finalizado</span>
+        {% elif agendamento.status == 'CANCELADO' %}
+          <span class="det-badge det-badge-canc"><i class="fa-solid fa-ban"></i> Cancelado</span>
+        {% elif agendamento.status == 'NO_SHOW' %}
+          <span class="det-badge det-badge-ns"><i class="fa-solid fa-circle-xmark"></i> No-show</span>
+        {% endif %}
+      </div>
+    </div>
+
+
+    <!-- ============================================================
+         B) TIMELINE OPERACIONAL
+    ============================================================ -->
+    <div class="det-card">
+      <div class="det-card-header">
+        <i class="fa-solid fa-timeline"></i>
+        Timeline Operacional
+      </div>
+      <div class="det-card-body">
+        <ul class="timeline">
+
+          {# 1. PRÉ-AGENDADO — sempre visível #}
+          <li class="tl-item">
+            <div class="tl-dot tl-dot-ok">
+              <i class="fa-solid fa-calendar-days" style="font-size:.55rem;"></i>
+            </div>
+            <div class="tl-content">
+              <div class="tl-label">Pré-agendado</div>
+              <div class="tl-time">{{ agendamento.inicio|date:"d/m/Y H:i" }}</div>
+              {% if agendamento.criado_em %}
+              <div class="tl-dim">Criado em {{ agendamento.criado_em|date:"d/m/Y H:i" }}</div>
+              {% endif %}
+            </div>
+          </li>
+
+          {# 2. AGUARDANDO FISCAL — visível se status >= 1 #}
+          {% if status_rank >= 1 %}
+          <li class="tl-item {% if status_rank == 1 %}tl-item-active{% endif %}">
+            <div class="tl-dot {% if status_rank > 1 %}tl-dot-ok{% elif status_rank == 1 %}tl-dot-active{% endif %}">
+              <i class="fa-solid fa-magnifying-glass" style="font-size:.55rem;"></i>
+            </div>
+            <div class="tl-content">
+              <div class="tl-label">Pré-entrada Fiscal</div>
+              {% if status_rank == 1 %}
+                <div class="tl-dim" style="color:var(--ordo-yellow);">Em análise fiscal...</div>
+              {% else %}
+                <div class="tl-dim">Concluído</div>
+              {% endif %}
+            </div>
+          </li>
+          {% else %}
+          <li class="tl-item tl-item-future">
+            <div class="tl-dot tl-dot-future">
+              <i class="fa-solid fa-magnifying-glass" style="font-size:.55rem;"></i>
+            </div>
+            <div class="tl-content">
+              <div class="tl-label" style="color:var(--ordo-text-dim);">Pré-entrada Fiscal</div>
+              <div class="tl-dim">Aguardando...</div>
+            </div>
+          </li>
+          {% endif %}
+
+          {# 3. CONFIRMADO — visível se status >= 2 #}
+          {% if status_rank >= 2 %}
+          <li class="tl-item">
+            <div class="tl-dot {% if status_rank > 2 %}tl-dot-ok{% else %}tl-dot-active{% endif %}">
+              <i class="fa-solid fa-circle-check" style="font-size:.55rem;"></i>
+            </div>
+            <div class="tl-content">
+              <div class="tl-label">Confirmado</div>
+              {% if agendamento.nfe_vinculada_em %}
+                <div class="tl-time">{{ agendamento.nfe_vinculada_em|date:"d/m/Y H:i" }}</div>
+              {% elif status_rank == 2 %}
+                <div class="tl-dim" style="color:var(--ordo-yellow);">NF-e aprovada — aguardando chegada</div>
+              {% else %}
+                <div class="tl-dim">Concluído</div>
+              {% endif %}
+            </div>
+          </li>
+          {% else %}
+          <li class="tl-item tl-item-future">
+            <div class="tl-dot tl-dot-future">
+              <i class="fa-solid fa-circle-check" style="font-size:.55rem;"></i>
+            </div>
+            <div class="tl-content">
+              <div class="tl-label" style="color:var(--ordo-text-dim);">Confirmado</div>
+              <div class="tl-dim">Aguardando...</div>
+            </div>
+          </li>
+          {% endif %}
+
+          {# 4. ENTRADA NO PÁTIO — visível se status >= 3 #}
+          {% if status_rank >= 3 %}
+          <li class="tl-item">
+            <div class="tl-dot {% if agendamento.horario_entrada_patio %}tl-dot-ok{% else %}tl-dot-active{% endif %}">
+              <i class="fa-solid fa-truck-ramp-box" style="font-size:.55rem;"></i>
+            </div>
+            <div class="tl-content">
+              <div class="tl-label">Entrada no Pátio</div>
+              {% if agendamento.horario_entrada_patio %}
+                <div class="tl-time">{{ agendamento.horario_entrada_patio|date:"d/m/Y H:i" }}</div>
+              {% else %}
+                <div class="tl-dim" style="color:var(--ordo-yellow);">Em pátio — horário não registrado</div>
+              {% endif %}
+            </div>
+          </li>
+          {% else %}
+          <li class="tl-item tl-item-future">
+            <div class="tl-dot tl-dot-future">
+              <i class="fa-solid fa-truck-ramp-box" style="font-size:.55rem;"></i>
+            </div>
+            <div class="tl-content">
+              <div class="tl-label" style="color:var(--ordo-text-dim);">Entrada no Pátio</div>
+              <div class="tl-dim">Aguardando...</div>
+            </div>
+          </li>
+          {% endif %}
+
+          {# 5. INÍCIO DA DESCARGA — visível se status >= 4 #}
+          {% if status_rank >= 4 %}
+          <li class="tl-item">
+            <div class="tl-dot {% if agendamento.horario_inicio_descarga %}tl-dot-ok{% else %}tl-dot-active{% endif %}">
+              <i class="fa-solid fa-boxes-stacked" style="font-size:.55rem;"></i>
+            </div>
+            <div class="tl-content">
+              <div class="tl-label">Início da Descarga</div>
+              {% if agendamento.horario_inicio_descarga %}
+                <div class="tl-time">{{ agendamento.horario_inicio_descarga|date:"d/m/Y H:i" }}</div>
+              {% else %}
+                <div class="tl-dim" style="color:var(--ordo-yellow);">Em descarga — horário não registrado</div>
+              {% endif %}
+            </div>
+          </li>
+          {% else %}
+          <li class="tl-item tl-item-future">
+            <div class="tl-dot tl-dot-future">
+              <i class="fa-solid fa-boxes-stacked" style="font-size:.55rem;"></i>
+            </div>
+            <div class="tl-content">
+              <div class="tl-label" style="color:var(--ordo-text-dim);">Início da Descarga</div>
+              <div class="tl-dim">Aguardando...</div>
+            </div>
+          </li>
+          {% endif %}
+
+          {# 6. FINALIZADO — visível se status >= 5 #}
+          {% if status_rank >= 5 %}
+          <li class="tl-item">
+            <div class="tl-dot {% if agendamento.horario_finalizacao %}tl-dot-ok{% else %}tl-dot-active{% endif %}">
+              <i class="fa-solid fa-flag-checkered" style="font-size:.55rem;"></i>
+            </div>
+            <div class="tl-content">
+              <div class="tl-label">Finalizado</div>
+              {% if agendamento.horario_finalizacao %}
+                <div class="tl-time">{{ agendamento.horario_finalizacao|date:"d/m/Y H:i" }}</div>
+                {% if duracao_total %}
+                  <div class="tl-dur"><i class="fa-solid fa-stopwatch" style="font-size:.65rem;"></i> Total no pátio: {{ duracao_total }}</div>
+                {% endif %}
+                {% if duracao_descarga %}
+                  <div class="tl-dur"><i class="fa-solid fa-boxes-stacked" style="font-size:.65rem;"></i> Descarga: {{ duracao_descarga }}</div>
+                {% endif %}
+              {% endif %}
+            </div>
+          </li>
+          {% else %}
+          <li class="tl-item tl-item-future">
+            <div class="tl-dot tl-dot-future">
+              <i class="fa-solid fa-flag-checkered" style="font-size:.55rem;"></i>
+            </div>
+            <div class="tl-content">
+              <div class="tl-label" style="color:var(--ordo-text-dim);">Finalizado</div>
+              <div class="tl-dim">Aguardando...</div>
+            </div>
+          </li>
+          {% endif %}
+
+        </ul>
+      </div>
+    </div>
+
+
+    <!-- ============================================================
+         C) DADOS DA NF-E
+    ============================================================ -->
+    <div class="det-card">
+      <div class="det-card-header">
+        <i class="fa-solid fa-file-invoice"></i>
+        Dados da NF-e
+      </div>
+      <div class="det-card-body">
+        {% if nfes %}
+          {% for nfe in nfes %}
+          <div style="{% if not forloop.last %}border-bottom:1px solid var(--ordo-border); padding-bottom:1rem; margin-bottom:1rem;{% endif %}">
+            <div style="display:flex; align-items:center; gap:.75rem; margin-bottom:.5rem; flex-wrap:wrap;">
+              <span style="font-size:.7rem; font-weight:700; color:var(--ordo-text-dim); background:var(--ordo-surface-2); border-radius:6px; padding:.2rem .55rem;">
+                NF-e {{ forloop.counter }}
+              </span>
+              {% if nfe.aprovado %}
+                <span class="nfe-badge nfe-ok"><i class="fa-solid fa-circle-check"></i> Aprovada</span>
+              {% elif nfe.aprovado is None %}
+                <span class="nfe-badge nfe-pend"><i class="fa-solid fa-clock"></i> Pendente</span>
+              {% else %}
+                <span class="nfe-badge" style="background:rgba(255,77,109,.1);color:var(--ordo-red);border:1px solid rgba(255,77,109,.25);">
+                  <i class="fa-solid fa-circle-xmark"></i> Rejeitada
+                </span>
+              {% endif %}
+            </div>
+            <div class="det-field-label" style="margin-bottom:4px;">Chave de Acesso</div>
+            <div class="det-field-val mono">{{ nfe.chave }}</div>
+          </div>
+          {% endfor %}
+        {% elif agendamento.chave_nfe %}
+          <div class="det-field-label" style="margin-bottom:6px;">Chave(s) NF-e</div>
+          {% for chave in agendamento.chave_nfe.split %}
+            {% if chave %}
+            <div class="det-field-val mono" style="margin-bottom:.4rem;">{{ chave }}</div>
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <div style="color:var(--ordo-text-dim); font-size:.82rem;">Nenhuma NF-e vinculada a este agendamento.</div>
+        {% endif %}
+      </div>
+    </div>
+
+
+    <!-- ============================================================
+         D) DOCA(S) UTILIZADA(S)
+    ============================================================ -->
+    <div class="det-card">
+      <div class="det-card-header">
+        <i class="fa-solid fa-warehouse"></i>
+        Doca(s) Utilizada(s)
+      </div>
+      <div class="det-card-body">
+        {% for doca in agendamento.docas.all %}
+          <span class="doca-chip">
+            <i class="fa-solid fa-door-closed"></i>
+            {{ doca.codigo }}
+            {% if doca.temperatura_controlada %}&nbsp;❄{% endif %}
+          </span>
+        {% empty %}
+          <span style="color:var(--ordo-text-dim); font-size:.82rem;">Nenhuma doca registrada.</span>
+        {% endfor %}
+      </div>
+    </div>
+
+
+    <!-- ============================================================
+         E) LOG DE OPERAÇÕES
+    ============================================================ -->
+    <div class="det-card">
+      <div class="det-card-header">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        Log de Operações
+      </div>
+      {% if logs %}
+      <div style="overflow-x:auto;">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>Data / Hora</th>
+              <th>Usuário</th>
+              <th>Transição</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in logs %}
+            <tr>
+              <td class="log-ts">{{ log.data|date:"d/m/Y H:i" }}</td>
+              <td class="log-usr">{{ log.usuario|default:"—" }}</td>
+              <td>
+                <span class="log-status-ant">{{ log.status_anterior|default:"—" }}</span>
+                <span class="log-arrow"> → </span>
+                <span class="log-status-nov">{{ log.status_novo }}</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="det-card-body" style="color:var(--ordo-text-dim); font-size:.82rem;">
+        Nenhum registro de log encontrado.
+      </div>
+      {% endif %}
+    </div>
+
+  </div>{# /det-body #}
+</div>{# /ordo-main #}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

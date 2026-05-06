@@ -114,7 +114,7 @@
                     </div>
                 </div>
                 <div class="col-6">
-                    <div class="campo-label">Qtd. Itens / Caixas</div>
+                    <div class="campo-label">{% if agendamento.tipo_carga == 'PAL' %}Qtd. Pallets{% else %}Qtd. Caixas{% endif %}</div>
                     <div class="campo-valor">{{ agendamento.qtd_itens }}</div>
                 </div>
 
@@ -201,6 +201,14 @@
                     <div style="font-size:.75rem; color:var(--ordo-text-dim);">
                         O prazo para vincular a NF-e encerrou em
                         {{ agendamento.prazo_vinculo_nfe|date:"d/m/Y H:i" }}.
+                    </div>
+                {% elif agendamento.chave_nfe %}
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fa-solid fa-circle-check fa-lg" style="color:var(--ordo-green);"></i>
+                        <span class="fw-semibold" style="color:var(--ordo-green);">NF-e Vinculada</span>
+                    </div>
+                    <div style="font-size:.68rem; color:var(--ordo-text-dim); word-break:break-all; font-family:monospace;">
+                        {{ agendamento.chave_nfe|slice:":20" }}...
                     </div>
                 {% else %}
                     <div class="d-flex align-items-center gap-2 mb-2">

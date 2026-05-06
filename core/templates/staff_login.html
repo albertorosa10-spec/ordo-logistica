@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+
+{% block title %}Acesso Restrito — Zakaz{% endblock %}
+{% block body_class %}no-sidebar{% endblock %}
+{% block main_wrapper_class %}{% endblock %}
+
+{% block extra_css %}
+.login-wrapper {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--ordo-bg);
+}
+
+@media (max-width: 768px) {
+    .login-wrapper { grid-template-columns: 1fr; }
+    .login-brand   { display: none; }
+}
+
+/* LADO ESQUERDO — Brand */
+.login-brand {
+    background:
+        radial-gradient(ellipse at 30% 60%, rgba(0,200,150,0.10) 0%, transparent 65%),
+        var(--ordo-surface);
+    border-right: 1px solid var(--ordo-border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 4rem;
+}
+.brand-logo {
+    font-size: 2.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #00C896, #009973);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -2px;
+    margin-bottom: 0.25rem;
+}
+.brand-sub {
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--ordo-text-dim);
+    margin-bottom: 2.5rem;
+}
+.brand-feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.brand-feature-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: rgba(0,200,150,0.10);
+    display: flex; align-items: center; justify-content: center;
+    color: #00C896;
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.brand-feature-title { font-size: 0.875rem; font-weight: 600; margin-bottom: 2px; }
+.brand-feature-desc  { font-size: 0.75rem; color: var(--ordo-text-dim); line-height: 1.5; }
+
+/* Crachá interno */
+.brand-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(0,200,150,0.08);
+    border: 1px solid rgba(0,200,150,0.25);
+    border-radius: 999px;
+    padding: 0.3rem 0.85rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #00C896;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 1.25rem;
+}
+
+/* LADO DIREITO — Form */
+.login-form-side {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 3rem 2rem;
+}
+.login-form-box {
+    width: 100%;
+    max-width: 400px;
+}
+.login-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+}
+.login-subtitle {
+    font-size: 0.82rem;
+    color: var(--ordo-text-dim);
+    margin-bottom: 2rem;
+}
+
+.field-group { margin-bottom: 1.25rem; }
+
+.btn-login {
+    width: 100%;
+    background: linear-gradient(135deg, #00C896, #009973);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.85rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
+    transition: all 0.25s;
+    margin-top: 0.5rem;
+    cursor: pointer;
+}
+.btn-login:hover {
+    opacity: 0.92;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,200,150,0.30);
+    color: #fff;
+}
+
+.login-back {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.78rem;
+    color: var(--ordo-text-dim);
+}
+.login-back a { color: #00C896; text-decoration: none; font-weight: 500; }
+.login-back a:hover { text-decoration: underline; }
+{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+
+    <!-- LADO ESQUERDO: Brand -->
+    <div class="login-brand fade-in">
+        <div class="brand-logo">ZAKAZ</div>
+        <div class="brand-sub">Acesso Interno</div>
+
+        <div class="brand-badge">
+            <i class="fa-solid fa-lock fa-xs"></i> Área Restrita — Colaboradores
+        </div>
+
+        <div class="brand-feature">
+            <div class="brand-feature-icon">
+                <i class="fa-solid fa-warehouse"></i>
+            </div>
+            <div>
+                <div class="brand-feature-title">Dashboard Operacional</div>
+                <div class="brand-feature-desc">Gestão do pátio em tempo real com KPIs, alertas e controle de docas.</div>
+            </div>
+        </div>
+
+        <div class="brand-feature">
+            <div class="brand-feature-icon">
+                <i class="fa-solid fa-file-magnifying-glass"></i>
+            </div>
+            <div>
+                <div class="brand-feature-title">Pré-entrada Fiscal</div>
+                <div class="brand-feature-desc">Triagem manual de NF-e: aprovação ou rejeição com motivo registrado.</div>
+            </div>
+        </div>
+
+        <div class="brand-feature">
+            <div class="brand-feature-icon">
+                <i class="fa-solid fa-door-open"></i>
+            </div>
+            <div>
+                <div class="brand-feature-title">Consulta Portaria</div>
+                <div class="brand-feature-desc">Verificação de autorização de entrada por chave NF-e ou número de PO.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LADO DIREITO: Formulário -->
+    <div class="login-form-side">
+        <div class="login-form-box fade-in fade-in-delay-1">
+
+            <div class="mb-4">
+                <p class="login-title">Acesso Restrito</p>
+                <p class="login-subtitle">
+                    Use suas credenciais de colaborador Zakaz.
+                </p>
+            </div>
+
+            {% if error %}
+            <div class="alert-ordo-danger p-3 mb-4 rounded-3">
+                <i class="fa-solid fa-circle-exclamation me-2"></i>
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="POST" novalidate id="staff-login-form">
+                {% csrf_token %}
+
+                <div class="field-group">
+                    <label class="form-label" for="id_username">
+                        <i class="fa-solid fa-user me-1"></i> Usuário
+                    </label>
+                    <input type="text"
+                           id="id_username"
+                           name="username"
+                           class="form-control"
+                           value="{{ username|default:'' }}"
+                           autocomplete="username"
+                           autofocus
+                           placeholder="Ex: fiscal01">
+                </div>
+
+                <div class="field-group">
+                    <label class="form-label" for="id_password">
+                        <i class="fa-solid fa-lock me-1"></i> Senha
+                    </label>
+                    <input type="password"
+                           id="id_password"
+                           name="password"
+                           class="form-control"
+                           autocomplete="current-password"
+                           placeholder="••••••••">
+                </div>
+
+                <button type="submit" class="btn-login" id="btn-login">
+                    <i class="fa-solid fa-right-to-bracket me-2"></i> Entrar no Sistema
+                </button>
+            </form>
+
+            <div class="login-back mt-3">
+                <a href="{% url 'home' %}">
+                    <i class="fa-solid fa-arrow-left fa-xs me-1"></i> Voltar para a Home
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('staff-login-form').addEventListener('submit', function() {
+        var btn = document.getElementById('btn-login');
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Verificando...';
+        btn.disabled = true;
+    });
+</script>
+{% endblock %}

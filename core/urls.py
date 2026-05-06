@@ -22,6 +22,8 @@ urlpatterns = [
     # ------------------------------------------
     path('portal/login/',  views.login_industria, name='login_industria'),
     path('portal/logout/', views.logout_view,      name='logout'),
+    path('logout/',        views.logout_view),
+    path('staff/login/',   views.staff_login,      name='staff_login'),
 
     # ------------------------------------------
     # ONBOARDING: Cadastro
@@ -71,6 +73,8 @@ urlpatterns = [
          views.gestor_checkin,          name='gestor_checkin'),
     path('gestor/status/<int:agendamento_id>/',
          views.gestor_status,           name='gestor_status'),
+    path('gestor/agendamento/<int:pk>/',
+         views.gestor_detalhe,          name='gestor_detalhe'),
 
     # ------------------------------------------
     # PORTAL FISCAL (staff)
