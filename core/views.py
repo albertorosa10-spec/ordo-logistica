@@ -1,6 +1,6 @@
 # ==========================================
 # CORE/VIEWS.PY
-# Ordo Logística — v0.8.1
+# Zakaz — v0.8.1
 # Fluxo: Triagem Fiscal Manual + Bypass Winthor
 # ==========================================
 
@@ -361,10 +361,27 @@ def detalhe_agendamento(request, agendamento_id):
     """Detalhe de um agendamento da indústria."""
     fornecedor = get_object_or_404(Fornecedor, user=request.user)
     agendamento = get_object_or_404(Agendamento, pk=agendamento_id, fornecedor=fornecedor)
+
+    log_rejeicao   = None
+    motivo_rejeicao = None
+    if agendamento.status == 'PRE_AGENDADO':
+        log = (
+            agendamento.logs
+            .filter(status_novo='PRE_AGENDADO', usuario__icontains='Rejeitados:')
+            .order_by('-data')
+            .first()
+        )
+        if log:
+            log_rejeicao = log
+            partes = log.usuario.split(' — Rejeitados: ', 1)
+            motivo_rejeicao = partes[1] if len(partes) == 2 else log.usuario
+
     return render(request, 'industria/detalhe_agendamento.html', {
-        'agendamento': agendamento,
-        'fornecedor':  fornecedor,
-        'agora':       timezone.now(),
+        'agendamento':    agendamento,
+        'fornecedor':     fornecedor,
+        'agora':          timezone.now(),
+        'log_rejeicao':   log_rejeicao,
+        'motivo_rejeicao': motivo_rejeicao,
     })
 
 @login_required

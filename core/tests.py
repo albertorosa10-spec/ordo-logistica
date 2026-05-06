@@ -1,6 +1,6 @@
 # ==========================================
 # CORE/TESTS.PY
-# Ordo Logística — Testes de integração
+# Zakaz — Testes de integração
 # Versão: 0.7.0
 #
 # Cobre templates, views e fluxo de negócio.
@@ -27,7 +27,7 @@ class OrdoTestBase(TestCase):
     def setUp(self):
         self.client = Client()
 
-        # ------ Usuário gestor (equipe Ordo / staff) ------
+        # ------ Usuário gestor (equipe Zakaz / staff) ------
         self.staff_user = User.objects.create_user(
             username='gestor_ordo',
             email='gestor@ordo.com',
@@ -133,7 +133,7 @@ class HomePageTests(OrdoTestBase):
 
     def test_home_contem_card_gestao(self):
         resp = self.client.get('/')
-        self.assertContains(resp, 'Gestão Ordo')
+        self.assertContains(resp, 'Gestão Zakaz')
 
     def test_home_contem_card_portaria(self):
         resp = self.client.get('/')
@@ -222,7 +222,7 @@ class DashboardIndustriaTests(OrdoTestBase):
 # ============================================================
 
 class DashboardGestorTests(OrdoTestBase):
-    """Testa o dashboard operacional da equipe Ordo (/dashboard/)."""
+    """Testa o dashboard operacional da equipe Zakaz (/dashboard/)."""
 
     def test_dashboard_gestor_sem_login_redireciona(self):
         """Sem autenticação deve redirecionar para login."""

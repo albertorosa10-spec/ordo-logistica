@@ -1,6 +1,6 @@
 # ==========================================
 # SETUP/URLS.PY
-# Ordo Logística — Project URL config
+# Zakaz — Project URL config
 # Versão: 0.6.0
 # ==========================================
 
@@ -10,7 +10,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    # Painel Administrativo Django (Gestão Ordo)
+    # Painel Administrativo Django (Gestão Zakaz)
     path('admin/', admin.site.urls),
 
     # Todas as URLs do app core (inclui home, portal, api, portaria)

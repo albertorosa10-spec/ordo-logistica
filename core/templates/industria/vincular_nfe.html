@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Vincular NF-e — Agendamento #{{ agendamento.pk }} | Ordo{% endblock %}
+{% block title %}Vincular NF-e — Agendamento #{{ agendamento.pk }} | Zakaz{% endblock %}
 {% block page_title %}Vincular NF-e{% endblock %}
 {% block page_subtitle %}Agendamento #{{ agendamento.pk }} — PO: {{ agendamento.numero_pedido }}{% endblock %}
 {% block nav_dash_ind %}active{% endblock %}
@@ -239,7 +239,7 @@
                     <p class="mb-3" style="color:var(--ordo-text-dim); font-size:.87rem;">
                         O prazo para vincular a NF-e a este agendamento se encerrou em
                         <strong>{{ prazo|date:"d/m/Y \à\s H:i" }}</strong>.
-                        <br>Entre em contato com a equipe Ordo para reagendar.
+                        <br>Entre em contato com a equipe Zakaz para reagendar.
                     </p>
                     <a href="{% url 'dashboard_industria' %}" class="btn-ordo-ghost btn">
                         <i class="fa-solid fa-arrow-left me-2"></i> Voltar ao Dashboard

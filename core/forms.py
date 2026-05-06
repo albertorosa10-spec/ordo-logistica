@@ -1,6 +1,6 @@
 # ==========================================
 # CORE/FORMS.PY
-# Ordo Logística — Plataforma de Agendamento
+# Zakaz — Plataforma de Agendamento
 # Versão: 0.6.0
 # ==========================================
 
@@ -98,7 +98,7 @@ class CadastroFornecedorForm(forms.Form):
 
         if not Fornecedor.objects.filter(cnpj=cnpj).exists():
             raise ValidationError(
-                "Este CNPJ ainda não foi autorizado pela Ordo Tecnologia Logística. "
+                "Este CNPJ ainda não foi autorizado pela Zakaz. "
                 "Entre em contato com seu gestor de fornecedores."
             )
 
@@ -158,7 +158,7 @@ class LoginIndustriaForm(forms.Form):
                 )
             if not user.is_active:
                 raise ValidationError(
-                    "Esta conta está desativada. Entre em contato com a Ordo Tecnologia."
+                    "Esta conta está desativada. Entre em contato com a Zakaz."
                 )
             cleaned_data['user'] = user
         return cleaned_data

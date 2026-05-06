@@ -1,6 +1,6 @@
 # ==========================================
 # CORE/INTEGRATIONS.PY
-# Ordo Logística — Plataforma de Agendamento
+# Zakaz — Plataforma de Agendamento
 # Versão: 0.6.0
 #
 # Integrações externas:
@@ -121,7 +121,7 @@ def validar_nfe_xml(arquivo_xml, cnpj_destinatario_esperado: str) -> tuple[str |
     # Estrutura chave 44: cUF(2) AAMM(4) CNPJ_emitente(14) mod(2) série(3) nNF(9) tpEmis(1) cNF(8) cDV(1)
     cnpj_emitente_chave = chave[6:20]
 
-    # A Ordo valida o CNPJ do DESTINATÁRIO (quem recebe a mercadoria)
+    # A Zakaz valida o CNPJ do DESTINATÁRIO (quem recebe a mercadoria)
     if cnpj_dest_xml:
         cnpj_verificado = re.sub(r'\D', '', cnpj_dest_xml)
         fonte = "XML (<dest><CNPJ>)"

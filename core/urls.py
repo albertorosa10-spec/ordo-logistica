@@ -1,6 +1,6 @@
 # ==========================================
 # CORE/URLS.PY
-# Ordo Logística — App core URL config
+# Zakaz — App core URL config
 # Versão: 0.7.0 — Adicionadas rotas /industria/
 # e /gestor/ para testes de integração e
 # compatibilidade com documentação externa.
@@ -66,7 +66,7 @@ urlpatterns = [
          views.lista_agendamentos_status,        name='industria_lista'),
 
     # ------------------------------------------
-    # GESTÃO ORDO (staff)
+    # GESTÃO ZAKAZ (staff)
     # ------------------------------------------
     path('dashboard/', views.dashboard_logistica, name='dashboard'),
     path('gestor/checkin/<int:agendamento_id>/',

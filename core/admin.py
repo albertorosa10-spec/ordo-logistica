@@ -1,6 +1,6 @@
 # ==========================================
 # CORE/ADMIN.PY
-# Ordo Logística — v0.8.0
+# Zakaz — v0.8.0
 # ==========================================
 
 from django.contrib import admin

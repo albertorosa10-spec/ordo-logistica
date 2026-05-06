@@ -1,6 +1,6 @@
 """
 Django settings for setup project.
-Ordo Logística — Plataforma de Agendamento
+Zakaz — Plataforma de Agendamento
 Versão: 0.9.0 — Configuração híbrida Railway/Local
 """
 

@@ -1,6 +1,6 @@
 # ==========================================
 # CORE/MODELS.PY
-# Ordo Logística — Plataforma de Agendamento
+# Zakaz — Plataforma de Agendamento
 # Versão: 0.8.1 — Inclusão do Status de Triagem Fiscal
 # ==========================================
 

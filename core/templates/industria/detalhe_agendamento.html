@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Agendamento #{{ agendamento.pk }} — Ordo{% endblock %}
+{% block title %}Agendamento #{{ agendamento.pk }} — Zakaz{% endblock %}
 {% block page_title %}Detalhe do Agendamento{% endblock %}
 {% block page_subtitle %}PO {{ agendamento.numero_pedido }}{% endblock %}
 {% block nav_dash_ind %}active{% endblock %}
@@ -51,6 +51,33 @@
         <i class="fa-solid fa-arrow-left me-1"></i> Voltar ao Dashboard
     </a>
 </div>
+
+{% if agendamento.status == 'PRE_AGENDADO' and log_rejeicao %}
+<div class="ordo-card mb-4 fade-in" style="border-color:rgba(255,183,3,.45); background:rgba(255,183,3,.05);">
+    <div class="ordo-card-body">
+        <div class="d-flex align-items-start gap-3">
+            <i class="fa-solid fa-triangle-exclamation fa-xl" style="color:var(--ordo-yellow); margin-top:2px; flex-shrink:0;"></i>
+            <div style="width:100%;">
+                <div style="font-size:.9rem; font-weight:700; color:var(--ordo-yellow); margin-bottom:.4rem;">
+                    NF-e Rejeitada pelo Setor Fiscal
+                </div>
+                <div style="font-size:.84rem; color:var(--ordo-text); margin-bottom:.6rem; line-height:1.5;">
+                    {{ motivo_rejeicao }}
+                </div>
+                <div style="font-size:.7rem; color:var(--ordo-text-dim); margin-bottom:.65rem;">
+                    Rejeitado em {{ log_rejeicao.data|date:"d/m/Y" }} às {{ log_rejeicao.data|date:"H:i" }}
+                </div>
+                <div style="font-size:.78rem; color:var(--ordo-text-dim); padding:.4rem .75rem;
+                            background:rgba(255,183,3,.09); border-radius:7px;
+                            border-left:3px solid var(--ordo-yellow);">
+                    <i class="fa-solid fa-arrow-right me-1"></i>
+                    Corrija a pendência e vincule uma nova NF-e para reenviar à triagem.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="detalhe-grid fade-in">
 
