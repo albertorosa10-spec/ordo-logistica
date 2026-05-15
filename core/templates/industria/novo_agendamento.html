@@ -426,39 +426,49 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
 }
 
 /* ---------------------------------------------------------------
-   TOGGLE TIPO DE OPERAÇÃO
+   TOGGLE TIPO DE OPERAÇÃO — pill buttons inline
    --------------------------------------------------------------- */
-.na-op-toggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.na-op-header {
+  display: flex;
+  align-items: center;
   gap: .75rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
-.na-op-btn {
-  background: var(--na-surface-2);
+.na-op-header .na-section-label {
+  flex: 1;
+  margin-bottom: 0;
+}
+.na-op-pills {
+  display: flex;
+  gap: .4rem;
+  flex-shrink: 0;
+}
+.na-op-pill {
+  background: transparent;
   border: 1.5px solid var(--na-border);
-  border-radius: var(--na-radius-sm);
-  padding: .85rem 1rem;
+  border-radius: 20px;
+  padding: .3rem .85rem;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--na-text-dim);
   cursor: pointer;
   font-family: system-ui, -apple-system, sans-serif;
-  color: var(--na-text-dim);
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: .2rem;
   transition: all .2s;
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  white-space: nowrap;
 }
-.na-op-btn i { font-size: 1rem; margin-bottom: .1rem; }
-.na-op-btn:hover { border-color: rgba(0,180,216,.4); color: var(--na-text); }
-.na-op-btn.active {
-  border-color: var(--na-accent);
-  background: rgba(0,180,216,.1);
+.na-op-pill:hover {
+  border-color: rgba(0,200,150,.4);
   color: var(--na-text);
-  box-shadow: 0 0 0 2px var(--na-accent-glow);
 }
-.na-op-btn.active i { color: var(--na-accent); }
-.na-op-label { font-size: .88rem; font-weight: 700; }
-.na-op-sub   { font-size: .65rem; color: var(--na-text-dim); }
+.na-op-pill.active {
+  background: #00C896;
+  border-color: #00C896;
+  color: #0A1628;
+  font-weight: 700;
+}
 
 /* ---------------------------------------------------------------
    RESPONSIVIDADE
@@ -514,26 +524,18 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
     <!-- ====================================================
          TOGGLE: TIPO DE OPERAÇÃO
          ==================================================== -->
-    <div class="na-section-label">
-      <i class="fa-solid fa-code-branch" style="font-size:.7rem;"></i>
-      Tipo de Operação
-    </div>
-
-    {{ form.tipo_operacao }}
-
-    <div class="na-op-toggle" id="op-toggle">
-      <button type="button" class="na-op-btn active" id="btn-direta"
-              onclick="setTipoOp('DIRETA')">
-        <i class="fa-solid fa-truck-ramp-box"></i>
-        <span class="na-op-label">Direta Distribuidora</span>
-        <span class="na-op-sub">Horários: 07, 09, 11, 13, 15h</span>
-      </button>
-      <button type="button" class="na-op-btn" id="btn-cross"
-              onclick="setTipoOp('CROSS')">
-        <i class="fa-solid fa-shuffle"></i>
-        <span class="na-op-label">Crossdocking</span>
-        <span class="na-op-sub">Horários: 08, 10, 12, 14, 16h</span>
-      </button>
+    <div class="na-op-header">
+      <div class="na-section-label">
+        <i class="fa-solid fa-code-branch" style="font-size:.7rem;"></i>
+        Tipo de Operação
+      </div>
+      {{ form.tipo_operacao }}
+      <div class="na-op-pills">
+        <button type="button" class="na-op-pill active" id="btn-direta">AG Simões</button>
+        <button type="button" class="na-op-pill" id="btn-cross">
+          <i class="fa-solid fa-shuffle" style="font-size:.7rem;"></i> Crossdocking
+        </button>
+      </div>
     </div>
 
     <!-- ====================================================
@@ -549,6 +551,9 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
         Número do Pedido de Compra (PO) <span class="na-req">*</span>
       </label>
       {{ form.numero_pedido }}
+      <div id="po-cross-hint" style="display:none; font-size:.65rem; color:var(--na-text-dim); margin-top:.3rem;">
+        <i class="fa-solid fa-circle-info" style="margin-right:.25rem;"></i>Opcional para Crossdocking — o PO pode ser informado após a entrega.
+      </div>
       {% if form.numero_pedido.errors %}
       <div class="na-field-error">{{ form.numero_pedido.errors.0 }}</div>
       {% endif %}
@@ -832,8 +837,27 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
 
     if (btnDireta) btnDireta.classList.toggle('active', tipo === 'DIRETA');
     if (btnCross)  btnCross.classList.toggle('active',  tipo === 'CROSS');
+
+    // PO field: optional when CROSS
+    var inputPO = document.getElementById('id_numero_pedido');
+    var reqSpan = document.querySelector('label[for="id_numero_pedido"] .na-req');
+    var hintPO  = document.getElementById('po-cross-hint');
+    if (tipo === 'CROSS') {
+      if (inputPO) inputPO.removeAttribute('required');
+      if (reqSpan) reqSpan.style.display = 'none';
+      if (hintPO)  hintPO.style.display = 'block';
+    } else {
+      if (inputPO) inputPO.setAttribute('required', 'required');
+      if (reqSpan) reqSpan.style.display = '';
+      if (hintPO)  hintPO.style.display = 'none';
+    }
+
     atualizarSLA();
   }
+
+  // Bind click via addEventListener (not onclick — setTipoOp is in IIFE scope)
+  if (btnDireta) btnDireta.addEventListener('click', function() { setTipoOp('DIRETA'); });
+  if (btnCross)  btnCross.addEventListener('click',  function() { setTipoOp('CROSS'); });
 
   // Inicializa com o valor atual (útil em re-submit com erros)
   if (tipoOpInput) {
