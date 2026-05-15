@@ -5,7 +5,10 @@
 # ==========================================
 
 import json
+import logging
 from datetime import timedelta, datetime
+
+logger = logging.getLogger(__name__)
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
@@ -339,7 +342,15 @@ def upload_nfe(request, agendamento_id):
         for arquivo in arquivos:
             chave, valido, mensagem = validar_nfe_xml(arquivo, cnpj_dest)
             if not valido:
-                erros.append(f'"{arquivo.name}": {mensagem}')
+                logger.warning('NF-e inválida — arquivo: %s | motivo: %s', arquivo.name, mensagem)
+                if 'CNPJ do destinatário' in mensagem:
+                    erros.append(
+                        '❌ NF-e inválida: o destinatário da nota não corresponde à '
+                        'AG Simões Direta Distribuição. Verifique se a nota foi emitida '
+                        'corretamente contra o nosso CNPJ e tente novamente.'
+                    )
+                else:
+                    erros.append(mensagem)
             else:
                 arquivo.seek(0)
                 arquivos_ok.append((arquivo, chave))
