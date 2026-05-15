@@ -119,6 +119,81 @@ class CadastroFornecedorForm(forms.Form):
 
 
 # ==========================================
+# FORM: AUTOCADASTRO DE FORNECEDOR (self-service)
+# ==========================================
+
+class AutoCadastroFornecedorForm(forms.Form):
+    razao_social = forms.CharField(
+        max_length=200,
+        label="Razão Social",
+        widget=forms.TextInput(attrs={
+            'class': 'form-control form-control-lg',
+            'placeholder': 'Nome da sua empresa',
+        })
+    )
+    cnpj = forms.CharField(
+        max_length=14,
+        label="CNPJ",
+        widget=forms.TextInput(attrs={
+            'class': 'form-control form-control-lg',
+            'placeholder': '00000000000000',
+            'maxlength': '14',
+            'id': 'id_cnpj_autocad',
+        })
+    )
+    email = forms.EmailField(
+        label="E-mail",
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control form-control-lg',
+            'placeholder': 'contato@empresa.com.br',
+        })
+    )
+    telefone = forms.CharField(
+        max_length=20,
+        label="Telefone",
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control form-control-lg',
+            'placeholder': '(21) 99999-9999',
+        })
+    )
+    senha = forms.CharField(
+        min_length=8,
+        label="Senha",
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control form-control-lg',
+            'placeholder': 'Mínimo 8 caracteres',
+        })
+    )
+    confirmar_senha = forms.CharField(
+        label="Confirmar Senha",
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control form-control-lg',
+            'placeholder': 'Repita a senha',
+        })
+    )
+
+    def clean_cnpj(self):
+        import re
+        cnpj = re.sub(r'\D', '', self.cleaned_data.get('cnpj', ''))
+        if len(cnpj) != 14:
+            raise ValidationError("CNPJ deve ter 14 dígitos numéricos.")
+        if Fornecedor.objects.filter(cnpj=cnpj).exists():
+            raise ValidationError("Já existe um cadastro para este CNPJ. Use a opção de login.")
+        if User.objects.filter(username=cnpj).exists():
+            raise ValidationError("Já existe uma conta para este CNPJ. Use a opção de login.")
+        return cnpj
+
+    def clean(self):
+        cleaned_data = super().clean()
+        senha = cleaned_data.get('senha')
+        confirmar = cleaned_data.get('confirmar_senha')
+        if senha and confirmar and senha != confirmar:
+            raise ValidationError("As senhas não coincidem.")
+        return cleaned_data
+
+
+# ==========================================
 # FORM: LOGIN DA INDÚSTRIA (com CNPJ)
 # ==========================================
 

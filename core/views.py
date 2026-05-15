@@ -24,6 +24,7 @@ def _tem_acesso(user, grupo):
     """Retorna True para superusuários ou membros do grupo informado."""
     return user.is_superuser or user.groups.filter(name=grupo).exists()
 from .forms import (
+    AutoCadastroFornecedorForm,
     CadastroFornecedorForm,
     LoginIndustriaForm,
     NovoAgendamentoForm,
@@ -159,6 +160,35 @@ def cadastro_industria(request):
         return redirect('login_industria')
 
     return render(request, 'onboarding/cadastro.html', {'form': form})
+
+
+def industria_cadastro(request):
+    """Autocadastro self-service: cria Fornecedor + User e loga automaticamente."""
+    if request.user.is_authenticated:
+        return redirect('dashboard_industria')
+
+    form = AutoCadastroFornecedorForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        from django.contrib.auth.models import User as AuthUser
+        cnpj        = form.cleaned_data['cnpj']
+        razao_social = form.cleaned_data['razao_social']
+        email       = form.cleaned_data['email']
+        senha       = form.cleaned_data['senha']
+
+        user = AuthUser.objects.create_user(username=cnpj, email=email, password=senha)
+        Fornecedor.objects.create(
+            user=user,
+            cnpj=cnpj,
+            razao_social=razao_social,
+            email_contato=email,
+            bloqueado=False,
+        )
+        login(request, user)
+        messages.success(request, f"Bem-vindo(a), {razao_social}! Seu portal está pronto.")
+        return redirect('dashboard_industria')
+
+    return render(request, 'industria/cadastro.html', {'form': form})
+
 
 @require_GET
 def api_consulta_cnpj(request, cnpj):

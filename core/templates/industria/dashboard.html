@@ -205,7 +205,6 @@
                                 <th>PO</th>
                                 <th>Tipo</th>
                                 <th>Status</th>
-                                <th>Cód. Descarga</th>
                                 <th>Ação</th>
                             </tr>
                         </thead>
@@ -237,18 +236,6 @@
                                         <span class="badge-desc badge rounded-pill px-2">Em Descarga</span>
                                     {% else %}
                                         <span class="badge-pre badge rounded-pill px-2">{{ ag.get_status_display }}</span>
-                                    {% endif %}
-                                </td>
-
-                                {# Código de descarga: visível apenas se CONFIRMADO ou em pátio #}
-                                <td>
-                                    {% if ag.status in 'CONFIRMADO,EM_PATIO,EM_DESCARGA' and ag.codigo_descarga %}
-                                        <span style="font-family:monospace; font-size:1rem; font-weight:700;
-                                                     color:var(--ordo-accent); letter-spacing:2px;">
-                                            {{ ag.codigo_descarga }}
-                                        </span>
-                                    {% else %}
-                                        <span class="text-muted">—</span>
                                     {% endif %}
                                 </td>
 

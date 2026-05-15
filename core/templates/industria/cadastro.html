@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Cadastro — Portal da Indústria | Zakaz{% endblock %}
+{% block body_class %}no-sidebar{% endblock %}
+{% block main_wrapper_class %}{% endblock %}
+
+{% block extra_css %}
+.cad-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    background:
+        radial-gradient(ellipse at 80% 20%, rgba(0,180,216,0.06) 0%, transparent 55%),
+        var(--ordo-bg);
+}
+.cad-box       { width: 100%; max-width: 480px; }
+.cad-logo      { font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, var(--ordo-accent), var(--ordo-accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -1px; }
+.cad-logo-sub  { font-size: .68rem; letter-spacing: 3px; text-transform: uppercase; color: var(--ordo-text-dim); }
+.field-group   { margin-bottom: 1.25rem; }
+.btn-cad {
+    width: 100%;
+    background: linear-gradient(135deg, var(--ordo-accent), var(--ordo-accent-2));
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: .85rem;
+    font-weight: 700;
+    font-size: .95rem;
+    transition: all .25s;
+}
+.btn-cad:hover {
+    opacity: .9;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,180,216,.35);
+    color: white;
+}
+{% endblock %}
+
+{% block content %}
+<div class="cad-wrapper">
+    <div class="cad-box fade-in">
+
+        <div class="text-center mb-4">
+            <div class="cad-logo">ZAKAZ</div>
+            <div class="cad-logo-sub">Cadastro do Portal da Indústria</div>
+        </div>
+
+        <div class="ordo-card">
+            <div class="ordo-card-header">
+                <i class="fa-solid fa-building-user" style="color:var(--ordo-accent)"></i>
+                <span class="fw-semibold">Cadastrar Empresa</span>
+            </div>
+            <div class="ordo-card-body">
+
+                {% if messages %}
+                {% for msg in messages %}
+                <div class="alert-ordo-danger p-3 mb-4 rounded-3">
+                    <i class="fa-solid fa-circle-exclamation me-2"></i>{{ msg }}
+                </div>
+                {% endfor %}
+                {% endif %}
+
+                {% if form.non_field_errors %}
+                <div class="alert-ordo-danger p-3 mb-4 rounded-3">
+                    <i class="fa-solid fa-circle-exclamation me-2"></i>
+                    {{ form.non_field_errors.0 }}
+                </div>
+                {% endif %}
+
+                <form method="POST" id="form-autocad" novalidate>
+                    {% csrf_token %}
+
+                    <div class="field-group">
+                        <label class="form-label" for="{{ form.razao_social.id_for_label }}">
+                            <i class="fa-solid fa-id-badge me-1"></i> Razão Social *
+                        </label>
+                        {{ form.razao_social }}
+                        {% if form.razao_social.errors %}
+                        <div class="text-danger mt-1" style="font-size:.75rem;">{{ form.razao_social.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="field-group">
+                        <label class="form-label" for="{{ form.cnpj.id_for_label }}">
+                            <i class="fa-solid fa-building me-1"></i> CNPJ * <small class="text-muted">(14 dígitos, sem pontuação)</small>
+                        </label>
+                        {{ form.cnpj }}
+                        {% if form.cnpj.errors %}
+                        <div class="text-danger mt-1" style="font-size:.75rem;">{{ form.cnpj.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="field-group">
+                        <label class="form-label" for="{{ form.email.id_for_label }}">
+                            <i class="fa-solid fa-envelope me-1"></i> E-mail *
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                        <div class="text-danger mt-1" style="font-size:.75rem;">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="field-group">
+                        <label class="form-label" for="{{ form.telefone.id_for_label }}">
+                            <i class="fa-solid fa-phone me-1"></i> Telefone
+                        </label>
+                        {{ form.telefone }}
+                        {% if form.telefone.errors %}
+                        <div class="text-danger mt-1" style="font-size:.75rem;">{{ form.telefone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="field-group">
+                        <label class="form-label" for="{{ form.senha.id_for_label }}">
+                            <i class="fa-solid fa-lock me-1"></i> Senha * <small class="text-muted">(mínimo 8 caracteres)</small>
+                        </label>
+                        {{ form.senha }}
+                        {% if form.senha.errors %}
+                        <div class="text-danger mt-1" style="font-size:.75rem;">{{ form.senha.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="field-group">
+                        <label class="form-label" for="{{ form.confirmar_senha.id_for_label }}">
+                            <i class="fa-solid fa-lock me-1"></i> Confirmar Senha *
+                        </label>
+                        {{ form.confirmar_senha }}
+                        {% if form.confirmar_senha.errors %}
+                        <div class="text-danger mt-1" style="font-size:.75rem;">{{ form.confirmar_senha.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn-cad btn mt-1" id="btn-cad">
+                        <i class="fa-solid fa-user-plus me-2"></i> Criar Minha Conta
+                    </button>
+                </form>
+
+                <div class="text-center mt-3" style="font-size:.78rem; color:var(--ordo-text-dim);">
+                    Já tem acesso? <a href="{% url 'industria_login' %}" style="color:var(--ordo-accent); text-decoration:none; font-weight:500;">Entrar agora</a>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="text-center mt-3">
+            <a href="{% url 'home' %}" style="font-size:.75rem; color:var(--ordo-text-dim); text-decoration:none;">
+                <i class="fa-solid fa-arrow-left me-1"></i> Voltar para a Home
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const cnpjInput = document.getElementById('id_cnpj_autocad');
+    if (cnpjInput) {
+        cnpjInput.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '').slice(0, 14);
+        });
+    }
+
+    document.getElementById('form-autocad').addEventListener('submit', function() {
+        const btn = document.getElementById('btn-cad');
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Criando conta...';
+        btn.disabled = true;
+    });
+</script>
+{% endblock %}

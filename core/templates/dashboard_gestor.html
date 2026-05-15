@@ -687,6 +687,7 @@
                 </td>
 
                 <td class="dg-td-horario">
+                  <div style="font-size:.65rem; color:var(--cinza-texto); margin-bottom:1px;">{{ ag.inicio|date:"d/m" }}</div>
                   <div class="{% if not ag.nfe_validada and ag.inicio < agora and ag.status == 'PRE_AGENDADO' %}hora-atraso{% else %}hora{% endif %}">
                     {{ ag.inicio|date:"H:i" }}
                   </div>
