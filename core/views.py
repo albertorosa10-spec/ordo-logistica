@@ -20,6 +20,13 @@ from django.views.decorators.http import require_GET
 from .models import Agendamento, Fornecedor, EmpresaOperadora, Doca, LogAgendamento, NFeArquivo, SHADOW_BUFFER
 
 
+def _e_staff(user):
+    """True se superuser, is_staff, ou membro de algum grupo interno."""
+    return user.is_superuser or user.is_staff or user.groups.filter(
+        name__in=['gestor_patio', 'analista_fiscal', 'portaria']
+    ).exists()
+
+
 def _tem_acesso(user, grupo):
     """Retorna True para superusuários ou membros do grupo informado."""
     return user.is_superuser or user.groups.filter(name=grupo).exists()
@@ -119,7 +126,7 @@ def staff_login(request):
 
         if user is None:
             error = "Usuário ou senha incorretos."
-        elif not user.is_staff:
+        elif not _e_staff(user):
             error = "Acesso restrito a colaboradores."
         else:
             login(request, user)
@@ -694,20 +701,108 @@ def gestor_detalhe(request, pk):
 
 @login_required(login_url='/staff/login/')
 def fiscal_dashboard(request):
-    """Lista agendamentos aguardando triagem fiscal."""
+    """Dashboard completo do analista fiscal: fila de aprovação + histórico de triagens."""
     if not _tem_acesso(request.user, 'analista_fiscal'):
         return render(request, '403.html', status=403)
-    aguardando = (
+
+    agora = timezone.now()
+    trinta_dias = agora - timedelta(days=30)
+
+    # ── A) Fila de aprovação ─────────────────────────────────────────────────
+    aguardando_qs = (
         Agendamento.objects
         .filter(status='AGUARDANDO_FISCAL')
         .select_related('fornecedor')
-        .prefetch_related('docas')
+        .prefetch_related('docas', 'logs')
         .order_by('inicio')
     )
+    aguardando = []
+    for ag in aguardando_qs:
+        logs_entrada = [l for l in ag.logs.all() if l.status_novo == 'AGUARDANDO_FISCAL']
+        log_entrada = max(logs_entrada, key=lambda l: l.data) if logs_entrada else None
+        aguardando_desde = log_entrada.data if log_entrada else None
+        urgente = bool(aguardando_desde and (agora - aguardando_desde).total_seconds() > 7200)
+        aguardando.append({
+            'ag': ag,
+            'aguardando_desde': aguardando_desde,
+            'urgente': urgente,
+        })
+
+    # ── B) Histórico de triagens (últimos 30 dias) ───────────────────────────
+    historico_base = (
+        LogAgendamento.objects
+        .filter(
+            status_anterior='AGUARDANDO_FISCAL',
+            status_novo__in=['CONFIRMADO', 'PRE_AGENDADO'],
+            data__gte=trinta_dias,
+        )
+        .select_related('agendamento', 'agendamento__fornecedor')
+        .order_by('-data')
+    )
+
+    total_triado = historico_base.count()
+    n_aprovados  = historico_base.filter(status_novo='CONFIRMADO').count()
+    n_rejeitados = historico_base.filter(status_novo='PRE_AGENDADO').count()
+
+    # Tempo médio de resposta: busca os logs de entrada em AGUARDANDO_FISCAL em lote
+    tempo_medio_str = None
+    if total_triado:
+        ag_ids = list(historico_base.values_list('agendamento_id', flat=True))
+        entradas_map = {}
+        for log in (
+            LogAgendamento.objects
+            .filter(agendamento_id__in=ag_ids, status_novo='AGUARDANDO_FISCAL')
+            .order_by('agendamento_id', '-data')
+        ):
+            if log.agendamento_id not in entradas_map:
+                entradas_map[log.agendamento_id] = log.data
+        tempos = []
+        for log in historico_base:
+            entrada_dt = entradas_map.get(log.agendamento_id)
+            if entrada_dt and log.data > entrada_dt:
+                tempos.append((log.data - entrada_dt).total_seconds())
+        if tempos:
+            media_s = sum(tempos) / len(tempos)
+            h = int(media_s // 3600)
+            m = int((media_s % 3600) // 60)
+            tempo_medio_str = f"{h}h{m:02d}min" if h else f"{m}min"
+
+    # Filtro por decisão
+    filtro_decisao = request.GET.get('decisao', 'todos')
+    if filtro_decisao == 'aprovados':
+        historico_filtrado = historico_base.filter(status_novo='CONFIRMADO')
+    elif filtro_decisao == 'rejeitados':
+        historico_filtrado = historico_base.filter(status_novo='PRE_AGENDADO')
+    else:
+        filtro_decisao = 'todos'
+        historico_filtrado = historico_base
+
+    # Pré-processa usuario para separar analista / motivo
+    historico = []
+    for log in historico_filtrado:
+        if ' — Rejeitados: ' in (log.usuario or ''):
+            analista, motivo = log.usuario.split(' — Rejeitados: ', 1)
+        else:
+            analista, motivo = (log.usuario or ''), ''
+        historico.append({
+            'log':      log,
+            'analista': analista,
+            'motivo':   motivo,
+            'aprovado': log.status_novo == 'CONFIRMADO',
+        })
+
     return render(request, 'fiscal/dashboard.html', {
-        'aguardando': aguardando,
-        'total':      aguardando.count(),
-        'agora':      timezone.now(),
+        'aguardando':      aguardando,
+        'total':           len(aguardando),
+        'agora':           agora,
+        'historico':       historico,
+        'filtro_decisao':  filtro_decisao,
+        'kpis': {
+            'total_triado': total_triado,
+            'aprovados':    n_aprovados,
+            'rejeitados':   n_rejeitados,
+            'tempo_medio':  tempo_medio_str,
+        },
     })
 
 @login_required(login_url='/staff/login/')
