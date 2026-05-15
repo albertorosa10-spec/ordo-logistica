@@ -286,15 +286,19 @@ class UploadNFeXmlForm(forms.Form):
 # FORM: NOVO AGENDAMENTO
 # ==========================================
 
-# Slots de hora disponíveis: 07h às 17h, de hora em hora
-SLOTS_HORA = [(f"{h:02d}:00", f"{h:02d}:00") for h in range(7, 18)]
+# Slots por tipo de operação
+SLOTS_DIRETA = [(f"{h:02d}:00", f"{h:02d}:00") for h in [7, 9, 11, 13, 15]]
+SLOTS_CROSS  = [(f"{h:02d}:00", f"{h:02d}:00") for h in [8, 10, 12, 14, 16]]
+
+HORAS_DIRETA = {7, 9, 11, 13, 15}
+HORAS_CROSS  = {8, 10, 12, 14, 16}
 
 
 class NovoAgendamentoForm(forms.ModelForm):
     """
-    Formulário de pré-agendamento (v0.8).
-    O campo `inicio` é dividido em `data` + `hora_slot` para UX controlada.
-    Os dois campos são combinados no clean() e salvos como DateTimeField.
+    Formulário de pré-agendamento (v0.9).
+    Suporta dois tipos de operação: DIRETA (horários ímpares) e CROSS (horários pares).
+    Docas removidas do fluxo de agendamento.
     """
 
     # ----- campos de data e hora (substituem o campo inicio) -----
@@ -308,7 +312,7 @@ class NovoAgendamentoForm(forms.ModelForm):
     )
     hora_slot = forms.ChoiceField(
         label='Horário',
-        choices=SLOTS_HORA,
+        choices=SLOTS_DIRETA,  # default; JS troca para SLOTS_CROSS quando necessário
         widget=forms.Select(attrs={
             'class': 'na-hora-select',
             'id': 'id_hora_slot',
@@ -317,8 +321,7 @@ class NovoAgendamentoForm(forms.ModelForm):
 
     class Meta:
         model  = Agendamento
-        fields = ['numero_pedido', 'tipo_carga', 'qtd_itens', 'docas']
-        # 'inicio' NÃO está em fields — é montado pelo clean()
+        fields = ['numero_pedido', 'tipo_carga', 'qtd_itens', 'tipo_operacao']
         widgets = {
             'numero_pedido': forms.TextInput(attrs={
                 'class': 'na-input',
@@ -336,49 +339,37 @@ class NovoAgendamentoForm(forms.ModelForm):
                 'max': 9999,
                 'id': 'id_qtd_itens',
             }),
-            # Docas: widget padrão ocultado — o template usa botões Toggle
-            'docas': forms.CheckboxSelectMultiple(attrs={
-                'class': 'na-docas-hidden',
+            'tipo_operacao': forms.HiddenInput(attrs={
+                'id': 'id_tipo_operacao',
             }),
         }
         labels = {
             'numero_pedido': 'Número do Pedido de Compra (PO)',
             'tipo_carga':    'Tipo de Carga',
             'qtd_itens':     'Quantidade de Itens / Caixas',
-            'docas':         'Doca(s) Solicitada(s)',
         }
         error_messages = {
             'numero_pedido': {'required': 'Informe o número do pedido.'},
             'tipo_carga':    {'required': 'Selecione o tipo de carga.'},
             'qtd_itens':     {'required': 'Informe a quantidade de itens.'},
-            'docas':         {'required': 'Selecione pelo menos uma doca.'},
         }
 
     def __init__(self, *args, **kwargs):
         self.fornecedor = kwargs.pop('fornecedor', None)
         super().__init__(*args, **kwargs)
 
-        from .models import Doca
-        # Filtrar apenas docas ativas
-        self.fields['docas'].queryset = Doca.objects.filter(ativa=True).order_by('codigo')
-
-        # Restrição de single-doca
-        if self.fornecedor and not self.fornecedor.permite_multi_doca:
-            self.fields['docas'].label    = 'Doca Solicitada'
-            self.fields['docas'].help_text = '⚠ Seu perfil permite apenas 1 doca por agendamento.'
-
     def clean(self):
         from django.utils import timezone
-        from datetime import datetime, timedelta
+        from datetime import datetime
 
-        cleaned = super().clean()
-        data     = cleaned.get('data')
-        hora_str = cleaned.get('hora_slot', '07:00')
+        cleaned   = super().clean()
+        data      = cleaned.get('data')
+        hora_str  = cleaned.get('hora_slot', '07:00')
+        tipo_op   = cleaned.get('tipo_operacao', 'DIRETA')
 
         # ----- Montar o datetime completo -----
         if data and hora_str:
             hora, minuto = map(int, hora_str.split(':'))
-            # Usar timezone aware se USE_TZ=True
             try:
                 inicio = timezone.make_aware(
                     datetime(data.year, data.month, data.day, hora, minuto)
@@ -386,20 +377,23 @@ class NovoAgendamentoForm(forms.ModelForm):
             except Exception:
                 raise forms.ValidationError('Data ou horário inválido.')
 
-            # ----- Validar: não permitir agendamentos no passado -----
             if inicio <= timezone.now():
                 raise forms.ValidationError(
                     'O horário de agendamento deve ser no futuro.'
                 )
 
-            cleaned['inicio'] = inicio
-
-        # ----- Validar multi-doca -----
-        docas = cleaned.get('docas')
-        if docas and self.fornecedor and not self.fornecedor.permite_multi_doca:
-            if len(docas) > 1:
+            # ----- Validar horário × tipo de operação -----
+            if tipo_op == 'DIRETA' and hora not in HORAS_DIRETA:
+                slots = ', '.join(f'{h:02d}:00' for h in sorted(HORAS_DIRETA))
                 raise forms.ValidationError(
-                    'Seu perfil permite apenas 1 doca por agendamento.'
+                    f'Agendamentos Direta usam horários ímpares: {slots}.'
                 )
+            if tipo_op == 'CROSS' and hora not in HORAS_CROSS:
+                slots = ', '.join(f'{h:02d}:00' for h in sorted(HORAS_CROSS))
+                raise forms.ValidationError(
+                    f'Agendamentos Crossdocking usam horários pares: {slots}.'
+                )
+
+            cleaned['inicio'] = inicio
 
         return cleaned

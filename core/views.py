@@ -259,58 +259,49 @@ def novo_agendamento(request):
 
     form = NovoAgendamentoForm(request.POST or None, fornecedor=fornecedor)
     if request.method == 'POST' and form.is_valid():
-        inicio             = form.cleaned_data['inicio']
-        docas_selecionadas = form.cleaned_data['docas']
-        tipo_carga         = form.cleaned_data['tipo_carga']
-        qtd_itens          = form.cleaned_data['qtd_itens']
+        inicio      = form.cleaned_data['inicio']
+        tipo_op     = form.cleaned_data.get('tipo_operacao', 'DIRETA')
 
-        # --- Verificação de conflito de doca ---
-        # Replica a fórmula de calcular_duracao() + buffer para obter o fim estimado
-        _MULT = {'PAL': 0.80, 'BAT': 1.50, 'FRA': 1.20}
-        duracao_min = int((30 + qtd_itens) * _MULT.get(tipo_carga, 1.0))
-        fim_novo    = inicio + timedelta(minutes=duracao_min + SHADOW_BUFFER)
-
-        # Status que representam ocupação real da doca
+        # --- Verificação de conflito por horário × tipo de operação ---
         _STATUS_OCUPA = [
             'PRE_AGENDADO', 'AGUARDANDO_FISCAL',
             'CONFIRMADO', 'EM_PATIO', 'EM_DESCARGA',
         ]
         conflito_qs = Agendamento.objects.filter(
-            docas__in=docas_selecionadas,
-            fim_estimado__isnull=False,
-            fim_estimado__gt=inicio,   # existente termina depois que o novo começa
-            inicio__lt=fim_novo,       # existente começa antes que o novo termine
+            inicio=inicio,
+            tipo_operacao=tipo_op,
             status__in=_STATUS_OCUPA,
-        ).select_related('fornecedor').prefetch_related('docas')
-
+        )
         if conflito_qs.exists():
-            ag_conf  = conflito_qs.first()
-            docas_em_conflito = [
-                d.codigo for d in ag_conf.docas.all()
-                if d in list(docas_selecionadas)
-            ]
-            doca_str = ', '.join(docas_em_conflito) if docas_em_conflito else 'selecionada'
+            ag_conf = conflito_qs.first()
+            tipo_label = 'Direta' if tipo_op == 'DIRETA' else 'Crossdocking'
             form.add_error(
                 None,
-                f'Conflito de horário na doca {doca_str}: agendamento #{ag_conf.pk} '
-                f'já ocupa este horário ({ag_conf.inicio:%d/%m/%Y às %H:%M} – '
-                f'{ag_conf.fim_estimado:%H:%M}). '
-                f'Escolha outra doca ou um horário diferente.'
+                f'Já existe um agendamento {tipo_label} neste horário '
+                f'({ag_conf.inicio:%d/%m/%Y às %H:%M}, #{ag_conf.pk}). '
+                'Escolha outro horário.'
             )
         else:
-            agendamento = form.save(commit=False)
+            agendamento            = form.save(commit=False)
             agendamento.fornecedor = fornecedor
             agendamento.inicio     = inicio
+
+            if tipo_op == 'CROSS':
+                agendamento.nfe_validada = True   # CROSS pula triagem fiscal
             agendamento.save()
-            form.save_m2m()
-            messages.success(request, "✅ Agendamento criado! Vincule a NF-e para confirmar.")
+
+            if tipo_op == 'CROSS':
+                messages.success(
+                    request,
+                    f"✅ Agendamento Crossdocking confirmado! Código: {agendamento.codigo_descarga}"
+                )
+            else:
+                messages.success(request, "✅ Agendamento criado! Vincule a NF-e para confirmar.")
             return redirect('dashboard_industria')
 
     return render(request, 'industria/novo_agendamento.html', {
-        'form':         form,
-        'fornecedor':   fornecedor,
-        'docas_ativas': Doca.objects.filter(ativa=True).order_by('codigo'),
-        'permite_multi': fornecedor.permite_multi_doca,
+        'form':       form,
+        'fornecedor': fornecedor,
     })
 
 # ==========================================
@@ -320,10 +311,14 @@ def novo_agendamento(request):
 @login_required
 def upload_nfe(request, agendamento_id):
     """Vínculo de NF-e com Triagem Fiscal Manual em caso de erro no ERP."""
-    fornecedor = get_object_or_404(Fornecedor, user=request.user)
+    fornecedor  = get_object_or_404(Fornecedor, user=request.user)
     agendamento = get_object_or_404(Agendamento, pk=agendamento_id, fornecedor=fornecedor)
 
-    if agendamento.status_dinamico['code'] not in ['PRE', 'FIS']:
+    is_cross = agendamento.tipo_operacao == 'CROSS'
+
+    # CROSS já está CONFIRMADO — upload de XML é opcional, mas permitido
+    # DIRETA só aceita upload nos estados PRE/FIS
+    if not is_cross and agendamento.status_dinamico['code'] not in ['PRE', 'FIS']:
         messages.error(request, "Este agendamento já não permite alteração fiscal.")
         return redirect('dashboard_industria')
 
@@ -719,10 +714,10 @@ def fiscal_dashboard(request):
     agora = timezone.now()
     trinta_dias = agora - timedelta(days=30)
 
-    # ── A) Fila de aprovação ─────────────────────────────────────────────────
+    # ── A) Fila de aprovação — apenas agendamentos DIRETA (CROSS não passa pelo fiscal) ──
     aguardando_qs = (
         Agendamento.objects
-        .filter(status='AGUARDANDO_FISCAL')
+        .filter(status='AGUARDANDO_FISCAL', tipo_operacao='DIRETA')
         .select_related('fornecedor')
         .prefetch_related('docas', 'logs')
         .order_by('inicio')

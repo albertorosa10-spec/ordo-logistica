@@ -426,9 +426,39 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
 }
 
 /* ---------------------------------------------------------------
-   OCULTADO (checkbox nativo das docas)
+   TOGGLE TIPO DE OPERAÇÃO
    --------------------------------------------------------------- */
-.na-docas-hidden { display: none; }
+.na-op-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+  margin-bottom: 1.5rem;
+}
+.na-op-btn {
+  background: var(--na-surface-2);
+  border: 1.5px solid var(--na-border);
+  border-radius: var(--na-radius-sm);
+  padding: .85rem 1rem;
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: var(--na-text-dim);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  transition: all .2s;
+}
+.na-op-btn i { font-size: 1rem; margin-bottom: .1rem; }
+.na-op-btn:hover { border-color: rgba(0,180,216,.4); color: var(--na-text); }
+.na-op-btn.active {
+  border-color: var(--na-accent);
+  background: rgba(0,180,216,.1);
+  color: var(--na-text);
+  box-shadow: 0 0 0 2px var(--na-accent-glow);
+}
+.na-op-btn.active i { color: var(--na-accent); }
+.na-op-label { font-size: .88rem; font-weight: 700; }
+.na-op-sub   { font-size: .65rem; color: var(--na-text-dim); }
 
 /* ---------------------------------------------------------------
    RESPONSIVIDADE
@@ -480,6 +510,31 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
       {% endfor %}
     </ul>
     {% endif %}
+
+    <!-- ====================================================
+         TOGGLE: TIPO DE OPERAÇÃO
+         ==================================================== -->
+    <div class="na-section-label">
+      <i class="fa-solid fa-code-branch" style="font-size:.7rem;"></i>
+      Tipo de Operação
+    </div>
+
+    {{ form.tipo_operacao }}
+
+    <div class="na-op-toggle" id="op-toggle">
+      <button type="button" class="na-op-btn active" id="btn-direta"
+              onclick="setTipoOp('DIRETA')">
+        <i class="fa-solid fa-truck-ramp-box"></i>
+        <span class="na-op-label">Direta Distribuidora</span>
+        <span class="na-op-sub">Horários: 07, 09, 11, 13, 15h</span>
+      </button>
+      <button type="button" class="na-op-btn" id="btn-cross"
+              onclick="setTipoOp('CROSS')">
+        <i class="fa-solid fa-shuffle"></i>
+        <span class="na-op-label">Crossdocking</span>
+        <span class="na-op-sub">Horários: 08, 10, 12, 14, 16h</span>
+      </button>
+    </div>
 
     <!-- ====================================================
          SEÇÃO 1: PEDIDO DE COMPRA
@@ -574,55 +629,6 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
         {% endif %}
       </div>
 
-    </div>
-
-    <!-- ====================================================
-         SEÇÃO 4: DOCAS (WIDGET TOGGLE)
-         ==================================================== -->
-    <div class="na-section-label">
-      <i class="fa-solid fa-warehouse" style="font-size:.7rem;"></i>
-      Seleção de Doca{{ permite_multi|yesno:",s" }}
-    </div>
-
-    {# Aviso de single-doca #}
-    {% if not permite_multi %}
-    <div class="na-doca-aviso">
-      <i class="fa-solid fa-triangle-exclamation"></i>
-      Seu perfil permite <strong>apenas 1 doca</strong> por agendamento.
-    </div>
-    {% endif %}
-
-    {% if form.docas.errors %}
-    <div class="na-field-error" style="margin-bottom:.75rem;">{{ form.docas.errors.0 }}</div>
-    {% endif %}
-
-    {# Grid de botões Toggle — um por doca ativa #}
-    <div class="na-docas-grid {% if not permite_multi %}na-single-doca{% endif %}"
-         id="docas-grid">
-      {% for doca in docas_ativas %}
-      <label class="na-doca-btn" id="label-doca-{{ doca.pk }}">
-        <input type="checkbox"
-               name="docas"
-               value="{{ doca.pk }}"
-               id="doca-{{ doca.pk }}"
-               {% if not permite_multi %}data-single="true"{% endif %}
-               {% if form.docas.value and doca.pk|stringformat:"s" in form.docas.value|join:"," %}checked{% endif %}>
-        <div class="na-doca-face">
-          <span class="na-doca-code">{{ doca.codigo }}</span>
-          <span class="na-doca-type">{{ doca.tipo_maximo }}</span>
-          {% if doca.temperatura_controlada %}
-          <span class="na-doca-temp">❄ Temp. controlada</span>
-          {% endif %}
-        </div>
-        {# Ícone de check sobreposto quando selecionado #}
-        <span class="na-doca-check" aria-hidden="true">✓</span>
-      </label>
-      {% empty %}
-      <div style="color:var(--na-text-dim); font-size:.82rem; grid-column:1/-1;">
-        <i class="fa-solid fa-circle-exclamation me-1"></i>
-        Nenhuma doca disponível no momento. Contate o gestor.
-      </div>
-      {% endfor %}
     </div>
 
     <!-- ====================================================
@@ -798,25 +804,44 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
   }
 
   /* ---------------------------------------------------------------
-     4. MODO SINGLE-DOCA: ao clicar num checkbox, deseleciona os demais
+     3. TOGGLE TIPO DE OPERAÇÃO — troca slots de horário
      --------------------------------------------------------------- */
-  var permiteMulti = {% if permite_multi %}true{% else %}false{% endif %};
+  var SLOTS_DIRETA = ['07:00','09:00','11:00','13:00','15:00'];
+  var SLOTS_CROSS  = ['08:00','10:00','12:00','14:00','16:00'];
 
-  document.querySelectorAll('#docas-grid input[type="checkbox"]').forEach(function(chk) {
-    chk.addEventListener('change', function() {
-      if (!permiteMulti && this.checked) {
-        // Deselecionar todos os outros
-        document.querySelectorAll('#docas-grid input[type="checkbox"]').forEach(function(outro) {
-          if (outro !== chk) {
-            outro.checked = false;
-          }
-        });
-      }
-    });
-  });
+  var tipoOpInput = document.getElementById('id_tipo_operacao');
+  var btnDireta   = document.getElementById('btn-direta');
+  var btnCross    = document.getElementById('btn-cross');
+
+  function setTipoOp(tipo) {
+    if (!tipoOpInput) return;
+    tipoOpInput.value = tipo;
+
+    var slots = tipo === 'CROSS' ? SLOTS_CROSS : SLOTS_DIRETA;
+    if (selectHora) {
+      var valorAtual = selectHora.value;
+      selectHora.innerHTML = '';
+      slots.forEach(function(s) {
+        var opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = s;
+        if (s === valorAtual) opt.selected = true;
+        selectHora.appendChild(opt);
+      });
+    }
+
+    if (btnDireta) btnDireta.classList.toggle('active', tipo === 'DIRETA');
+    if (btnCross)  btnCross.classList.toggle('active',  tipo === 'CROSS');
+    atualizarSLA();
+  }
+
+  // Inicializa com o valor atual (útil em re-submit com erros)
+  if (tipoOpInput) {
+    setTipoOp(tipoOpInput.value || 'DIRETA');
+  }
 
   /* ---------------------------------------------------------------
-     5. BIND DE EVENTOS — atualiza SLA ao muda data, hora ou qtd
+     4. BIND DE EVENTOS — atualiza SLA ao muda data, hora ou qtd
      --------------------------------------------------------------- */
   if (inputData)  inputData.addEventListener('change', atualizarSLA);
   if (selectHora) selectHora.addEventListener('change', atualizarSLA);
@@ -847,22 +872,9 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
   atualizarLabelQtd();
 
   /* ---------------------------------------------------------------
-     6. VALIDAÇÃO ADICIONAL ANTES DO SUBMIT
-        Garante que pelo menos 1 doca está selecionada
+     5. FEEDBACK DE CARREGAMENTO NO SUBMIT
      --------------------------------------------------------------- */
-  document.getElementById('form-agendamento').addEventListener('submit', function(e) {
-    var checkadas = document.querySelectorAll('#docas-grid input[type="checkbox"]:checked');
-    if (checkadas.length === 0) {
-      e.preventDefault();
-      alert('Selecione pelo menos uma doca para continuar.');
-      return;
-    }
-    if (!permiteMulti && checkadas.length > 1) {
-      e.preventDefault();
-      alert('Seu perfil permite apenas 1 doca por agendamento.');
-      return;
-    }
-    // Feedback visual de carregamento
+  document.getElementById('form-agendamento').addEventListener('submit', function() {
     btnSubmit.disabled = true;
     btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Salvando...';
   });

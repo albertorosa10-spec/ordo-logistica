@@ -203,7 +203,7 @@
                                 <th>Data / Hora</th>
                                 <th>Doca(s)</th>
                                 <th>PO</th>
-                                <th>Tipo</th>
+                                <th>Operação</th>
                                 <th>Status</th>
                                 <th>Ação</th>
                             </tr>
@@ -222,8 +222,17 @@
                                     {% empty %}—{% endfor %}
                                 </td>
                                 <td class="fw-semibold">{{ ag.numero_pedido }}</td>
-                                <td style="font-size:.75rem; color:var(--ordo-text-dim);">
-                                    {{ ag.get_tipo_carga_display }}
+                                <td>
+                                    {% if ag.tipo_operacao == 'CROSS' %}
+                                        <span style="background:rgba(139,92,246,.15); color:#a78bfa; border:1px solid rgba(139,92,246,.3); border-radius:999px; padding:2px 8px; font-size:.68rem; font-weight:700; white-space:nowrap;">
+                                            <i class="fa-solid fa-shuffle" style="font-size:.6rem;"></i> Cross
+                                        </span>
+                                    {% else %}
+                                        <span style="background:rgba(0,180,216,.1); color:var(--ordo-accent); border:1px solid rgba(0,180,216,.25); border-radius:999px; padding:2px 8px; font-size:.68rem; font-weight:700; white-space:nowrap;">
+                                            <i class="fa-solid fa-truck-ramp-box" style="font-size:.6rem;"></i> Direta
+                                        </span>
+                                    {% endif %}
+                                    <div style="font-size:.65rem; color:var(--ordo-text-dim); margin-top:2px;">{{ ag.get_tipo_carga_display }}</div>
                                 </td>
                                 <td>
                                     {% if ag.status == 'PRE_AGENDADO' %}
