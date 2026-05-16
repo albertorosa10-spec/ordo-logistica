@@ -357,6 +357,8 @@ class NovoAgendamentoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.fornecedor = kwargs.pop('fornecedor', None)
         super().__init__(*args, **kwargs)
+        # required validado no clean() — para CROSS o PO é opcional
+        self.fields['numero_pedido'].required = False
 
     def clean(self):
         from django.utils import timezone
@@ -366,6 +368,13 @@ class NovoAgendamentoForm(forms.ModelForm):
         data      = cleaned.get('data')
         hora_str  = cleaned.get('hora_slot', '07:00')
         tipo_op   = cleaned.get('tipo_operacao', 'DIRETA')
+
+        # ----- numero_pedido: obrigatório para DIRETA, opcional para CROSS -----
+        numero_pedido = (cleaned.get('numero_pedido') or '').strip()
+        if tipo_op == 'DIRETA' and not numero_pedido:
+            self.add_error('numero_pedido', 'Informe o número do pedido.')
+        elif tipo_op == 'CROSS' and not numero_pedido:
+            cleaned['numero_pedido'] = 'CROSS-SEM-PO'
 
         # ----- Montar o datetime completo -----
         if data and hora_str:
