@@ -740,6 +740,12 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
      3. CÁLCULO DE SLA (NF-e deve ser vinculada 24h antes do início)
      --------------------------------------------------------------- */
   function atualizarSLA() {
+    if (tipoAtual === 'CROSS') {
+      if (slaPanel) slaPanel.style.display = 'none';
+      return;
+    }
+    if (slaPanel) slaPanel.style.display = '';
+
     var data = inputData ? inputData.value   : '';
     var hora = selectHora ? selectHora.value : '';
 
@@ -814,9 +820,11 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
   var tipoOpInput = document.getElementById('id_tipo_operacao');
   var btnDireta   = document.getElementById('btn-direta');
   var btnCross    = document.getElementById('btn-cross');
+  var tipoAtual   = 'DIRETA';
 
   function setTipoOp(tipo) {
     if (!tipoOpInput) return;
+    tipoAtual = tipo;
     tipoOpInput.value = tipo;
 
     var slots = tipo === 'CROSS' ? SLOTS_CROSS : SLOTS_DIRETA;
