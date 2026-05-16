@@ -203,9 +203,8 @@
                                 <th>Data / Hora</th>
                                 <th>Doca(s)</th>
                                 <th>PO</th>
-                                <th>Tipo</th>
+                                <th>Operação</th>
                                 <th>Status</th>
-                                <th>Cód. Descarga</th>
                                 <th>Ação</th>
                             </tr>
                         </thead>
@@ -223,8 +222,17 @@
                                     {% empty %}—{% endfor %}
                                 </td>
                                 <td class="fw-semibold">{{ ag.numero_pedido }}</td>
-                                <td style="font-size:.75rem; color:var(--ordo-text-dim);">
-                                    {{ ag.get_tipo_carga_display }}
+                                <td>
+                                    {% if ag.tipo_operacao == 'CROSS' %}
+                                        <span style="background:rgba(139,92,246,.15); color:#a78bfa; border:1px solid rgba(139,92,246,.3); border-radius:999px; padding:2px 8px; font-size:.68rem; font-weight:700; white-space:nowrap;">
+                                            <i class="fa-solid fa-shuffle" style="font-size:.6rem;"></i> Cross
+                                        </span>
+                                    {% else %}
+                                        <span style="background:rgba(0,180,216,.1); color:var(--ordo-accent); border:1px solid rgba(0,180,216,.25); border-radius:999px; padding:2px 8px; font-size:.68rem; font-weight:700; white-space:nowrap;">
+                                            <i class="fa-solid fa-truck-ramp-box" style="font-size:.6rem;"></i> Direta
+                                        </span>
+                                    {% endif %}
+                                    <div style="font-size:.65rem; color:var(--ordo-text-dim); margin-top:2px;">{{ ag.get_tipo_carga_display }}</div>
                                 </td>
                                 <td>
                                     {% if ag.status == 'PRE_AGENDADO' %}
@@ -237,18 +245,6 @@
                                         <span class="badge-desc badge rounded-pill px-2">Em Descarga</span>
                                     {% else %}
                                         <span class="badge-pre badge rounded-pill px-2">{{ ag.get_status_display }}</span>
-                                    {% endif %}
-                                </td>
-
-                                {# Código de descarga: visível apenas se CONFIRMADO ou em pátio #}
-                                <td>
-                                    {% if ag.status in 'CONFIRMADO,EM_PATIO,EM_DESCARGA' and ag.codigo_descarga %}
-                                        <span style="font-family:monospace; font-size:1rem; font-weight:700;
-                                                     color:var(--ordo-accent); letter-spacing:2px;">
-                                            {{ ag.codigo_descarga }}
-                                        </span>
-                                    {% else %}
-                                        <span class="text-muted">—</span>
                                     {% endif %}
                                 </td>
 

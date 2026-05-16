@@ -5,7 +5,10 @@
 # ==========================================
 
 import json
+import logging
 from datetime import timedelta, datetime
+
+logger = logging.getLogger(__name__)
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
@@ -20,10 +23,18 @@ from django.views.decorators.http import require_GET
 from .models import Agendamento, Fornecedor, EmpresaOperadora, Doca, LogAgendamento, NFeArquivo, SHADOW_BUFFER
 
 
+def _e_staff(user):
+    """True se superuser, is_staff, ou membro de algum grupo interno."""
+    return user.is_superuser or user.is_staff or user.groups.filter(
+        name__in=['gestor_patio', 'analista_fiscal', 'portaria']
+    ).exists()
+
+
 def _tem_acesso(user, grupo):
     """Retorna True para superusuários ou membros do grupo informado."""
     return user.is_superuser or user.groups.filter(name=grupo).exists()
 from .forms import (
+    AutoCadastroFornecedorForm,
     CadastroFornecedorForm,
     LoginIndustriaForm,
     NovoAgendamentoForm,
@@ -118,7 +129,7 @@ def staff_login(request):
 
         if user is None:
             error = "Usuário ou senha incorretos."
-        elif not user.is_staff:
+        elif not _e_staff(user):
             error = "Acesso restrito a colaboradores."
         else:
             login(request, user)
@@ -159,6 +170,35 @@ def cadastro_industria(request):
         return redirect('login_industria')
 
     return render(request, 'onboarding/cadastro.html', {'form': form})
+
+
+def industria_cadastro(request):
+    """Autocadastro self-service: cria Fornecedor + User e loga automaticamente."""
+    if request.user.is_authenticated:
+        return redirect('dashboard_industria')
+
+    form = AutoCadastroFornecedorForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        from django.contrib.auth.models import User as AuthUser
+        cnpj        = form.cleaned_data['cnpj']
+        razao_social = form.cleaned_data['razao_social']
+        email       = form.cleaned_data['email']
+        senha       = form.cleaned_data['senha']
+
+        user = AuthUser.objects.create_user(username=cnpj, email=email, password=senha)
+        Fornecedor.objects.create(
+            user=user,
+            cnpj=cnpj,
+            razao_social=razao_social,
+            email_contato=email,
+            bloqueado=False,
+        )
+        login(request, user)
+        messages.success(request, f"Bem-vindo(a), {razao_social}! Seu portal está pronto.")
+        return redirect('dashboard_industria')
+
+    return render(request, 'industria/cadastro.html', {'form': form})
+
 
 @require_GET
 def api_consulta_cnpj(request, cnpj):
@@ -219,58 +259,49 @@ def novo_agendamento(request):
 
     form = NovoAgendamentoForm(request.POST or None, fornecedor=fornecedor)
     if request.method == 'POST' and form.is_valid():
-        inicio             = form.cleaned_data['inicio']
-        docas_selecionadas = form.cleaned_data['docas']
-        tipo_carga         = form.cleaned_data['tipo_carga']
-        qtd_itens          = form.cleaned_data['qtd_itens']
+        inicio      = form.cleaned_data['inicio']
+        tipo_op     = form.cleaned_data.get('tipo_operacao', 'DIRETA')
 
-        # --- Verificação de conflito de doca ---
-        # Replica a fórmula de calcular_duracao() + buffer para obter o fim estimado
-        _MULT = {'PAL': 0.80, 'BAT': 1.50, 'FRA': 1.20}
-        duracao_min = int((30 + qtd_itens) * _MULT.get(tipo_carga, 1.0))
-        fim_novo    = inicio + timedelta(minutes=duracao_min + SHADOW_BUFFER)
-
-        # Status que representam ocupação real da doca
+        # --- Verificação de conflito por horário × tipo de operação ---
         _STATUS_OCUPA = [
             'PRE_AGENDADO', 'AGUARDANDO_FISCAL',
             'CONFIRMADO', 'EM_PATIO', 'EM_DESCARGA',
         ]
         conflito_qs = Agendamento.objects.filter(
-            docas__in=docas_selecionadas,
-            fim_estimado__isnull=False,
-            fim_estimado__gt=inicio,   # existente termina depois que o novo começa
-            inicio__lt=fim_novo,       # existente começa antes que o novo termine
+            inicio=inicio,
+            tipo_operacao=tipo_op,
             status__in=_STATUS_OCUPA,
-        ).select_related('fornecedor').prefetch_related('docas')
-
+        )
         if conflito_qs.exists():
-            ag_conf  = conflito_qs.first()
-            docas_em_conflito = [
-                d.codigo for d in ag_conf.docas.all()
-                if d in list(docas_selecionadas)
-            ]
-            doca_str = ', '.join(docas_em_conflito) if docas_em_conflito else 'selecionada'
+            ag_conf = conflito_qs.first()
+            tipo_label = 'Direta' if tipo_op == 'DIRETA' else 'Crossdocking'
             form.add_error(
                 None,
-                f'Conflito de horário na doca {doca_str}: agendamento #{ag_conf.pk} '
-                f'já ocupa este horário ({ag_conf.inicio:%d/%m/%Y às %H:%M} – '
-                f'{ag_conf.fim_estimado:%H:%M}). '
-                f'Escolha outra doca ou um horário diferente.'
+                f'Já existe um agendamento {tipo_label} neste horário '
+                f'({ag_conf.inicio:%d/%m/%Y às %H:%M}, #{ag_conf.pk}). '
+                'Escolha outro horário.'
             )
         else:
-            agendamento = form.save(commit=False)
+            agendamento            = form.save(commit=False)
             agendamento.fornecedor = fornecedor
             agendamento.inicio     = inicio
+
+            if tipo_op == 'CROSS':
+                agendamento.nfe_validada = True   # CROSS pula triagem fiscal
             agendamento.save()
-            form.save_m2m()
-            messages.success(request, "✅ Agendamento criado! Vincule a NF-e para confirmar.")
+
+            if tipo_op == 'CROSS':
+                messages.success(
+                    request,
+                    f"✅ Agendamento Crossdocking confirmado! Código: {agendamento.codigo_descarga}"
+                )
+            else:
+                messages.success(request, "✅ Agendamento criado! Vincule a NF-e para confirmar.")
             return redirect('dashboard_industria')
 
     return render(request, 'industria/novo_agendamento.html', {
-        'form':         form,
-        'fornecedor':   fornecedor,
-        'docas_ativas': Doca.objects.filter(ativa=True).order_by('codigo'),
-        'permite_multi': fornecedor.permite_multi_doca,
+        'form':       form,
+        'fornecedor': fornecedor,
     })
 
 # ==========================================
@@ -280,10 +311,14 @@ def novo_agendamento(request):
 @login_required
 def upload_nfe(request, agendamento_id):
     """Vínculo de NF-e com Triagem Fiscal Manual em caso de erro no ERP."""
-    fornecedor = get_object_or_404(Fornecedor, user=request.user)
+    fornecedor  = get_object_or_404(Fornecedor, user=request.user)
     agendamento = get_object_or_404(Agendamento, pk=agendamento_id, fornecedor=fornecedor)
 
-    if agendamento.status_dinamico['code'] not in ['PRE', 'FIS']:
+    is_cross = agendamento.tipo_operacao == 'CROSS'
+
+    # CROSS já está CONFIRMADO — upload de XML é opcional, mas permitido
+    # DIRETA só aceita upload nos estados PRE/FIS
+    if not is_cross and agendamento.status_dinamico['code'] not in ['PRE', 'FIS']:
         messages.error(request, "Este agendamento já não permite alteração fiscal.")
         return redirect('dashboard_industria')
 
@@ -302,7 +337,15 @@ def upload_nfe(request, agendamento_id):
         for arquivo in arquivos:
             chave, valido, mensagem = validar_nfe_xml(arquivo, cnpj_dest)
             if not valido:
-                erros.append(f'"{arquivo.name}": {mensagem}')
+                logger.warning('NF-e inválida — arquivo: %s | motivo: %s', arquivo.name, mensagem)
+                if 'CNPJ do destinatário' in mensagem:
+                    erros.append(
+                        '❌ NF-e inválida: o destinatário da nota não corresponde à '
+                        'AG Simões Direta Distribuição. Verifique se a nota foi emitida '
+                        'corretamente contra o nosso CNPJ e tente novamente.'
+                    )
+                else:
+                    erros.append(mensagem)
             else:
                 arquivo.seek(0)
                 arquivos_ok.append((arquivo, chave))
@@ -664,20 +707,108 @@ def gestor_detalhe(request, pk):
 
 @login_required(login_url='/staff/login/')
 def fiscal_dashboard(request):
-    """Lista agendamentos aguardando triagem fiscal."""
+    """Dashboard completo do analista fiscal: fila de aprovação + histórico de triagens."""
     if not _tem_acesso(request.user, 'analista_fiscal'):
         return render(request, '403.html', status=403)
-    aguardando = (
+
+    agora = timezone.now()
+    trinta_dias = agora - timedelta(days=30)
+
+    # ── A) Fila de aprovação — apenas agendamentos DIRETA (CROSS não passa pelo fiscal) ──
+    aguardando_qs = (
         Agendamento.objects
-        .filter(status='AGUARDANDO_FISCAL')
+        .filter(status='AGUARDANDO_FISCAL', tipo_operacao='DIRETA')
         .select_related('fornecedor')
-        .prefetch_related('docas')
+        .prefetch_related('docas', 'logs')
         .order_by('inicio')
     )
+    aguardando = []
+    for ag in aguardando_qs:
+        logs_entrada = [l for l in ag.logs.all() if l.status_novo == 'AGUARDANDO_FISCAL']
+        log_entrada = max(logs_entrada, key=lambda l: l.data) if logs_entrada else None
+        aguardando_desde = log_entrada.data if log_entrada else None
+        urgente = bool(aguardando_desde and (agora - aguardando_desde).total_seconds() > 7200)
+        aguardando.append({
+            'ag': ag,
+            'aguardando_desde': aguardando_desde,
+            'urgente': urgente,
+        })
+
+    # ── B) Histórico de triagens (últimos 30 dias) ───────────────────────────
+    historico_base = (
+        LogAgendamento.objects
+        .filter(
+            status_anterior='AGUARDANDO_FISCAL',
+            status_novo__in=['CONFIRMADO', 'PRE_AGENDADO'],
+            data__gte=trinta_dias,
+        )
+        .select_related('agendamento', 'agendamento__fornecedor')
+        .order_by('-data')
+    )
+
+    total_triado = historico_base.count()
+    n_aprovados  = historico_base.filter(status_novo='CONFIRMADO').count()
+    n_rejeitados = historico_base.filter(status_novo='PRE_AGENDADO').count()
+
+    # Tempo médio de resposta: busca os logs de entrada em AGUARDANDO_FISCAL em lote
+    tempo_medio_str = None
+    if total_triado:
+        ag_ids = list(historico_base.values_list('agendamento_id', flat=True))
+        entradas_map = {}
+        for log in (
+            LogAgendamento.objects
+            .filter(agendamento_id__in=ag_ids, status_novo='AGUARDANDO_FISCAL')
+            .order_by('agendamento_id', '-data')
+        ):
+            if log.agendamento_id not in entradas_map:
+                entradas_map[log.agendamento_id] = log.data
+        tempos = []
+        for log in historico_base:
+            entrada_dt = entradas_map.get(log.agendamento_id)
+            if entrada_dt and log.data > entrada_dt:
+                tempos.append((log.data - entrada_dt).total_seconds())
+        if tempos:
+            media_s = sum(tempos) / len(tempos)
+            h = int(media_s // 3600)
+            m = int((media_s % 3600) // 60)
+            tempo_medio_str = f"{h}h{m:02d}min" if h else f"{m}min"
+
+    # Filtro por decisão
+    filtro_decisao = request.GET.get('decisao', 'todos')
+    if filtro_decisao == 'aprovados':
+        historico_filtrado = historico_base.filter(status_novo='CONFIRMADO')
+    elif filtro_decisao == 'rejeitados':
+        historico_filtrado = historico_base.filter(status_novo='PRE_AGENDADO')
+    else:
+        filtro_decisao = 'todos'
+        historico_filtrado = historico_base
+
+    # Pré-processa usuario para separar analista / motivo
+    historico = []
+    for log in historico_filtrado:
+        if ' — Rejeitados: ' in (log.usuario or ''):
+            analista, motivo = log.usuario.split(' — Rejeitados: ', 1)
+        else:
+            analista, motivo = (log.usuario or ''), ''
+        historico.append({
+            'log':      log,
+            'analista': analista,
+            'motivo':   motivo,
+            'aprovado': log.status_novo == 'CONFIRMADO',
+        })
+
     return render(request, 'fiscal/dashboard.html', {
-        'aguardando': aguardando,
-        'total':      aguardando.count(),
-        'agora':      timezone.now(),
+        'aguardando':      aguardando,
+        'total':           len(aguardando),
+        'agora':           agora,
+        'historico':       historico,
+        'filtro_decisao':  filtro_decisao,
+        'kpis': {
+            'total_triado': total_triado,
+            'aprovados':    n_aprovados,
+            'rejeitados':   n_rejeitados,
+            'tempo_medio':  tempo_medio_str,
+        },
     })
 
 @login_required(login_url='/staff/login/')

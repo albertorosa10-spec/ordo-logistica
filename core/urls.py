@@ -46,6 +46,8 @@ urlpatterns = [
     # ------------------------------------------
     path('industria/login/',
          views.login_industria,         name='industria_login'),
+    path('industria/cadastro/',
+         views.industria_cadastro,      name='industria_cadastro'),
     path('industria/dashboard/',
          views.dashboard_industria,     name='industria_dashboard'),
     path('industria/agendamento/novo/',

@@ -687,6 +687,7 @@
                 </td>
 
                 <td class="dg-td-horario">
+                  <div style="font-size:.65rem; color:var(--cinza-texto); margin-bottom:1px;">{{ ag.inicio|date:"d/m" }}</div>
                   <div class="{% if not ag.nfe_validada and ag.inicio < agora and ag.status == 'PRE_AGENDADO' %}hora-atraso{% else %}hora{% endif %}">
                     {{ ag.inicio|date:"H:i" }}
                   </div>
@@ -723,8 +724,13 @@
                      onclick="event.stopPropagation()">{{ ag.numero_pedido }}</a>
                 </td>
 
-                <td class="dg-col-tipo" style="font-size:.72rem; color:var(--cinza-texto); white-space:nowrap;">
-                  {{ ag.get_tipo_carga_display }}
+                <td class="dg-col-tipo" style="white-space:nowrap;">
+                  {% if ag.tipo_operacao == 'CROSS' %}
+                  <span style="background:rgba(139,92,246,.15); color:#a78bfa; border:1px solid rgba(139,92,246,.3); border-radius:4px; padding:1px 6px; font-size:.65rem; font-weight:700;">Cross</span>
+                  {% else %}
+                  <span style="background:rgba(0,116,143,.15); color:var(--az-acao); border:1px solid rgba(0,116,143,.3); border-radius:4px; padding:1px 6px; font-size:.65rem; font-weight:700;">Direta</span>
+                  {% endif %}
+                  <div style="font-size:.65rem; color:var(--cinza-texto); margin-top:2px;">{{ ag.get_tipo_carga_display }}</div>
                 </td>
 
                 <td>
@@ -854,59 +860,11 @@
       </div>
 
 
-      <!-- SEÇÃO 5 — SIDEBAR DE DOCAS -->
+      <!-- SEÇÃO 5 — SIDEBAR DE DOCAS (oculta temporariamente — novo modelo sem docas no fluxo)
       <aside class="dg-sidebar">
-        <div class="dg-sidebar-titulo">Estado das Docas</div>
-
-        {% for item in docas_status %}
-        <div class="doca-card {% if not item.doca.ativa %}doca-manut{% elif item.ag_ativo and item.ag_ativo.status == 'EM_DESCARGA' %}doca-desc{% elif item.ag_ativo and item.ag_ativo.status == 'EM_PATIO' %}doca-patio{% elif item.ag_prox %}doca-conf{% else %}doca-livre{% endif %}">
-
-          <div class="doca-card-header">
-            <span class="doca-codigo">{{ item.doca.codigo }}</span>
-            <span class="doca-tipo">{{ item.doca.get_tipo_maximo_display|default:item.doca.tipo_maximo }}</span>
-          </div>
-
-          <div class="doca-barra-track">
-            <div class="doca-barra-fill" style="width:{{ item.ocup_pct }}%;"></div>
-          </div>
-
-          {% if not item.doca.ativa %}
-            <div class="doca-status-line">⊘ Inativa</div>
-            <div class="doca-sub">Fora de operação</div>
-          {% elif item.ag_ativo %}
-            <div class="doca-status-line">
-              {% if item.ag_ativo.status == 'EM_DESCARGA' %}⟳ Em Descarga{% else %}▶ Em Pátio{% endif %}
-            </div>
-            <div class="doca-sub" title="{{ item.ag_ativo.fornecedor.razao_social }}">
-              {{ item.ag_ativo.fornecedor.razao_social|truncatechars:22 }}
-            </div>
-            {% if item.ag_ativo.fim_estimado %}
-            <div class="doca-sub">Até {{ item.ag_ativo.fim_estimado|date:"H:i" }}</div>
-            {% endif %}
-          {% elif item.ag_prox %}
-            <div class="doca-status-line">◉ Próximo</div>
-            <div class="doca-sub" title="{{ item.ag_prox.fornecedor.razao_social }}">
-              {{ item.ag_prox.fornecedor.razao_social|truncatechars:22 }}
-            </div>
-            <div class="doca-sub">{{ item.ag_prox.inicio|date:"H:i" }}</div>
-          {% else %}
-            <div class="doca-status-line">✓ Disponível</div>
-            <div class="doca-sub">Sem operação ativa</div>
-          {% endif %}
-
-          <div style="font-size:.62rem; color:var(--cinza-texto); margin-top:.35rem;">
-            {{ item.total_dia }} ag. hoje &nbsp;·&nbsp;
-            {% if item.doca.temperatura_controlada %}❄ Temp. controlada{% else %}Amb. normal{% endif %}
-          </div>
-
-        </div>
-        {% empty %}
-        <div style="font-size:.75rem; color:var(--cinza-texto); text-align:center; padding:1rem;">
-          Nenhuma doca cadastrada.
-        </div>
-        {% endfor %}
-
+        ...
       </aside>
+      -->
 
     </div>
 

@@ -426,9 +426,49 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
 }
 
 /* ---------------------------------------------------------------
-   OCULTADO (checkbox nativo das docas)
+   TOGGLE TIPO DE OPERAÇÃO — pill buttons inline
    --------------------------------------------------------------- */
-.na-docas-hidden { display: none; }
+.na-op-header {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+}
+.na-op-header .na-section-label {
+  flex: 1;
+  margin-bottom: 0;
+}
+.na-op-pills {
+  display: flex;
+  gap: .4rem;
+  flex-shrink: 0;
+}
+.na-op-pill {
+  background: transparent;
+  border: 1.5px solid var(--na-border);
+  border-radius: 20px;
+  padding: .3rem .85rem;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--na-text-dim);
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  white-space: nowrap;
+}
+.na-op-pill:hover {
+  border-color: rgba(0,200,150,.4);
+  color: var(--na-text);
+}
+.na-op-pill.active {
+  background: #00C896;
+  border-color: #00C896;
+  color: #0A1628;
+  font-weight: 700;
+}
 
 /* ---------------------------------------------------------------
    RESPONSIVIDADE
@@ -461,7 +501,7 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
       <i class="fa-solid fa-calendar-plus"></i>
     </div>
     <div>
-      <div class="na-card-header-title">Pré-agendamento de Descarga</div>
+      <div class="na-card-header-title" id="card-header-title">Pré-agendamento de Descarga</div>
       <div class="na-card-header-sub">
         Fornecedor: <strong style="color:var(--na-text);">{{ fornecedor.razao_social }}</strong>
         &nbsp;·&nbsp; CNPJ: {{ fornecedor.cnpj }}
@@ -482,6 +522,23 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
     {% endif %}
 
     <!-- ====================================================
+         TOGGLE: TIPO DE OPERAÇÃO
+         ==================================================== -->
+    <div class="na-op-header">
+      <div class="na-section-label">
+        <i class="fa-solid fa-code-branch" style="font-size:.7rem;"></i>
+        Tipo de Operação
+      </div>
+      {{ form.tipo_operacao }}
+      <div class="na-op-pills">
+        <button type="button" class="na-op-pill active" id="btn-direta">AG Simões</button>
+        <button type="button" class="na-op-pill" id="btn-cross">
+          <i class="fa-solid fa-shuffle" style="font-size:.7rem;"></i> Crossdocking
+        </button>
+      </div>
+    </div>
+
+    <!-- ====================================================
          SEÇÃO 1: PEDIDO DE COMPRA
          ==================================================== -->
     <div class="na-section-label">
@@ -494,6 +551,9 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
         Número do Pedido de Compra (PO) <span class="na-req">*</span>
       </label>
       {{ form.numero_pedido }}
+      <div id="po-cross-hint" style="display:none; font-size:.65rem; color:var(--na-text-dim); margin-top:.3rem;">
+        <i class="fa-solid fa-circle-info" style="margin-right:.25rem;"></i>Opcional para Crossdocking — o PO pode ser informado após a entrega.
+      </div>
       {% if form.numero_pedido.errors %}
       <div class="na-field-error">{{ form.numero_pedido.errors.0 }}</div>
       {% endif %}
@@ -530,9 +590,6 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
             <i class="fa-solid fa-clock"></i>
           </div>
           <div style="flex:1;">{{ form.hora_slot }}</div>
-        </div>
-        <div style="font-size:.65rem; color:var(--na-text-dim); margin-top:.3rem;">
-          Slots disponíveis: 07:00 às 17:00 (intervalo de 1 hora)
         </div>
         {% if form.hora_slot.errors %}
         <div class="na-field-error">{{ form.hora_slot.errors.0 }}</div>
@@ -577,55 +634,6 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
     </div>
 
     <!-- ====================================================
-         SEÇÃO 4: DOCAS (WIDGET TOGGLE)
-         ==================================================== -->
-    <div class="na-section-label">
-      <i class="fa-solid fa-warehouse" style="font-size:.7rem;"></i>
-      Seleção de Doca{{ permite_multi|yesno:",s" }}
-    </div>
-
-    {# Aviso de single-doca #}
-    {% if not permite_multi %}
-    <div class="na-doca-aviso">
-      <i class="fa-solid fa-triangle-exclamation"></i>
-      Seu perfil permite <strong>apenas 1 doca</strong> por agendamento.
-    </div>
-    {% endif %}
-
-    {% if form.docas.errors %}
-    <div class="na-field-error" style="margin-bottom:.75rem;">{{ form.docas.errors.0 }}</div>
-    {% endif %}
-
-    {# Grid de botões Toggle — um por doca ativa #}
-    <div class="na-docas-grid {% if not permite_multi %}na-single-doca{% endif %}"
-         id="docas-grid">
-      {% for doca in docas_ativas %}
-      <label class="na-doca-btn" id="label-doca-{{ doca.pk }}">
-        <input type="checkbox"
-               name="docas"
-               value="{{ doca.pk }}"
-               id="doca-{{ doca.pk }}"
-               {% if not permite_multi %}data-single="true"{% endif %}
-               {% if form.docas.value and doca.pk|stringformat:"s" in form.docas.value|join:"," %}checked{% endif %}>
-        <div class="na-doca-face">
-          <span class="na-doca-code">{{ doca.codigo }}</span>
-          <span class="na-doca-type">{{ doca.tipo_maximo }}</span>
-          {% if doca.temperatura_controlada %}
-          <span class="na-doca-temp">❄ Temp. controlada</span>
-          {% endif %}
-        </div>
-        {# Ícone de check sobreposto quando selecionado #}
-        <span class="na-doca-check" aria-hidden="true">✓</span>
-      </label>
-      {% empty %}
-      <div style="color:var(--na-text-dim); font-size:.82rem; grid-column:1/-1;">
-        <i class="fa-solid fa-circle-exclamation me-1"></i>
-        Nenhuma doca disponível no momento. Contate o gestor.
-      </div>
-      {% endfor %}
-    </div>
-
-    <!-- ====================================================
          PAINEL SLA — Calculado dinamicamente pelo JS
          ==================================================== -->
     <div class="na-sla-panel escondido" id="sla-panel">
@@ -667,7 +675,7 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
     </a>
     <button type="submit" class="na-btn-submit" id="btn-submit">
       <i class="fa-solid fa-calendar-check"></i>
-      Confirmar Pré-agendamento
+      <span id="btn-submit-text">Confirmar Pré-agendamento</span>
     </button>
   </div>
 
@@ -732,6 +740,12 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
      3. CÁLCULO DE SLA (NF-e deve ser vinculada 24h antes do início)
      --------------------------------------------------------------- */
   function atualizarSLA() {
+    if (tipoAtual === 'CROSS') {
+      if (slaPanel) slaPanel.style.display = 'none';
+      return;
+    }
+    if (slaPanel) slaPanel.style.display = '';
+
     var data = inputData ? inputData.value   : '';
     var hora = selectHora ? selectHora.value : '';
 
@@ -798,25 +812,76 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
   }
 
   /* ---------------------------------------------------------------
-     4. MODO SINGLE-DOCA: ao clicar num checkbox, deseleciona os demais
+     3. TOGGLE TIPO DE OPERAÇÃO — troca slots de horário
      --------------------------------------------------------------- */
-  var permiteMulti = {% if permite_multi %}true{% else %}false{% endif %};
+  var SLOTS_DIRETA = ['07:00','09:00','11:00','13:00','15:00'];
+  var SLOTS_CROSS  = ['08:00','10:00','12:00','14:00','16:00'];
 
-  document.querySelectorAll('#docas-grid input[type="checkbox"]').forEach(function(chk) {
-    chk.addEventListener('change', function() {
-      if (!permiteMulti && this.checked) {
-        // Deselecionar todos os outros
-        document.querySelectorAll('#docas-grid input[type="checkbox"]').forEach(function(outro) {
-          if (outro !== chk) {
-            outro.checked = false;
-          }
-        });
-      }
-    });
-  });
+  var tipoOpInput = document.getElementById('id_tipo_operacao');
+  var btnDireta   = document.getElementById('btn-direta');
+  var btnCross    = document.getElementById('btn-cross');
+  var tipoAtual   = 'DIRETA';
+
+  function setTipoOp(tipo) {
+    if (!tipoOpInput) return;
+    tipoAtual = tipo;
+    tipoOpInput.value = tipo;
+
+    var slots = tipo === 'CROSS' ? SLOTS_CROSS : SLOTS_DIRETA;
+    if (selectHora) {
+      var valorAtual = selectHora.value;
+      selectHora.innerHTML = '';
+      slots.forEach(function(s) {
+        var opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = s;
+        if (s === valorAtual) opt.selected = true;
+        selectHora.appendChild(opt);
+      });
+    }
+
+    if (btnDireta) btnDireta.classList.toggle('active', tipo === 'DIRETA');
+    if (btnCross)  btnCross.classList.toggle('active',  tipo === 'CROSS');
+
+    // Adapta linguagem do cabeçalho e botão ao tipo de operação
+    var cardTitle  = document.getElementById('card-header-title');
+    var submitText = document.getElementById('btn-submit-text');
+    if (tipo === 'CROSS') {
+      if (cardTitle)  cardTitle.textContent  = 'Agendamento de Descarga';
+      if (submitText) submitText.textContent = 'Confirmar Agendamento';
+    } else {
+      if (cardTitle)  cardTitle.textContent  = 'Pré-agendamento de Descarga';
+      if (submitText) submitText.textContent = 'Confirmar Pré-agendamento';
+    }
+
+    // PO field: optional when CROSS
+    var inputPO = document.getElementById('id_numero_pedido');
+    var reqSpan = document.querySelector('label[for="id_numero_pedido"] .na-req');
+    var hintPO  = document.getElementById('po-cross-hint');
+    if (tipo === 'CROSS') {
+      if (inputPO) inputPO.removeAttribute('required');
+      if (reqSpan) reqSpan.style.display = 'none';
+      if (hintPO)  hintPO.style.display = 'block';
+    } else {
+      if (inputPO) inputPO.setAttribute('required', 'required');
+      if (reqSpan) reqSpan.style.display = '';
+      if (hintPO)  hintPO.style.display = 'none';
+    }
+
+    atualizarSLA();
+  }
+
+  // Bind click via addEventListener (not onclick — setTipoOp is in IIFE scope)
+  if (btnDireta) btnDireta.addEventListener('click', function() { setTipoOp('DIRETA'); });
+  if (btnCross)  btnCross.addEventListener('click',  function() { setTipoOp('CROSS'); });
+
+  // Inicializa com o valor atual (útil em re-submit com erros)
+  if (tipoOpInput) {
+    setTipoOp(tipoOpInput.value || 'DIRETA');
+  }
 
   /* ---------------------------------------------------------------
-     5. BIND DE EVENTOS — atualiza SLA ao muda data, hora ou qtd
+     4. BIND DE EVENTOS — atualiza SLA ao muda data, hora ou qtd
      --------------------------------------------------------------- */
   if (inputData)  inputData.addEventListener('change', atualizarSLA);
   if (selectHora) selectHora.addEventListener('change', atualizarSLA);
@@ -847,24 +912,11 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
   atualizarLabelQtd();
 
   /* ---------------------------------------------------------------
-     6. VALIDAÇÃO ADICIONAL ANTES DO SUBMIT
-        Garante que pelo menos 1 doca está selecionada
+     5. FEEDBACK DE CARREGAMENTO NO SUBMIT
      --------------------------------------------------------------- */
-  document.getElementById('form-agendamento').addEventListener('submit', function(e) {
-    var checkadas = document.querySelectorAll('#docas-grid input[type="checkbox"]:checked');
-    if (checkadas.length === 0) {
-      e.preventDefault();
-      alert('Selecione pelo menos uma doca para continuar.');
-      return;
-    }
-    if (!permiteMulti && checkadas.length > 1) {
-      e.preventDefault();
-      alert('Seu perfil permite apenas 1 doca por agendamento.');
-      return;
-    }
-    // Feedback visual de carregamento
+  document.getElementById('form-agendamento').addEventListener('submit', function() {
     btnSubmit.disabled = true;
-    btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Salvando...';
+    btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i><span>Salvando...</span>';
   });
 
 })();

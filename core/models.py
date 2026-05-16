@@ -97,15 +97,24 @@ class Agendamento(models.Model):
         ('FRA', 'Fracionada'),
     ]
 
-    fornecedor = models.ForeignKey(Fornecedor, on_delete=models.PROTECT, null=True, blank=True)
-    docas      = models.ManyToManyField(Doca, through='AgendamentoDoca', verbose_name='Docas')
+    TIPO_OPERACAO_CHOICES = [
+        ('DIRETA', 'Direta Distribuidora'),
+        ('CROSS',  'Crossdocking'),
+    ]
 
-    numero_pedido = models.CharField('Nº Pedido de Compra', max_length=20)
-    inicio        = models.DateTimeField('Horário de Início')
-    fim_estimado  = models.DateTimeField('Fim Estimado', null=True, blank=True)
-    tipo_carga    = models.CharField('Tipo de Carga', max_length=3, choices=TIPO_CARGA, default='PAL')
-    qtd_itens     = models.IntegerField('Qtd. Itens/Caixas', default=1)
-    status        = models.CharField('Status', max_length=20, choices=STATUS_CHOICES, default='PRE_AGENDADO')
+    fornecedor = models.ForeignKey(Fornecedor, on_delete=models.PROTECT, null=True, blank=True)
+    docas      = models.ManyToManyField(Doca, through='AgendamentoDoca', verbose_name='Docas', blank=True)
+
+    numero_pedido  = models.CharField('Nº Pedido de Compra', max_length=20)
+    inicio         = models.DateTimeField('Horário de Início')
+    fim_estimado   = models.DateTimeField('Fim Estimado', null=True, blank=True)
+    tipo_carga     = models.CharField('Tipo de Carga', max_length=3, choices=TIPO_CARGA, default='PAL')
+    qtd_itens      = models.IntegerField('Qtd. Itens/Caixas', default=1)
+    tipo_operacao  = models.CharField(
+        'Tipo de Operação', max_length=10,
+        choices=TIPO_OPERACAO_CHOICES, default='DIRETA'
+    )
+    status         = models.CharField('Status', max_length=20, choices=STATUS_CHOICES, default='PRE_AGENDADO')
     criado_em     = models.DateTimeField('Criado em', auto_now_add=True)
 
     chave_nfe        = models.CharField('Chave NF-e', max_length=4500, null=True, blank=True)

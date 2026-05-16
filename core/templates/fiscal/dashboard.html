@@ -2,156 +2,281 @@
 
 {% block title %}Pré-entrada Fiscal — Zakaz{% endblock %}
 {% block page_title %}Pré-entrada Fiscal{% endblock %}
-{% block page_subtitle %}NF-e aguardando triagem manual{% endblock %}
+{% block page_subtitle %}Triagem de NF-e e histórico do mês{% endblock %}
 {% block nav_fiscal %}active{% endblock %}
-
 {% block topbar_actions %}{% endblock %}
 
 {% block extra_css %}
-.fiscal-badge {
-    display: inline-flex;
+/* ── KPI Cards ── */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+}
+@media (max-width: 900px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .kpi-grid { grid-template-columns: 1fr; } }
+
+.kpi-card {
+    background: var(--ordo-surface);
+    border: 1px solid var(--ordo-border);
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+}
+.kpi-label  { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--ordo-text-dim); margin-bottom: .3rem; }
+.kpi-value  { font-size: 1.75rem; font-weight: 800; line-height: 1; }
+.kpi-sub    { font-size: .7rem; color: var(--ordo-text-dim); margin-top: .25rem; }
+
+/* ── Fila: cards ── */
+.fila-grid  { display: grid; gap: 1rem; }
+.fila-card  {
+    background: var(--ordo-surface);
+    border: 1px solid var(--ordo-border);
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    display: flex;
     align-items: center;
-    gap: 6px;
-    background: rgba(255,183,3,.12);
-    color: var(--ordo-yellow);
-    border: 1px solid rgba(255,183,3,.3);
+    gap: 1.25rem;
+}
+.fila-card.urgente { border-color: rgba(255,80,80,.45); background: rgba(255,80,80,.04); }
+
+.fila-card-info { flex: 1; min-width: 0; }
+.fila-card-forn { font-weight: 700; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fila-card-meta { font-size: .72rem; color: var(--ordo-text-dim); margin-top: 2px; }
+
+.fila-card-time  { text-align: center; min-width: 80px; }
+.fila-card-date  { font-size: .78rem; font-weight: 600; }
+.fila-card-hora  { font-size: .7rem; color: var(--ordo-text-dim); }
+
+.badge-urgente {
+    font-size: .65rem; font-weight: 700;
+    background: rgba(255,80,80,.14);
+    color: #ff5050;
+    border: 1px solid rgba(255,80,80,.3);
     border-radius: 999px;
-    padding: 3px 10px;
-    font-size: .72rem;
-    font-weight: 700;
+    padding: 2px 8px;
+    white-space: nowrap;
 }
-.fiscal-badge.vazio {
-    background: rgba(0,212,160,.08);
-    color: var(--ordo-green);
-    border-color: rgba(0,212,160,.25);
+.badge-aguardando {
+    font-size: .65rem; font-weight: 600;
+    background: rgba(255,183,3,.1);
+    color: var(--ordo-yellow);
+    border: 1px solid rgba(255,183,3,.25);
+    border-radius: 999px;
+    padding: 2px 8px;
+    white-space: nowrap;
 }
-.prazo-ok   { color: var(--ordo-text-dim); font-size: .75rem; }
-.prazo-warn { color: var(--ordo-yellow);   font-size: .75rem; font-weight: 700; }
-.prazo-crit { color: var(--ordo-red);      font-size: .75rem; font-weight: 700; }
+.badge-fiscal-ok { background:rgba(0,212,160,.12); color:var(--ordo-green); border:1px solid rgba(0,212,160,.25); border-radius:999px; padding:2px 10px; font-size:.68rem; font-weight:700; }
+
+/* ── Filtros histórico ── */
+.filtro-tabs { display: flex; gap: .5rem; margin-bottom: 1rem; }
+.filtro-tab  {
+    font-size: .75rem; font-weight: 600;
+    padding: .35rem .85rem;
+    border-radius: 999px;
+    border: 1px solid var(--ordo-border);
+    color: var(--ordo-text-dim);
+    text-decoration: none;
+    transition: all .18s;
+}
+.filtro-tab:hover { color: var(--ordo-accent); border-color: var(--ordo-accent); }
+.filtro-tab.ativo { background: var(--ordo-accent); border-color: var(--ordo-accent); color: #fff; }
+
+/* ── Badges decisão ── */
+.dec-apr { background:rgba(0,212,160,.12); color:var(--ordo-green);  border:1px solid rgba(0,212,160,.25); border-radius:999px; padding:2px 10px; font-size:.7rem; font-weight:700; }
+.dec-rej { background:rgba(255,80,80,.1);  color:#ff5050;            border:1px solid rgba(255,80,80,.25); border-radius:999px; padding:2px 10px; font-size:.7rem; font-weight:700; }
+
+.motivo-text { font-size:.68rem; color:var(--ordo-text-dim); font-style:italic; max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 {% endblock %}
 
 {% block content %}
 
-{# ---- CABEÇALHO COM CONTADOR ---- #}
-<div class="d-flex align-items-center justify-content-between mb-4 fade-in">
-    <div>
-        {% if total > 0 %}
-        <span class="fiscal-badge">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            {{ total }} aguardando triagem
-        </span>
-        {% else %}
-        <span class="fiscal-badge vazio">
-            <i class="fa-solid fa-circle-check"></i>
-            Nenhuma NF-e pendente
-        </span>
-        {% endif %}
+{# ══════════════════════════════════════════ KPIs ══════════════════════════════════════════ #}
+<div class="kpi-grid fade-in">
+
+    <div class="kpi-card">
+        <div class="kpi-label">Triados (30 dias)</div>
+        <div class="kpi-value">{{ kpis.total_triado }}</div>
+        <div class="kpi-sub">agendamentos analisados</div>
     </div>
-    <small class="text-muted">Última consulta: {{ agora|date:"H:i:s" }}</small>
+
+    <div class="kpi-card">
+        <div class="kpi-label">Aprovados</div>
+        <div class="kpi-value" style="color:var(--ordo-green);">{{ kpis.aprovados }}</div>
+        <div class="kpi-sub">NF-e confirmadas</div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-label">Rejeitados</div>
+        <div class="kpi-value" style="color:#ff5050;">{{ kpis.rejeitados }}</div>
+        <div class="kpi-sub">devolvidos à indústria</div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-label">Tempo médio</div>
+        <div class="kpi-value" style="font-size:1.4rem; padding-top:.2rem;">
+            {% if kpis.tempo_medio %}{{ kpis.tempo_medio }}{% else %}—{% endif %}
+        </div>
+        <div class="kpi-sub">entre envio e triagem</div>
+    </div>
+
+</div>
+
+{# ══════════════════════════════════════ FILA DE APROVAÇÃO ═════════════════════════════════ #}
+<div class="d-flex align-items-center justify-content-between mb-3 fade-in">
+    <h2 style="font-size:1rem; font-weight:700; margin:0;">
+        <i class="fa-solid fa-clock-rotate-left me-2" style="color:var(--ordo-yellow);"></i>
+        Fila de Aprovação
+        {% if total > 0 %}
+        <span class="badge-aguardando ms-2">{{ total }} pendente{{ total|pluralize }}</span>
+        {% else %}
+        <span class="badge-fiscal-ok ms-2"><i class="fa-solid fa-circle-check me-1"></i>Fila limpa</span>
+        {% endif %}
+    </h2>
+    <small class="text-muted">{{ agora|date:"H:i:s" }}</small>
 </div>
 
 {% if aguardando %}
+<div class="fila-grid mb-4 fade-in">
+    {% for item in aguardando %}
+    {% with ag=item.ag %}
+    <div class="fila-card{% if item.urgente %} urgente{% endif %}">
+
+        {# Data/hora agendamento #}
+        <div class="fila-card-time">
+            <div class="fila-card-date">{{ ag.inicio|date:"d/m" }}</div>
+            <div class="fila-card-hora">{{ ag.inicio|date:"H:i" }}</div>
+        </div>
+
+        {# Info principal #}
+        <div class="fila-card-info">
+            <div class="fila-card-forn" title="{{ ag.fornecedor.razao_social }}">
+                {{ ag.fornecedor.razao_social|truncatechars:30 }}
+            </div>
+            <div class="fila-card-meta">
+                PO {{ ag.numero_pedido }}
+                &nbsp;·&nbsp;
+                {% for doca in ag.docas.all %}{{ doca.codigo }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+                &nbsp;·&nbsp;
+                {{ ag.get_tipo_carga_display }}
+            </div>
+            {% if item.aguardando_desde %}
+            <div class="mt-1">
+                {% if item.urgente %}
+                <span class="badge-urgente"><i class="fa-solid fa-triangle-exclamation me-1"></i>Aguardando {{ item.aguardando_desde|timesince }}</span>
+                {% else %}
+                <span class="badge-aguardando">há {{ item.aguardando_desde|timesince }}</span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        {# Ação #}
+        <div>
+            <a href="{% url 'fiscal_aprovar' ag.pk %}"
+               class="btn btn-sm"
+               style="background:var(--ordo-green); color:#fff; border:none; border-radius:8px; font-weight:700; font-size:.78rem; padding:.45rem .9rem; white-space:nowrap;">
+                <i class="fa-solid fa-gavel me-1"></i> Analisar
+            </a>
+        </div>
+
+    </div>
+    {% endwith %}
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="ordo-card mb-4 fade-in">
+    <div class="ordo-card-body text-center py-5">
+        <i class="fa-solid fa-circle-check fa-3x mb-3" style="color:var(--ordo-green); opacity:.45;"></i>
+        <p class="fw-semibold mb-1">Fila limpa</p>
+        <p style="font-size:.82rem; color:var(--ordo-text-dim);">Nenhuma NF-e aguardando triagem fiscal.</p>
+    </div>
+</div>
+{% endif %}
+
+{# ══════════════════════════════════════ HISTÓRICO ═════════════════════════════════════════ #}
 <div class="ordo-card fade-in">
     <div class="ordo-card-header">
-        <i class="fa-solid fa-file-magnifying-glass" style="color:var(--ordo-yellow);"></i>
-        <span class="fw-semibold">NF-e em Pré-entrada Fiscal</span>
+        <i class="fa-solid fa-rectangle-list" style="color:var(--ordo-accent);"></i>
+        <span class="fw-semibold">Histórico de Triagens — últimos 30 dias</span>
     </div>
-    <div class="ordo-card-body p-0">
+    <div class="ordo-card-body">
+
+        {# Filtros #}
+        <div class="filtro-tabs">
+            <a href="?decisao=todos"
+               class="filtro-tab {% if filtro_decisao == 'todos' %}ativo{% endif %}">
+                Todos ({{ kpis.total_triado }})
+            </a>
+            <a href="?decisao=aprovados"
+               class="filtro-tab {% if filtro_decisao == 'aprovados' %}ativo{% endif %}">
+                <i class="fa-solid fa-circle-check me-1"></i>Aprovados ({{ kpis.aprovados }})
+            </a>
+            <a href="?decisao=rejeitados"
+               class="filtro-tab {% if filtro_decisao == 'rejeitados' %}ativo{% endif %}">
+                <i class="fa-solid fa-circle-xmark me-1"></i>Rejeitados ({{ kpis.rejeitados }})
+            </a>
+        </div>
+
+        {% if historico %}
         <div class="table-responsive">
             <table class="table ordo-table mb-0">
                 <thead>
                     <tr>
-                        <th>#</th>
+                        <th>Data</th>
                         <th>Fornecedor</th>
                         <th>PO</th>
-                        <th>Descarga</th>
-                        <th>Doca(s)</th>
-                        <th>Tipo</th>
-                        <th>Prazo NF-e</th>
-                        <th>Chave NF-e</th>
-                        <th></th>
+                        <th>Decisão</th>
+                        <th>Analista</th>
+                        <th>Motivo / Observação</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for ag in aguardando %}
-                    {% with prazo=ag.prazo_vinculo_nfe %}
-                    {% if prazo %}
-                        {% with delta=prazo|timeuntil %}
-                        <tr>
-                    {% endwith %}
-                    {% else %}
-                        <tr>
-                    {% endif %}
-                        <td class="text-muted" style="font-size:.75rem;">{{ forloop.counter }}</td>
+                    {% for item in historico %}
+                    <tr>
+                        <td style="white-space:nowrap; font-size:.78rem;">
+                            {{ item.log.data|date:"d/m/Y" }}<br>
+                            <span style="color:var(--ordo-text-dim);">{{ item.log.data|date:"H:i" }}</span>
+                        </td>
                         <td>
                             <div class="fw-semibold" style="font-size:.85rem;">
-                                {{ ag.fornecedor.razao_social|truncatechars:28 }}
+                                {{ item.log.agendamento.fornecedor.razao_social|truncatechars:26 }}
                             </div>
                             <div style="font-size:.68rem; color:var(--ordo-text-dim); font-family:monospace;">
-                                {{ ag.fornecedor.cnpj }}
+                                {{ item.log.agendamento.fornecedor.cnpj }}
                             </div>
                         </td>
-                        <td class="fw-semibold">{{ ag.numero_pedido }}</td>
+                        <td class="fw-semibold" style="font-size:.85rem;">{{ item.log.agendamento.numero_pedido }}</td>
                         <td>
-                            <div class="fw-semibold">{{ ag.inicio|date:"d/m/Y" }}</div>
-                            <div style="font-size:.75rem; color:var(--ordo-accent);">{{ ag.inicio|date:"H:i" }}</div>
-                        </td>
-                        <td>
-                            {% for doca in ag.docas.all %}
-                                <span class="badge-conf badge rounded-pill" style="font-size:.68rem;">{{ doca.codigo }}</span>
-                            {% empty %}—{% endfor %}
-                        </td>
-                        <td style="font-size:.75rem; color:var(--ordo-text-dim);">{{ ag.get_tipo_carga_display }}</td>
-                        <td>
-                            {% if ag.prazo_vinculo_nfe %}
-                                {% with prazo=ag.prazo_vinculo_nfe %}
-                                {% if prazo < agora %}
-                                    <span class="prazo-crit">
-                                        <i class="fa-solid fa-circle-xmark me-1"></i>Expirado
-                                    </span>
-                                {% else %}
-                                    {% with restante_s=prazo|timeuntil:agora %}
-                                    <span class="{% if ag.inicio|timesince:agora < '6' %}prazo-warn{% else %}prazo-ok{% endif %}">
-                                        até {{ prazo|date:"d/m H:i" }}
-                                    </span>
-                                    {% endwith %}
-                                {% endif %}
-                                {% endwith %}
-                            {% else %}—{% endif %}
-                        </td>
-                        <td style="font-size:.68rem; color:var(--ordo-text-dim); font-family:monospace;">
-                            {% if ag.chave_nfe %}
-                                {{ ag.chave_nfe|slice:":10" }}…{{ ag.chave_nfe|slice:"-4:" }}
+                            {% if item.aprovado %}
+                            <span class="dec-apr"><i class="fa-solid fa-circle-check me-1"></i>Aprovado</span>
                             {% else %}
-                                <span style="color:var(--ordo-red);">Sem XML</span>
+                            <span class="dec-rej"><i class="fa-solid fa-circle-xmark me-1"></i>Rejeitado</span>
                             {% endif %}
                         </td>
+                        <td style="font-size:.8rem;">{{ item.analista|default:"—" }}</td>
                         <td>
-                            <a href="{% url 'fiscal_aprovar' ag.pk %}"
-                               class="btn-ordo-primary btn btn-sm"
-                               style="font-size:.72rem; white-space:nowrap;">
-                                <i class="fa-solid fa-gavel me-1"></i> Analisar
-                            </a>
+                            {% if item.motivo %}
+                            <span class="motivo-text" title="{{ item.motivo }}">{{ item.motivo|truncatechars:60 }}</span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
                         </td>
                     </tr>
-                    {% endwith %}
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
-</div>
 
-{% else %}
-<div class="ordo-card fade-in">
-    <div class="ordo-card-body text-center py-5">
-        <i class="fa-solid fa-circle-check fa-3x mb-3" style="color:var(--ordo-green); opacity:.5;"></i>
-        <p class="fw-semibold mb-1">Fila limpa</p>
-        <p style="font-size:.82rem; color:var(--ordo-text-dim);">
-            Nenhuma NF-e aguardando triagem fiscal no momento.
-        </p>
+        {% else %}
+        <div class="text-center py-4" style="color:var(--ordo-text-dim); font-size:.85rem;">
+            <i class="fa-solid fa-inbox fa-2x mb-2 d-block" style="opacity:.35;"></i>
+            Nenhuma triagem registrada com este filtro nos últimos 30 dias.
+        </div>
+        {% endif %}
+
     </div>
 </div>
-{% endif %}
 
 {% endblock %}
