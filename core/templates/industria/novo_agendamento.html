@@ -501,7 +501,7 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
       <i class="fa-solid fa-calendar-plus"></i>
     </div>
     <div>
-      <div class="na-card-header-title">Pré-agendamento de Descarga</div>
+      <div class="na-card-header-title" id="card-header-title">Pré-agendamento de Descarga</div>
       <div class="na-card-header-sub">
         Fornecedor: <strong style="color:var(--na-text);">{{ fornecedor.razao_social }}</strong>
         &nbsp;·&nbsp; CNPJ: {{ fornecedor.cnpj }}
@@ -591,9 +591,6 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
           </div>
           <div style="flex:1;">{{ form.hora_slot }}</div>
         </div>
-        <div style="font-size:.65rem; color:var(--na-text-dim); margin-top:.3rem;">
-          Slots disponíveis: 07:00 às 17:00 (intervalo de 1 hora)
-        </div>
         {% if form.hora_slot.errors %}
         <div class="na-field-error">{{ form.hora_slot.errors.0 }}</div>
         {% endif %}
@@ -678,7 +675,7 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
     </a>
     <button type="submit" class="na-btn-submit" id="btn-submit">
       <i class="fa-solid fa-calendar-check"></i>
-      Confirmar Pré-agendamento
+      <span id="btn-submit-text">Confirmar Pré-agendamento</span>
     </button>
   </div>
 
@@ -838,6 +835,17 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
     if (btnDireta) btnDireta.classList.toggle('active', tipo === 'DIRETA');
     if (btnCross)  btnCross.classList.toggle('active',  tipo === 'CROSS');
 
+    // Adapta linguagem do cabeçalho e botão ao tipo de operação
+    var cardTitle  = document.getElementById('card-header-title');
+    var submitText = document.getElementById('btn-submit-text');
+    if (tipo === 'CROSS') {
+      if (cardTitle)  cardTitle.textContent  = 'Agendamento de Descarga';
+      if (submitText) submitText.textContent = 'Confirmar Agendamento';
+    } else {
+      if (cardTitle)  cardTitle.textContent  = 'Pré-agendamento de Descarga';
+      if (submitText) submitText.textContent = 'Confirmar Pré-agendamento';
+    }
+
     // PO field: optional when CROSS
     var inputPO = document.getElementById('id_numero_pedido');
     var reqSpan = document.querySelector('label[for="id_numero_pedido"] .na-req');
@@ -900,7 +908,7 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
      --------------------------------------------------------------- */
   document.getElementById('form-agendamento').addEventListener('submit', function() {
     btnSubmit.disabled = true;
-    btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Salvando...';
+    btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i><span>Salvando...</span>';
   });
 
 })();

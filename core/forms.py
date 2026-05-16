@@ -312,7 +312,7 @@ class NovoAgendamentoForm(forms.ModelForm):
     )
     hora_slot = forms.ChoiceField(
         label='Horário',
-        choices=SLOTS_DIRETA,  # default; JS troca para SLOTS_CROSS quando necessário
+        choices=SLOTS_DIRETA + SLOTS_CROSS,  # ambos aceitos; clean() valida por tipo_operacao
         widget=forms.Select(attrs={
             'class': 'na-hora-select',
             'id': 'id_hora_slot',
