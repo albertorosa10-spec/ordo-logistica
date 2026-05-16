@@ -630,7 +630,9 @@ def gestor_checkin(request, agendamento_id):
         else:
             messages.error(request, "Agendamento não está com status CONFIRMADO.")
 
-    return redirect(f"/dashboard/?data={request.POST.get('data_filtro', '')}")
+    data   = request.POST.get('data_filtro', '')
+    periodo = request.POST.get('periodo', 'dia')
+    return redirect(f"/dashboard/?data={data}&periodo={periodo}")
 
 @login_required(login_url='/staff/login/')
 def gestor_status(request, agendamento_id):
@@ -663,7 +665,9 @@ def gestor_status(request, agendamento_id):
             )
             messages.success(request, f"✅ Status atualizado: FINALIZADO")
 
-    return redirect('/dashboard/')
+    data    = request.POST.get('data_filtro', '')
+    periodo = request.POST.get('periodo', 'dia')
+    return redirect(f"/dashboard/?data={data}&periodo={periodo}")
 
 
 @login_required(login_url='/staff/login/')

@@ -780,6 +780,7 @@
                     <form method="post" action="{% url 'gestor_checkin' ag.pk %}">
                       {% csrf_token %}
                       <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
+                      <input type="hidden" name="periodo" value="{{ periodo }}">
                       <button type="submit" class="btn-acao btn-checkin">▶ Entrada no Pátio</button>
                     </form>
 
@@ -791,6 +792,7 @@
                       {% csrf_token %}
                       <input type="hidden" name="novo_status" value="EM_DESCARGA">
                       <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
+                      <input type="hidden" name="periodo" value="{{ periodo }}">
                       <button type="submit" class="btn-acao btn-iniciar"
                               data-mensagem="Iniciar descarga para {{ ag.fornecedor.razao_social|truncatechars:25 }} (PO: {% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %})?">
                         ▶ Iniciar Descarga
@@ -805,6 +807,7 @@
                       {% csrf_token %}
                       <input type="hidden" name="novo_status" value="FINALIZADO">
                       <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
+                      <input type="hidden" name="periodo" value="{{ periodo }}">
                       <button type="submit" class="btn-acao btn-fin"
                               data-mensagem="Finalizar descarga de {{ ag.fornecedor.razao_social|truncatechars:25 }} (PO: {% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %})?">
                         ✓ Finalizar
