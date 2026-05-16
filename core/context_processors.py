@@ -5,6 +5,6 @@ def perfis_usuario(request):
     sup = request.user.is_superuser
     return {
         'is_gestor_patio':    sup or 'gestor_patio' in grupos,
-        'is_analista_fiscal': sup or 'analista_fiscal' in grupos,
+        'is_analista_fiscal': 'analista_fiscal' in grupos,
         'is_portaria':        sup or 'portaria' in grupos,
     }

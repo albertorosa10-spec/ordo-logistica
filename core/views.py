@@ -712,7 +712,7 @@ def gestor_detalhe(request, pk):
 @login_required(login_url='/staff/login/')
 def fiscal_dashboard(request):
     """Dashboard completo do analista fiscal: fila de aprovação + histórico de triagens."""
-    if not _tem_acesso(request.user, 'analista_fiscal'):
+    if not request.user.groups.filter(name='analista_fiscal').exists():
         return render(request, '403.html', status=403)
 
     agora = timezone.now()
@@ -818,7 +818,7 @@ def fiscal_dashboard(request):
 @login_required(login_url='/staff/login/')
 def fiscal_aprovar(request, pk):
     """Triagem fiscal individual por NFeArquivo."""
-    if not _tem_acesso(request.user, 'analista_fiscal'):
+    if not request.user.groups.filter(name='analista_fiscal').exists():
         return render(request, '403.html', status=403)
     agendamento = get_object_or_404(Agendamento, pk=pk, status='AGUARDANDO_FISCAL')
 
