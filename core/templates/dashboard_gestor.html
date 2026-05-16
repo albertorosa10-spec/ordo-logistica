@@ -427,6 +427,121 @@
     .dg-kpis   { grid-template-columns: repeat(2, 1fr); }
     .dg-header { flex-wrap: wrap; gap: .5rem; }
   }
+
+  /* ================================================================
+     CALENDÁRIO OPERACIONAL
+  ================================================================ */
+
+  /* Wrapper geral */
+  .dg-cal-wrap {
+    margin: .85rem 1.5rem 1.5rem;
+    background: #fff;
+    border: 1px solid var(--cinza-borda);
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    overflow: hidden;
+  }
+  .dg-cal-head {
+    background: var(--az-escuro);
+    padding: .7rem 1rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .dg-cal-head-titulo { font-size: .8rem; font-weight: 700; color: #fff; }
+  .dg-cal-head-info   { font-size: .68rem; color: rgba(255,255,255,.5); }
+
+  /* ── STATUS cores (dark-bg, card dentro do calendário) ── */
+  .dg-cal-card {
+    border-radius: 5px; padding: .45rem .65rem; margin-bottom: .35rem;
+    cursor: pointer; transition: filter .15s, box-shadow .15s;
+    border-left: 3px solid transparent; font-family: system-ui, -apple-system, sans-serif;
+  }
+  .dg-cal-card:hover { filter: brightness(.93); box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+  .dg-cal-card:last-child { margin-bottom: 0; }
+  /* por status */
+  .cal-PRE_AGENDADO, .cal-AGUARDANDO_FISCAL { background:#2a3a4a; border-left-color:#4a6a8a; color:#8899aa; }
+  .cal-CONFIRMADO    { background:#1a3a2a; border-left-color:#00C896; color:#00C896; }
+  .cal-EM_PATIO      { background:#3a2a1a; border-left-color:#ff9500; color:#ff9500; }
+  .cal-EM_DESCARGA   { background:#2a1a3a; border-left-color:#9b59b6; color:#9b59b6; }
+  .cal-FINALIZADO    { background:#1a2a1a; border-left-color:#4a7a4a; color:#4a7a4a; }
+  .cal-CANCELADO     { background:#1a1a1a; border-left-color:#4a4a4a; color:#4a4a4a; text-decoration:line-through; }
+  .cal-NO_SHOW       { background:#2a1a1a; border-left-color:#c0392b; color:#c0392b; }
+  .dg-cal-card-forn  { font-size:.75rem; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dg-cal-card-meta  { font-size:.63rem; margin-top:2px; opacity:.8; display:flex; gap:.4rem; flex-wrap:wrap; }
+  .dg-cal-card-badge { border-radius:3px; padding:0 4px; font-size:.6rem; font-weight:700;
+                       background:rgba(255,255,255,.1); }
+
+  /* ── MODO DIA ── */
+  .dg-dia-grid { display:grid; grid-template-columns:52px 1fr; }
+  .dg-dia-hora-label {
+    padding:.75rem .5rem .75rem 0; text-align:right; font-size:.72rem; font-weight:700;
+    color:var(--cinza-texto); border-right:1px solid var(--cinza-borda);
+    border-bottom:1px solid #f0f2f5; white-space:nowrap; line-height:1;
+  }
+  .dg-dia-slot {
+    padding:.45rem .7rem; border-bottom:1px solid #f0f2f5; min-height:64px;
+    background:#fff; position:relative;
+  }
+  .dg-dia-slot.vago { background:#f7f9fc; display:flex; align-items:center; }
+  .dg-dia-slot-vago-txt { font-size:.72rem; color:#b0bec5; font-style:italic; }
+  .dg-dia-acoes { margin-top:.4rem; display:flex; gap:.35rem; flex-wrap:wrap; }
+
+  /* ── MODO SEMANA ── */
+  .dg-sem-wrap { overflow-x:auto; }
+  .dg-sem-grid {
+    display:grid;
+    grid-template-columns: 52px repeat(7, minmax(110px, 1fr));
+    min-width: 860px;
+  }
+  .dg-sem-header-vazio { border-bottom:2px solid var(--cinza-borda); background:#edf1f7; }
+  .dg-sem-dia-header {
+    padding:.5rem .4rem; text-align:center; border-bottom:2px solid var(--cinza-borda);
+    background:#edf1f7; border-left:1px solid var(--cinza-borda);
+  }
+  .dg-sem-dia-header.hoje { background:#e8f5f1; }
+  .dg-sem-dia-nome { font-size:.65rem; font-weight:700; color:var(--cinza-texto); text-transform:uppercase; }
+  .dg-sem-dia-num  { font-size:.85rem; font-weight:700; color:var(--az-escuro); }
+  .dg-sem-dia-num.hoje { color:#00C896; }
+  .dg-sem-hora-label {
+    padding:.5rem .4rem .5rem 0; text-align:right; font-size:.68rem; font-weight:700;
+    color:var(--cinza-texto); border-right:1px solid var(--cinza-borda);
+    border-bottom:1px solid #f0f2f5; line-height:1;
+  }
+  .dg-sem-cell {
+    padding:.35rem; border-left:1px solid var(--cinza-borda);
+    border-bottom:1px solid #f0f2f5; min-height:56px; background:#fff;
+  }
+  .dg-sem-cell.hoje-col { background:#f0faf6; }
+
+  /* ── MODO MÊS ── */
+  .dg-mes-grid { display:grid; grid-template-columns:repeat(7,1fr); }
+  .dg-mes-dow {
+    padding:.4rem; text-align:center; font-size:.65rem; font-weight:700;
+    color:var(--cinza-texto); text-transform:uppercase;
+    border-bottom:2px solid var(--cinza-borda); background:#edf1f7;
+    border-right:1px solid var(--cinza-borda);
+  }
+  .dg-mes-dow:last-child { border-right:none; }
+  .dg-mes-dia {
+    border-right:1px solid var(--cinza-borda); border-bottom:1px solid var(--cinza-borda);
+    min-height:90px; padding:.4rem; position:relative; background:#fff;
+    transition:background .12s;
+  }
+  .dg-mes-dia:nth-child(7n) { border-right:none; }
+  .dg-mes-dia.fora-mes { background:#f5f7fa; }
+  .dg-mes-dia.hoje-dia { background:#f0faf6; }
+  .dg-mes-dia-num {
+    font-size:.78rem; font-weight:600; color:var(--az-escuro); display:inline-block;
+    width:22px; height:22px; line-height:22px; text-align:center; border-radius:50%;
+    margin-bottom:.25rem;
+  }
+  .dg-mes-dia-num.hoje { background:#00C896; color:#fff; font-weight:700; }
+  .dg-mes-dia-num.fora { color:#ccc; }
+  .dg-mes-pill {
+    display:block; font-size:.63rem; font-weight:600; padding:1px 4px; border-radius:3px;
+    margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer;
+  }
+  .dg-mes-mais { font-size:.6rem; color:var(--cinza-texto); padding-left:2px; }
+  .dg-mes-dia-link { display:block; position:absolute; inset:0; cursor:pointer; }
   </style>
 </head>
 <body>
@@ -525,6 +640,14 @@
             <option value="dia"    {% if periodo == 'dia'    %}selected{% endif %}>Dia</option>
             <option value="semana" {% if periodo == 'semana' %}selected{% endif %}>Semana</option>
             <option value="mes"    {% if periodo == 'mes'    %}selected{% endif %}>Mês</option>
+          </select>
+          <select name="fornecedor" class="dg-input-data" style="width:auto; cursor:pointer; max-width:160px;">
+            <option value="">Todas as indústrias</option>
+            {% for f in fornecedores %}
+            <option value="{{ f.pk }}" {% if fornecedor_id == f.pk|stringformat:"d" %}selected{% endif %}>
+              {{ f.razao_social|truncatechars:22 }}
+            </option>
+            {% endfor %}
           </select>
           <button type="submit" class="dg-btn dg-btn-outline">Filtrar</button>
           <a href="/dashboard/" class="dg-btn dg-btn-outline">Hoje</a>
@@ -644,230 +767,178 @@
 
 
     <!-- ============================================================
-         LAYOUT DUAS COLUNAS: tabela + sidebar docas
+         CALENDÁRIO OPERACIONAL
          ============================================================ -->
-    <div class="dg-layout">
-
-      <!-- SEÇÃO 4 — TABELA PRINCIPAL -->
-      <div class="dg-tabela-wrap">
-        <div class="dg-tabela-head">
-          <span class="dg-tabela-head-titulo">Agendamentos &mdash; {{ titulo_periodo }}</span>
-          <span class="dg-tabela-head-info">
-            Atualiza a cada 60s &nbsp;·&nbsp; Última sincronização: {{ agora|date:"H:i" }}
-          </span>
-        </div>
-
-        {% if agendamentos %}
-        <div style="overflow-x:auto;">
-          <table class="dg-table">
-            <thead>
-              <tr>
-                <th class="dg-col-num">#</th>
-                <th>Horário</th>
-                <th>Doca(s)</th>
-                <th>Fornecedor</th>
-                <th>PO</th>
-                <th class="dg-col-tipo">Tipo</th>
-                <th>Status</th>
-                <th>NF-e</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for ag in agendamentos %}
-              <tr id="ag-{{ ag.pk }}"
-                  class="{% if ag.status == 'NO_SHOW' or ag.status == 'CANCELADO' %}tr-inativo{% endif %}{% if ag.prazo_expirado and not ag.nfe_validada %} tr-nfe-alerta{% endif %}"
-                  onclick="selecionarLinha(this)">
-
-                <td class="dg-td-num">
-                  <a href="/gestor/agendamento/{{ ag.pk }}/"
-                     style="color:var(--az-acao); text-decoration:none; font-weight:700;"
-                     title="Ver detalhe"
-                     onclick="event.stopPropagation()">{{ forloop.counter }}</a>
-                </td>
-
-                <td class="dg-td-horario">
-                  <div style="font-size:.65rem; color:var(--cinza-texto); margin-bottom:1px;">{{ ag.inicio|date:"d/m" }}</div>
-                  <div class="{% if not ag.nfe_validada and ag.inicio < agora and ag.status == 'PRE_AGENDADO' %}hora-atraso{% else %}hora{% endif %}">
-                    {{ ag.inicio|date:"H:i" }}
-                  </div>
-                  {% if ag.fim_estimado %}
-                  <div class="fim-est">até {{ ag.fim_estimado|date:"H:i" }}</div>
-                  {% endif %}
-                </td>
-
-                <td>
-                  {% for doca in ag.docas.all %}
-                  <span class="badge-doca">
-                    {{ doca.codigo }}{% if doca.temperatura_controlada %}&nbsp;❄{% endif %}
-                  </span>
-                  {% empty %}
-                  <span style="color:var(--cinza-texto); font-size:.7rem;">—</span>
-                  {% endfor %}
-                </td>
-
-                <td>
-                  <div class="td-forn-nome" title="{{ ag.fornecedor.razao_social }}">
-                    {{ ag.fornecedor.razao_social|truncatechars:22 }}
-                  </div>
-                  <div class="td-forn-score dg-col-score">
-                    <div class="td-forn-score-fill"
-                         style="width:{{ ag.fornecedor.score_pontualidade|floatformat:0 }}%;
-                                background:{% if ag.fornecedor.score_pontualidade >= 80 %}var(--verde){% elif ag.fornecedor.score_pontualidade >= 50 %}var(--amarelo){% else %}var(--vermelho){% endif %};">
-                    </div>
-                  </div>
-                </td>
-
-                <td style="font-size:.78rem; font-weight:600; white-space:nowrap;">
-                  <a href="/gestor/agendamento/{{ ag.pk }}/"
-                     style="color:inherit; text-decoration:none;"
-                     onclick="event.stopPropagation()">{% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %}</a>
-                </td>
-
-                <td class="dg-col-tipo" style="white-space:nowrap;">
-                  {% if ag.tipo_operacao == 'CROSS' %}
-                  <span style="background:rgba(139,92,246,.15); color:#a78bfa; border:1px solid rgba(139,92,246,.3); border-radius:4px; padding:1px 6px; font-size:.65rem; font-weight:700;">Cross</span>
-                  {% else %}
-                  <span style="background:rgba(0,116,143,.15); color:var(--az-acao); border:1px solid rgba(0,116,143,.3); border-radius:4px; padding:1px 6px; font-size:.65rem; font-weight:700;">Direta</span>
-                  {% endif %}
-                  <div style="font-size:.65rem; color:var(--cinza-texto); margin-top:2px;">{{ ag.get_tipo_carga_display }}</div>
-                </td>
-
-                <td>
-                  {% if ag.status == 'PRE_AGENDADO' or ag.status == 'AGUARDANDO_FISCAL' %}
-                    <span class="dg-status dg-st-pre">○ Pré-ag.</span>
-                  {% elif ag.status == 'CONFIRMADO' %}
-                    <span class="dg-status dg-st-conf">◉ Confirmado</span>
-                  {% elif ag.status == 'EM_PATIO' %}
-                    <span class="dg-status dg-st-patio">▶ Em Pátio</span>
-                  {% elif ag.status == 'EM_DESCARGA' %}
-                    <span class="dg-status dg-st-desc">⟳ Descarga</span>
-                  {% elif ag.status == 'FINALIZADO' %}
-                    <span class="dg-status dg-st-fin">✓ Finalizado</span>
-                  {% elif ag.status == 'NO_SHOW' %}
-                    <span class="dg-status dg-st-ns">✗ No-show</span>
-                  {% elif ag.status == 'CANCELADO' %}
-                    <span class="dg-status dg-st-canc">⊘ Cancelado</span>
-                  {% else %}
-                    <span class="dg-status dg-st-pre">{{ ag.get_status_display }}</span>
-                  {% endif %}
-                </td>
-
-                <td>
-                  {% if ag.nfe_validada %}
-                    <span class="nfe-ok">✔ Vinculada</span>
-                    {% if ag.nfe_vinculada_em %}
-                    <span class="nfe-sub">{{ ag.nfe_vinculada_em|date:"d/m H:i" }}</span>
-                    {% endif %}
-                  {% elif ag.prazo_expirado %}
-                    <span class="nfe-exp">✘ Expirado</span>
-                  {% elif ag.prazo_vinculo_nfe %}
-                    {% with prazo=ag.prazo_vinculo_nfe %}
-                      {% if ag.status == 'PRE_AGENDADO' or ag.status == 'AGUARDANDO_FISCAL' %}
-                        <span class="{% if prazo < agora %}nfe-exp{% else %}nfe-prazo{% endif %}">
-                          Até {{ prazo|date:"d/m H:i" }}
-                        </span>
-                      {% endif %}
-                    {% endwith %}
-                  {% else %}
-                    <span style="color:var(--cinza-texto); font-size:.7rem;">—</span>
-                  {% endif %}
-                </td>
-
-                <td onclick="event.stopPropagation()">
-                  <div class="acao-wrap">
-                    {% if ag.status == 'CONFIRMADO' %}
-                    <form method="post" action="{% url 'gestor_checkin' ag.pk %}">
-                      {% csrf_token %}
-                      <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
-                      <input type="hidden" name="periodo" value="{{ periodo }}">
-                      <button type="submit" class="btn-acao btn-checkin">▶ Entrada no Pátio</button>
-                    </form>
-
-                    {% elif ag.status == 'EM_PATIO' %}
-                    <div style="font-size:.68rem; color:var(--laranja); margin-bottom:3px;">
-                      ▶ Entrou {% if ag.horario_entrada_patio %}{{ ag.horario_entrada_patio|date:"H:i" }}{% endif %}
-                    </div>
-                    <form method="post" action="{% url 'gestor_status' ag.pk %}" class="form-status">
-                      {% csrf_token %}
-                      <input type="hidden" name="novo_status" value="EM_DESCARGA">
-                      <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
-                      <input type="hidden" name="periodo" value="{{ periodo }}">
-                      <button type="submit" class="btn-acao btn-iniciar"
-                              data-mensagem="Iniciar descarga para {{ ag.fornecedor.razao_social|truncatechars:25 }} (PO: {% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %})?">
-                        ▶ Iniciar Descarga
-                      </button>
-                    </form>
-
-                    {% elif ag.status == 'EM_DESCARGA' %}
-                    <div style="font-size:.68rem; color:var(--roxo); margin-bottom:3px;">
-                      ⟳ Descarga desde {% if ag.horario_inicio_descarga %}{{ ag.horario_inicio_descarga|date:"H:i" }}{% endif %}
-                    </div>
-                    <form method="post" action="{% url 'gestor_status' ag.pk %}" class="form-status">
-                      {% csrf_token %}
-                      <input type="hidden" name="novo_status" value="FINALIZADO">
-                      <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
-                      <input type="hidden" name="periodo" value="{{ periodo }}">
-                      <button type="submit" class="btn-acao btn-fin"
-                              data-mensagem="Finalizar descarga de {{ ag.fornecedor.razao_social|truncatechars:25 }} (PO: {% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %})?">
-                        ✓ Finalizar
-                      </button>
-                    </form>
-
-                    {% elif ag.status == 'FINALIZADO' %}
-                    <span class="acao-texto">
-                      ✓ Fim:&nbsp;
-                      {% if ag.horario_finalizacao %}{{ ag.horario_finalizacao|date:"H:i" }}
-                      {% elif ag.horario_chegada_real %}{{ ag.horario_chegada_real|date:"H:i" }}
-                      {% else %}—{% endif %}
-                    </span>
-                    <a href="/gestor/agendamento/{{ ag.pk }}/" class="btn-acao btn-ver">Ver</a>
-
-                    {% elif ag.status == 'CANCELADO' %}
-                    <a href="/gestor/agendamento/{{ ag.pk }}/" class="btn-acao btn-ver">Ver</a>
-
-                    {% elif ag.status == 'NO_SHOW' %}
-                    <a href="/admin/core/agendamento/{{ ag.pk }}/change/" class="btn-acao btn-reag">Reagendar</a>
-
-                    {% elif ag.status == 'PRE_AGENDADO' %}
-                    <a href="/gestor/agendamento/{{ ag.pk }}/" class="btn-acao btn-ver">Ver</a>
-
-                    {% elif ag.status == 'AGUARDANDO_FISCAL' %}
-                    <a href="/gestor/agendamento/{{ ag.pk }}/" class="btn-acao btn-ver">Ver</a>
-
-                    {% else %}
-                    <span class="acao-texto">—</span>
-                    {% endif %}
-                  </div>
-                </td>
-
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        {% else %}
-        <div class="dg-empty">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="3" y="4" width="18" height="18" rx="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-            <line x1="9" y1="16" x2="15" y2="16" stroke-dasharray="2"/>
-          </svg>
-          Nenhum agendamento para <strong>{{ titulo_periodo }}</strong>.
-        </div>
-        {% endif %}
-
+    <div class="dg-cal-wrap">
+      <div class="dg-cal-head">
+        <span class="dg-cal-head-titulo">
+          {% if periodo == 'dia' %}Grade Horária{% elif periodo == 'semana' %}Calendário Semanal{% else %}Calendário Mensal{% endif %}
+          &mdash; {{ titulo_periodo }}
+        </span>
+        <span class="dg-cal-head-info">
+          Atualiza a cada 60s &nbsp;·&nbsp; {{ agora|date:"H:i" }}
+          {% if fornecedor_id %}&nbsp;·&nbsp; Filtro ativo{% endif %}
+        </span>
       </div>
 
+      {# ============================= MODO DIA ============================= #}
+      {% if periodo == 'dia' %}
+      <div class="dg-dia-grid">
+        {% for slot in slots_hora %}
+        {# label da hora #}
+        <div class="dg-dia-hora-label">{{ slot.hora|stringformat:"02d" }}:00</div>
+        {# conteúdo do slot #}
+        <div class="dg-dia-slot {% if not slot.agendamentos %}vago{% endif %}">
+          {% if slot.agendamentos %}
+            {% for ag in slot.agendamentos %}
+            <div class="dg-cal-card cal-{{ ag.status }}"
+                 onclick="location.href='/gestor/agendamento/{{ ag.pk }}/'">
+              <div class="dg-cal-card-forn">{{ ag.fornecedor.razao_social|truncatechars:35 }}</div>
+              <div class="dg-cal-card-meta">
+                <span>PO: {% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %}</span>
+                <span class="dg-cal-card-badge">{% if ag.tipo_operacao == 'CROSS' %}⇄ Cross{% else %}↑ Direta{% endif %}</span>
+                <span class="dg-cal-card-badge">{{ ag.get_tipo_carga_display }}</span>
+              </div>
+              {# Botões de ação — clique não propaga para o card #}
+              <div class="dg-dia-acoes" onclick="event.stopPropagation()">
+                {% if ag.status == 'CONFIRMADO' %}
+                <form method="post" action="/gestor/checkin/{{ ag.pk }}/">
+                  {% csrf_token %}
+                  <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
+                  <input type="hidden" name="periodo" value="{{ periodo }}">
+                  <button type="submit" class="btn-acao btn-checkin">▶ Entrada no Pátio</button>
+                </form>
+                {% elif ag.status == 'EM_PATIO' %}
+                <form method="post" action="/gestor/status/{{ ag.pk }}/" class="form-status">
+                  {% csrf_token %}
+                  <input type="hidden" name="novo_status" value="EM_DESCARGA">
+                  <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
+                  <input type="hidden" name="periodo" value="{{ periodo }}">
+                  <button type="submit" class="btn-acao btn-iniciar"
+                          data-mensagem="Iniciar descarga para {{ ag.fornecedor.razao_social|truncatechars:25 }} (PO: {% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %})?">
+                    ▶ Iniciar Descarga
+                  </button>
+                </form>
+                {% elif ag.status == 'EM_DESCARGA' %}
+                <form method="post" action="/gestor/status/{{ ag.pk }}/" class="form-status">
+                  {% csrf_token %}
+                  <input type="hidden" name="novo_status" value="FINALIZADO">
+                  <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
+                  <input type="hidden" name="periodo" value="{{ periodo }}">
+                  <button type="submit" class="btn-acao btn-fin"
+                          data-mensagem="Finalizar descarga de {{ ag.fornecedor.razao_social|truncatechars:25 }} (PO: {% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %})?">
+                    ✓ Finalizar
+                  </button>
+                </form>
+                {% elif ag.status == 'NO_SHOW' %}
+                <a href="/admin/core/agendamento/{{ ag.pk }}/change/" class="btn-acao btn-reag">Reagendar</a>
+                {% else %}
+                <a href="/gestor/agendamento/{{ ag.pk }}/" class="btn-acao btn-ver">Ver</a>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <span class="dg-dia-slot-vago-txt">— vago —</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
 
-      <!-- SEÇÃO 5 — SIDEBAR DE DOCAS (oculta temporariamente — novo modelo sem docas no fluxo)
-      <aside class="dg-sidebar">
-        ...
-      </aside>
-      -->
+      {# ============================= MODO SEMANA ============================= #}
+      {% elif periodo == 'semana' %}
+      <div class="dg-sem-wrap">
+        <div class="dg-sem-grid">
+          {# Cabeçalho: célula vazia + 7 dias #}
+          <div class="dg-sem-header-vazio"></div>
+          {% for dia in dias_semana %}
+          <div class="dg-sem-dia-header {% if dia.is_hoje %}hoje{% endif %}">
+            <div class="dg-sem-dia-nome">
+              {% if dia.data.weekday == 0 %}Seg
+              {% elif dia.data.weekday == 1 %}Ter
+              {% elif dia.data.weekday == 2 %}Qua
+              {% elif dia.data.weekday == 3 %}Qui
+              {% elif dia.data.weekday == 4 %}Sex
+              {% elif dia.data.weekday == 5 %}Sáb
+              {% else %}Dom{% endif %}
+            </div>
+            <div class="dg-sem-dia-num {% if dia.is_hoje %}hoje{% endif %}">{{ dia.data|date:"d/m" }}</div>
+          </div>
+          {% endfor %}
+
+          {# Linhas de horário #}
+          {% for slot_idx in "0123456789" %}
+          {% with h_idx=forloop.counter0 %}
+          <div class="dg-sem-hora-label">
+            {% if h_idx == 0 %}07:00
+            {% elif h_idx == 1 %}08:00
+            {% elif h_idx == 2 %}09:00
+            {% elif h_idx == 3 %}10:00
+            {% elif h_idx == 4 %}11:00
+            {% elif h_idx == 5 %}12:00
+            {% elif h_idx == 6 %}13:00
+            {% elif h_idx == 7 %}14:00
+            {% elif h_idx == 8 %}15:00
+            {% else %}16:00{% endif %}
+          </div>
+          {% for dia in dias_semana %}
+          <div class="dg-sem-cell {% if dia.is_hoje %}hoje-col{% endif %}">
+            {% for s in dia.slots %}
+            {% if forloop.counter0 == h_idx %}
+            {% for ag in s.agendamentos %}
+            <a href="/gestor/agendamento/{{ ag.pk }}/"
+               class="dg-cal-card cal-{{ ag.status }}" style="display:block; text-decoration:none;">
+              <div class="dg-cal-card-forn" style="font-size:.7rem;">
+                {{ ag.fornecedor.razao_social|truncatechars:14 }}
+              </div>
+              <div class="dg-cal-card-meta">
+                <span class="dg-cal-card-badge">{% if ag.tipo_operacao == 'CROSS' %}⇄{% else %}↑{% endif %}</span>
+              </div>
+            </a>
+            {% endfor %}
+            {% endif %}
+            {% endfor %}
+          </div>
+          {% endfor %}
+          {% endwith %}
+          {% endfor %}
+
+        </div>
+      </div>
+
+      {# ============================= MODO MÊS ============================= #}
+      {% else %}
+      <div class="dg-mes-grid">
+        <div class="dg-mes-dow">Seg</div>
+        <div class="dg-mes-dow">Ter</div>
+        <div class="dg-mes-dow">Qua</div>
+        <div class="dg-mes-dow">Qui</div>
+        <div class="dg-mes-dow">Sex</div>
+        <div class="dg-mes-dow">Sáb</div>
+        <div class="dg-mes-dow">Dom</div>
+        {% for semana in semanas_mes %}
+        {% for dia in semana %}
+        <div class="dg-mes-dia {% if dia.fora_mes %}fora-mes{% endif %} {% if dia.is_hoje %}hoje-dia{% endif %}">
+          {% if dia.data %}
+          <a href="/dashboard/?data={{ dia.data|date:'Y-m-d' }}&periodo=dia{% if fornecedor_id %}&fornecedor={{ fornecedor_id }}{% endif %}"
+             class="dg-mes-dia-link" title="Ver {{ dia.data|date:'d/m/Y' }}"></a>
+          <span class="dg-mes-dia-num {% if dia.is_hoje %}hoje{% endif %} {% if dia.fora_mes %}fora{% endif %}">
+            {{ dia.data.day }}
+          </span>
+          {% for ag in dia.agendamentos|slice:":3" %}
+          <span class="dg-mes-pill cal-{{ ag.status }}">
+            {{ ag.inicio|date:"H:i" }} {{ ag.fornecedor.razao_social|truncatechars:10 }}
+          </span>
+          {% endfor %}
+          {% if dia.agendamentos|length > 3 %}
+          <span class="dg-mes-mais">+ {{ dia.agendamentos|length|add:"-3" }} mais</span>
+          {% endif %}
+          {% endif %}
+        </div>
+        {% endfor %}
+        {% endfor %}
+      </div>
+      {% endif %}
 
     </div>
 

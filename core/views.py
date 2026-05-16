@@ -483,10 +483,13 @@ def lista_agendamentos_status(request):
 
 @login_required(login_url='/staff/login/')
 def dashboard_logistica(request):
-    """Dashboard do Gestor com KPIs, alertas e status das docas."""
+    """Dashboard do Gestor — calendário operacional (dia / semana / mês)."""
     if not _tem_acesso(request.user, 'gestor_patio'):
         return render(request, '403.html', status=403)
-    
+
+    import calendar as cal_module
+    from datetime import date as date_type
+
     data_str = request.GET.get('data', timezone.now().date().isoformat())
     try:
         data_filtro = datetime.strptime(data_str, '%Y-%m-%d').date()
@@ -498,18 +501,28 @@ def dashboard_logistica(request):
     if periodo not in ('dia', 'semana', 'mes'):
         periodo = 'dia'
 
+    fornecedor_id = request.GET.get('fornecedor', '')
+    fornecedores  = Fornecedor.objects.all().order_by('razao_social')
+
+    qs = Agendamento.objects.select_related('fornecedor').all()
+    if fornecedor_id:
+        try:
+            qs = qs.filter(fornecedor_id=int(fornecedor_id))
+        except (ValueError, TypeError):
+            fornecedor_id = ''
+
     if periodo == 'semana':
-        agendamentos = Agendamento.objects.filter(
+        agendamentos = qs.filter(
             inicio__date__gte=data_filtro,
             inicio__date__lt=data_filtro + timedelta(days=7),
         ).order_by('inicio')
     elif periodo == 'mes':
-        agendamentos = Agendamento.objects.filter(
+        agendamentos = qs.filter(
             inicio__month=data_filtro.month,
             inicio__year=data_filtro.year,
         ).order_by('inicio')
     else:
-        agendamentos = Agendamento.objects.filter(inicio__date=data_filtro).order_by('inicio')
+        agendamentos = qs.filter(inicio__date=data_filtro).order_by('inicio')
 
     _MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
@@ -519,79 +532,103 @@ def dashboard_logistica(request):
         titulo_periodo = f"{_MESES_PT[data_filtro.month - 1]}/{data_filtro.year}"
     else:
         titulo_periodo = data_filtro.strftime('%d/%m/%Y')
-    
+
     # KPIs
-    total = agendamentos.count()
-    pre_agendados = agendamentos.filter(status='PRE_AGENDADO').count()
-    confirmados = agendamentos.filter(status='CONFIRMADO').count()
-    em_patio = agendamentos.filter(status='EM_PATIO').count()
-    em_descarga = agendamentos.filter(status='EM_DESCARGA').count()
-    em_operacao = em_patio + em_descarga
-    finalizados = agendamentos.filter(status='FINALIZADO').count()
-    noshow = agendamentos.filter(status='NO_SHOW').count()
-    
-    # Alertas de prazo (NF-e não validada com descarga próxima)
+    total        = agendamentos.count()
+    pre_agendados = agendamentos.filter(status__in=['PRE_AGENDADO', 'AGUARDANDO_FISCAL']).count()
+    confirmados  = agendamentos.filter(status='CONFIRMADO').count()
+    em_patio     = agendamentos.filter(status='EM_PATIO').count()
+    em_descarga  = agendamentos.filter(status='EM_DESCARGA').count()
+    em_operacao  = em_patio + em_descarga
+    finalizados  = agendamentos.filter(status='FINALIZADO').count()
+    noshow       = agendamentos.filter(status='NO_SHOW').count()
+
+    # Alertas de prazo NF-e crítico (< 6 h)
     alertas_prazo = []
     agora = timezone.now()
-    # Filtramos agendamentos que ainda não validaram NF-e e estão em status inicial ou análise
     for ag in agendamentos.filter(status__in=['PRE_AGENDADO', 'AGUARDANDO_FISCAL'], nfe_validada=False):
         prazo = ag.prazo_vinculo_nfe()
         if prazo:
-            restante_ms = (prazo - agora).total_seconds()
-            minutos = int(restante_ms / 60)
-            if minutos < 360: # Alerta se faltar menos de 6 horas
-                alertas_prazo.append({
-                    'ag': ag,
-                    'minutos': minutos,
-                    'urgente': minutos < 60
-                })
+            minutos = int((prazo - agora).total_seconds() / 60)
+            if minutos < 360:
+                alertas_prazo.append({'ag': ag, 'minutos': minutos, 'urgente': minutos < 60})
 
-    # Docas Status (para a sidebar) — todas as docas, ativas ou não
-    todas_docas = Doca.objects.all().order_by('codigo')
-    docas_status = []
-    for doca in todas_docas:
-        if doca.ativa:
-            ag_ativo = agendamentos.filter(docas=doca, status__in=['EM_PATIO', 'EM_DESCARGA']).first()
-            ag_prox = agendamentos.filter(
-                docas=doca,
-                status__in=['PRE_AGENDADO', 'AGUARDANDO_FISCAL', 'CONFIRMADO'],
-                inicio__gt=agora,
-            ).first()
-            total_ag_doca = agendamentos.filter(docas=doca).count()
-        else:
-            ag_ativo = None
-            ag_prox = None
-            total_ag_doca = 0
-        # Ocupação: percentual do dia útil (11 horas operacionais)
-        ocup_pct = min(100, (total_ag_doca * 60 / 660) * 100)
-        docas_status.append({
-            'doca': doca,
-            'ag_ativo': ag_ativo,
-            'ag_prox': ag_prox,
-            'total_dia': total_ag_doca,
-            'ocup_pct': ocup_pct,
-        })
+    # ── Estruturas de calendário ──────────────────────────────────────
+    HORAS_OP = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    hoje     = timezone.now().date()
+
+    # DIA — lista de slots por hora
+    slots_hora = []
+    if periodo == 'dia':
+        ags_list = list(agendamentos)
+        for hora in HORAS_OP:
+            slots_hora.append({
+                'hora': hora,
+                'agendamentos': [ag for ag in ags_list if ag.inicio.hour == hora],
+            })
+
+    # SEMANA — 7 dias × horas
+    dias_semana = []
+    if periodo == 'semana':
+        dias = [data_filtro + timedelta(days=i) for i in range(7)]
+        ags_por_dia = {}
+        for ag in agendamentos:
+            ags_por_dia.setdefault(ag.inicio.date(), []).append(ag)
+        for dia in dias:
+            ags_do_dia = ags_por_dia.get(dia, [])
+            dias_semana.append({
+                'data':    dia,
+                'is_hoje': dia == hoje,
+                'slots': [
+                    {'hora': h, 'agendamentos': [ag for ag in ags_do_dia if ag.inicio.hour == h]}
+                    for h in HORAS_OP
+                ],
+            })
+
+    # MÊS — semanas do mês (cal_module.monthcalendar: seg=0, dom=6)
+    semanas_mes = []
+    if periodo == 'mes':
+        ags_por_dia_mes = {}
+        for ag in agendamentos:
+            ags_por_dia_mes.setdefault(ag.inicio.date(), []).append(ag)
+        for week in cal_module.monthcalendar(data_filtro.year, data_filtro.month):
+            semana = []
+            for day_num in week:
+                if day_num == 0:
+                    semana.append({'data': None, 'agendamentos': [], 'is_hoje': False, 'fora_mes': True})
+                else:
+                    d = date_type(data_filtro.year, data_filtro.month, day_num)
+                    semana.append({
+                        'data':        d,
+                        'agendamentos': ags_por_dia_mes.get(d, []),
+                        'is_hoje':     d == hoje,
+                        'fora_mes':    False,
+                    })
+            semanas_mes.append(semana)
 
     contexto = {
-        'agendamentos': agendamentos,
-        'data_filtro': data_str,
-        'data_exibicao': data_filtro.strftime('%d/%m/%Y'),
-        'periodo': periodo,
+        'agendamentos':   agendamentos,
+        'data_filtro':    data_str,
+        'data_exibicao':  data_filtro.strftime('%d/%m/%Y'),
+        'periodo':        periodo,
         'titulo_periodo': titulo_periodo,
-        'total': total,
-        'pre_agendados': pre_agendados,
-        'confirmados': confirmados,
-        'em_operacao': em_operacao,
-        'em_patio': em_patio,
-        'em_descarga': em_descarga,
-        'finalizados': finalizados,
-        'noshow': noshow,
-        'alertas_prazo': alertas_prazo,
-        'docas_status': docas_status,
-        'agora': agora,
-        'docas': todas_docas,
+        'total':          total,
+        'pre_agendados':  pre_agendados,
+        'confirmados':    confirmados,
+        'em_operacao':    em_operacao,
+        'em_patio':       em_patio,
+        'em_descarga':    em_descarga,
+        'finalizados':    finalizados,
+        'noshow':         noshow,
+        'alertas_prazo':  alertas_prazo,
+        'agora':          agora,
+        'hoje':           hoje,
+        'fornecedores':   fornecedores,
+        'fornecedor_id':  fornecedor_id,
+        'slots_hora':     slots_hora,
+        'dias_semana':    dias_semana,
+        'semanas_mes':    semanas_mes,
     }
-    
     return render(request, 'dashboard_gestor.html', contexto)
 
 @login_required(login_url='/staff/login/')
