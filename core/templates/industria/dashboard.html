@@ -188,7 +188,6 @@
                         <thead>
                             <tr>
                                 <th>Data / Hora</th>
-                                <th>Doca(s)</th>
                                 <th>PO</th>
                                 <th>Operação</th>
                                 <th>Status</th>
@@ -202,11 +201,6 @@
                                 <td>
                                     <div class="fw-semibold">{{ ag.inicio|date:"d/m/Y" }}</div>
                                     <div style="font-size:.72rem; color:var(--ordo-text-dim);">{{ ag.inicio|date:"H:i" }}</div>
-                                </td>
-                                <td>
-                                    {% for doca in ag.docas.all %}
-                                        <span class="badge-conf badge rounded-pill" style="font-size:.68rem;">{{ doca.codigo }}</span>
-                                    {% empty %}—{% endfor %}
                                 </td>
                                 <td class="fw-semibold">{% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %}</td>
                                 <td>
