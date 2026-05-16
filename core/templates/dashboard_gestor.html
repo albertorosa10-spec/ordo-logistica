@@ -629,7 +629,7 @@
       <div class="dg-alerta-item">
         <span style="font-size:1rem;">{% if item.urgente %}🔴{% else %}🟠{% endif %}</span>
         <div>
-          <strong>PO {{ item.ag.numero_pedido }}</strong>
+          <strong>PO {% if item.ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ item.ag.numero_pedido }}{% endif %}</strong>
           — {{ item.ag.fornecedor.razao_social|truncatechars:30 }}
           — Descarga: {{ item.ag.inicio|date:"d/m H:i" }}
         </div>
@@ -721,7 +721,7 @@
                 <td style="font-size:.78rem; font-weight:600; white-space:nowrap;">
                   <a href="/gestor/agendamento/{{ ag.pk }}/"
                      style="color:inherit; text-decoration:none;"
-                     onclick="event.stopPropagation()">{{ ag.numero_pedido }}</a>
+                     onclick="event.stopPropagation()">{% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %}</a>
                 </td>
 
                 <td class="dg-col-tipo" style="white-space:nowrap;">
@@ -792,7 +792,7 @@
                       <input type="hidden" name="novo_status" value="EM_DESCARGA">
                       <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
                       <button type="submit" class="btn-acao btn-iniciar"
-                              data-mensagem="Iniciar descarga para {{ ag.fornecedor.razao_social|truncatechars:25 }} (PO: {{ ag.numero_pedido }})?">
+                              data-mensagem="Iniciar descarga para {{ ag.fornecedor.razao_social|truncatechars:25 }} (PO: {% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %})?">
                         ▶ Iniciar Descarga
                       </button>
                     </form>
@@ -806,7 +806,7 @@
                       <input type="hidden" name="novo_status" value="FINALIZADO">
                       <input type="hidden" name="data_filtro" value="{{ data_filtro }}">
                       <button type="submit" class="btn-acao btn-fin"
-                              data-mensagem="Finalizar descarga de {{ ag.fornecedor.razao_social|truncatechars:25 }} (PO: {{ ag.numero_pedido }})?">
+                              data-mensagem="Finalizar descarga de {{ ag.fornecedor.razao_social|truncatechars:25 }} (PO: {% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %})?">
                         ✓ Finalizar
                       </button>
                     </form>

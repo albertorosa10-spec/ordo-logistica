@@ -289,7 +289,7 @@
         <div class="det-meta">
           <div class="det-meta-item">
             <div class="det-meta-label">Pedido de Compra</div>
-            <div class="det-meta-valor accent">{{ agendamento.numero_pedido }}</div>
+            <div class="det-meta-valor accent">{% if agendamento.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ agendamento.numero_pedido }}{% endif %}</div>
           </div>
           <div class="det-meta-item">
             <div class="det-meta-label">Tipo de Carga</div>

@@ -57,7 +57,7 @@
         <i class="fa-solid fa-triangle-exclamation fa-lg flex-shrink-0"></i>
         <div class="flex-grow-1">
             <strong>Prazo de NF-e vencendo!</strong>
-            Agendamento <strong>#{{ ag.pk }}</strong> — PO: {{ ag.numero_pedido }} —
+            Agendamento <strong>#{{ ag.pk }}</strong> — PO: {% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %} —
             Descarga em <strong>{{ ag.inicio|date:"d/m H:i" }}</strong>.
             Vincule a NF-e antes de <strong>{{ ag.prazo_vinculo_nfe|date:"d/m H:i" }}</strong>.
         </div>
@@ -158,19 +158,6 @@
                     </div>
                 </div>
 
-                {# Capacidade de multi-doca #}
-                <div style="font-size:.78rem;">
-                    {% if fornecedor.permite_multi_doca %}
-                    <span class="badge-fin badge rounded-pill px-2 py-1">
-                        <i class="fa-solid fa-check me-1"></i> Multi-doca habilitado
-                    </span>
-                    {% else %}
-                    <span class="badge-pre badge rounded-pill px-2 py-1">
-                        <i class="fa-solid fa-minus me-1"></i> Doca única por agendamento
-                    </span>
-                    {% endif %}
-                </div>
-
                 {% if fornecedor.bloqueado %}
                 <div class="alert-ordo-danger p-2 rounded-2 mt-3" style="font-size:.75rem;">
                     <i class="fa-solid fa-ban me-1"></i>
@@ -221,7 +208,7 @@
                                         <span class="badge-conf badge rounded-pill" style="font-size:.68rem;">{{ doca.codigo }}</span>
                                     {% empty %}—{% endfor %}
                                 </td>
-                                <td class="fw-semibold">{{ ag.numero_pedido }}</td>
+                                <td class="fw-semibold">{% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %}</td>
                                 <td>
                                     {% if ag.tipo_operacao == 'CROSS' %}
                                         <span style="background:rgba(139,92,246,.15); color:#a78bfa; border:1px solid rgba(139,92,246,.3); border-radius:999px; padding:2px 8px; font-size:.68rem; font-weight:700; white-space:nowrap;">
@@ -311,7 +298,7 @@
                             {% for ag in historico %}
                             <tr>
                                 <td>{{ ag.inicio|date:"d/m/Y H:i" }}</td>
-                                <td>{{ ag.numero_pedido }}</td>
+                                <td>{% if ag.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ ag.numero_pedido }}{% endif %}</td>
                                 <td>{{ ag.get_tipo_carga_display }}</td>
                                 <td>
                                     {% if ag.status == 'FINALIZADO' %}

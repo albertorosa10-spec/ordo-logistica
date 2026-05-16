@@ -2,7 +2,7 @@
 
 {% block title %}Agendamento #{{ agendamento.pk }} — Zakaz{% endblock %}
 {% block page_title %}Detalhe do Agendamento{% endblock %}
-{% block page_subtitle %}PO {{ agendamento.numero_pedido }}{% endblock %}
+{% block page_subtitle %}PO {% if agendamento.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ agendamento.numero_pedido }}{% endif %}{% endblock %}
 {% block nav_dash_ind %}active{% endblock %}
 
 {% block extra_css %}
@@ -110,7 +110,7 @@
                 <div class="col-6">
                     <div class="campo-label">Pedido de Compra (PO)</div>
                     <div class="campo-valor" style="font-family:monospace; font-size:1.1rem; color:var(--ordo-accent);">
-                        {{ agendamento.numero_pedido }}
+                        {% if agendamento.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ agendamento.numero_pedido }}{% endif %}
                     </div>
                 </div>
                 <div class="col-6">

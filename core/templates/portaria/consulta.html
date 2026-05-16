@@ -180,7 +180,7 @@
                 </div>
                 <div class="result-row">
                     <span class="result-row-label">Pedido (PO)</span>
-                    <span class="result-row-val">{{ agendamento.numero_pedido }}</span>
+                    <span class="result-row-val">{% if agendamento.numero_pedido == 'CROSS-SEM-PO' %}A definir{% else %}{{ agendamento.numero_pedido }}{% endif %}</span>
                 </div>
                 <div class="result-row">
                     <span class="result-row-label">Data / Horário</span>

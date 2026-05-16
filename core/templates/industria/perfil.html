@@ -129,19 +129,7 @@
                 <span class="fw-semibold">Permissões</span>
             </div>
             <div class="ordo-card-body">
-                <div class="d-flex align-items-center justify-content-between py-2"
-                     style="border-bottom:1px solid var(--ordo-border);">
-                    <span style="font-size:.82rem;">Agendamento Multi-Doca</span>
-                    {% if fornecedor.permite_multi_doca %}
-                    <span class="badge-fin badge rounded-pill px-2">
-                        <i class="fa-solid fa-check me-1"></i> Habilitado
-                    </span>
-                    {% else %}
-                    <span class="badge-pre badge rounded-pill px-2">
-                        <i class="fa-solid fa-minus me-1"></i> Não habilitado
-                    </span>
-                    {% endif %}
-                </div>
+
                 <div class="d-flex align-items-center justify-content-between py-2">
                     <span style="font-size:.82rem;">Status da Conta</span>
                     {% if fornecedor.bloqueado %}
