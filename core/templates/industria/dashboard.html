@@ -230,7 +230,7 @@
                                 </td>
 
                                 {# Ação: vincular NF-e se dentro do prazo, badge "Expirado" se vencido #}
-                                <td>
+                                <td onclick="event.stopPropagation();">
                                     {% if ag.status == 'PRE_AGENDADO' and not ag.nfe_validada %}
                                         {% if ag.prazo_expirado %}
                                             <span class="badge-canc badge rounded-pill px-2" style="font-size:.68rem;">
@@ -243,6 +243,12 @@
                                                 <i class="fa-solid fa-link me-1"></i> Vincular NF-e
                                             </a>
                                         {% endif %}
+                                    {% elif ag.nfe_validada and ag.tipo_operacao == 'CROSS' %}
+                                        <a href="{% url 'industria_nfe' ag.pk %}"
+                                           class="btn btn-sm"
+                                           style="background:rgba(255,183,3,.12); color:var(--ordo-yellow); border:1px solid rgba(255,183,3,.3); border-radius:8px; font-size:.68rem; font-weight:700; white-space:nowrap;">
+                                            <i class="fa-solid fa-file-pdf me-1"></i> Doc. PDF
+                                        </a>
                                     {% elif ag.nfe_validada %}
                                         <i class="fa-solid fa-circle-check" style="color:var(--ordo-green);" title="NF-e vinculada"></i>
                                     {% else %}
