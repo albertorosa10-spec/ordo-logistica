@@ -569,14 +569,23 @@
   <div class="up-card">
     <div class="up-card-header">
       <div class="up-card-icon">
-        <i class="fa-solid fa-file-arrow-up"></i>
+        {% if agendamento.tipo_operacao == 'CROSS' %}
+          <i class="fa-solid fa-file-arrow-up" style="color:var(--up-yellow);"></i>
+        {% else %}
+          <i class="fa-solid fa-file-arrow-up"></i>
+        {% endif %}
       </div>
       <div>
-        <div class="up-card-title">Upload do Arquivo XML da NF-e</div>
-        <div class="up-card-sub">
-          Destinatário esperado: <strong style="color:var(--up-text);">{{ empresa_operadora.razao_social }}</strong>
-          &nbsp;·&nbsp; CNPJ: <code style="color:var(--up-accent);">{{ empresa_operadora.cnpj }}</code>
-        </div>
+        {% if agendamento.tipo_operacao == 'CROSS' %}
+          <div class="up-card-title">Upload de Documento — Crossdocking</div>
+          <div class="up-card-sub">XML da NF-e (opcional) ou PDF de documentação</div>
+        {% else %}
+          <div class="up-card-title">Upload do Arquivo XML da NF-e</div>
+          <div class="up-card-sub">
+            Destinatário esperado: <strong style="color:var(--up-text);">{{ empresa_operadora.razao_social }}</strong>
+            &nbsp;·&nbsp; CNPJ: <code style="color:var(--up-accent);">{{ empresa_operadora.cnpj }}</code>
+          </div>
+        {% endif %}
       </div>
     </div>
 
@@ -613,18 +622,35 @@
 
         {# ---- Zona Drag & Drop ---- #}
         <div class="up-dropzone" id="dropzone" role="button" tabindex="0"
-             aria-label="Área para arrastar e soltar arquivo XML da NF-e">
+             aria-label="Área para arrastar e soltar arquivo da NF-e">
+          {% if agendamento.tipo_operacao == 'CROSS' %}
+          <input type="file"
+                 name="arquivo_nfe"
+                 id="id_arquivo_nfe"
+                 accept=".xml,text/xml,application/xml,.pdf,application/pdf"
+                 aria-label="Selecionar arquivo XML ou PDF">
+          {% else %}
           <input type="file"
                  name="arquivo_nfe"
                  id="id_arquivo_nfe"
                  accept=".xml,text/xml,application/xml"
                  multiple
                  aria-label="Selecionar arquivos XML da NF-e">
+          {% endif %}
 
           <div class="up-dz-icon" id="dz-icon">
             <i class="fa-solid fa-cloud-arrow-up"></i>
           </div>
 
+          {% if agendamento.tipo_operacao == 'CROSS' %}
+          <div class="up-dz-title" id="dz-title">
+            Arraste o arquivo XML ou PDF aqui
+          </div>
+          <div class="up-dz-sub" id="dz-sub">
+            ou <span style="color:var(--up-accent); text-decoration:underline;">clique para selecionar</span>
+            &nbsp;·&nbsp; Aceita XML (.xml) ou PDF (.pdf) &nbsp;·&nbsp; Máx. 5 MB
+          </div>
+          {% else %}
           <div class="up-dz-title" id="dz-title">
             Arraste o arquivo XML aqui
           </div>
@@ -632,10 +658,11 @@
             ou <span style="color:var(--up-accent); text-decoration:underline;">clique para selecionar</span>
             &nbsp;·&nbsp; Selecione um ou mais arquivos XML (máximo 100) &nbsp;·&nbsp; Máx. 5 MB cada
           </div>
+          {% endif %}
 
           {# Nome do arquivo exibido após seleção #}
           <div class="up-file-selecionado" id="file-info">
-            <i class="fa-solid fa-file-code"></i>
+            <i class="fa-solid fa-file-code" id="file-icon"></i>
             <span class="up-file-nome" id="file-nome">—</span>
             <span id="file-size" style="font-size:.7rem; opacity:.7;"></span>
           </div>
@@ -653,7 +680,8 @@
 
       </form>
 
-      {# Legenda de como funciona #}
+      {# Legenda de como funciona — somente para DIRETA #}
+      {% if agendamento.tipo_operacao != 'CROSS' %}
       <div style="margin-top:1.5rem; font-size:.72rem; color:var(--up-text-dim); line-height:1.7;">
         <div style="font-weight:700; color:var(--up-text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:.4rem;">
           O que acontece ao processar:
@@ -671,6 +699,7 @@
           <span style="color:var(--up-accent);">④</span> Exibição do resumo para sua confirmação final
         </div>
       </div>
+      {% endif %}
 
     </div>
   </div>
@@ -713,8 +742,48 @@
     return (bytes / 1048576).toFixed(2) + ' MB';
   }
 
+  var fileIcon = document.getElementById('file-icon');
+  var isCross  = {{ agendamento.tipo_operacao|yesno:"false,true,false" }};
+  {% if agendamento.tipo_operacao == 'CROSS' %}isCross = true;{% else %}isCross = false;{% endif %}
+
   function onFilesChange(files) {
     if (!files || files.length === 0) return;
+
+    // CROSS: allow single PDF or single XML
+    if (isCross && files.length === 1) {
+      var f = files[0];
+      var isPdf = f.name.toLowerCase().endsWith('.pdf');
+      var isXml = f.name.toLowerCase().endsWith('.xml');
+      if (!isPdf && !isXml) {
+        dzTitle.textContent = 'Arquivo inválido: apenas .xml ou .pdf';
+        dzTitle.style.color = 'var(--up-red)';
+        dropzone.classList.remove('file-ok');
+        btnProc.disabled = true;
+        btnTexto.textContent = 'Corrija o arquivo e tente novamente';
+        return;
+      }
+      if (f.size > 5 * 1024 * 1024) {
+        dzTitle.textContent = f.name + ' (> 5 MB)';
+        dzTitle.style.color = 'var(--up-red)';
+        dropzone.classList.remove('file-ok');
+        btnProc.disabled = true;
+        btnTexto.textContent = 'Arquivo muito grande';
+        return;
+      }
+      dropzone.classList.add('file-ok');
+      dzTitle.textContent = 'Arquivo selecionado';
+      dzTitle.style.color = '';
+      dzSub.style.display = 'none';
+      dzIcon.innerHTML    = '<i class="fa-solid fa-file-circle-check"></i>';
+      if (fileIcon) fileIcon.className = isPdf ? 'fa-solid fa-file-pdf' : 'fa-solid fa-file-code';
+      fileNome.textContent = f.name;
+      fileSize.textContent = '(' + formatBytes(f.size) + ')';
+      fileInfo.classList.add('visivel');
+      btnProc.disabled     = false;
+      btnTexto.textContent = isPdf ? 'Vincular PDF ao Agendamento' : 'Processar XML da NF-e';
+      btnIcon.className    = isPdf ? 'fa-solid fa-paperclip' : 'fa-solid fa-magnifying-glass-chart';
+      return;
+    }
 
     var invalidos = [];
     var totalBytes = 0;
@@ -740,6 +809,7 @@
     dzTitle.style.color = '';
     dzSub.style.display = 'none';
     dzIcon.innerHTML    = '<i class="fa-solid fa-file-circle-check"></i>';
+    if (fileIcon) fileIcon.className = 'fa-solid fa-file-code';
 
     fileNome.textContent = n === 1 ? files[0].name : n + ' arquivos XML';
     fileSize.textContent = '(' + formatBytes(totalBytes) + ' total)';

@@ -198,11 +198,11 @@
     {# ---- CARD NF-e + TIMELINE ---- #}
     <div style="display:flex; flex-direction:column; gap:1.5rem;">
 
-        {# NF-e #}
+        {# NF-e / Documentos #}
         <div class="ordo-card">
             <div class="ordo-card-header">
                 <i class="fa-solid fa-file-invoice" style="color:var(--ordo-accent);"></i>
-                <span class="fw-semibold">NF-e</span>
+                <span class="fw-semibold">{% if agendamento.tipo_operacao == 'CROSS' %}Documentos{% else %}NF-e{% endif %}</span>
             </div>
             <div class="ordo-card-body">
                 {% if agendamento.nfe_validada %}
@@ -247,6 +247,29 @@
                         Prazo: até <strong style="color:var(--ordo-text);">{{ agendamento.prazo_vinculo_nfe|date:"d/m/Y H:i" }}</strong>
                     </div>
                     {% endif %}
+                {% endif %}
+
+                {# PDF documents for CROSS agendamentos #}
+                {% if agendamento.tipo_operacao == 'CROSS' %}
+                {% for doc in agendamento.nfe_arquivos.all %}
+                {% if doc.tipo_arquivo == 'PDF' %}
+                <div class="d-flex align-items-center gap-2 mt-3 p-2 rounded-2"
+                     style="background:rgba(255,183,3,.07); border:1px solid rgba(255,183,3,.2);">
+                    <i class="fa-solid fa-file-pdf" style="color:var(--ordo-yellow); font-size:1.2rem; flex-shrink:0;"></i>
+                    <div class="flex-grow-1" style="min-width:0;">
+                        <div style="font-size:.75rem; font-weight:600; color:var(--ordo-yellow);">Documento PDF</div>
+                        <div style="font-size:.68rem; color:var(--ordo-text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            Vinculado em {{ doc.criado_em|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
+                    <a href="{{ doc.arquivo.url }}" target="_blank" rel="noopener"
+                       class="btn btn-sm flex-shrink-0"
+                       style="background:rgba(255,183,3,.15); color:var(--ordo-yellow); border:1px solid rgba(255,183,3,.3); border-radius:6px; font-size:.72rem; font-weight:700;">
+                        <i class="fa-solid fa-download me-1"></i> Baixar
+                    </a>
+                </div>
+                {% endif %}
+                {% endfor %}
                 {% endif %}
             </div>
         </div>

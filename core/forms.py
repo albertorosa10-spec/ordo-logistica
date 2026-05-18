@@ -245,12 +245,12 @@ class LoginIndustriaForm(forms.Form):
 
 class UploadNFeXmlForm(forms.Form):
     arquivo_nfe = MultipleFileField(
-        label="Arquivos XML da NF-e",
-        help_text="Selecione um ou mais arquivos .xml (máx. 5 MB cada, até 100 arquivos)",
+        label="Arquivos da NF-e",
+        help_text="Selecione um ou mais arquivos .xml ou um arquivo .pdf (máx. 5 MB cada, até 100 arquivos)",
         required=False,
         widget=MultipleFileInput(attrs={
             'class': 'upload-file-input',
-            'accept': '.xml,text/xml,application/xml',
+            'accept': '.xml,text/xml,application/xml,.pdf,application/pdf',
             'id': 'id_arquivo_nfe',
         })
     )
@@ -258,12 +258,22 @@ class UploadNFeXmlForm(forms.Form):
     def clean_arquivo_nfe(self):
         arquivos = self.cleaned_data.get('arquivo_nfe') or []
         if not arquivos:
-            raise ValidationError("Selecione pelo menos um arquivo XML.")
+            raise ValidationError("Selecione pelo menos um arquivo.")
         if len(arquivos) > 100:
             raise ValidationError("Limite de 100 arquivos por envio.")
+
+        # Single PDF: pass through without XML validation (CROSS only path)
+        if len(arquivos) == 1 and arquivos[0].name.lower().endswith('.pdf'):
+            arquivo = arquivos[0]
+            if arquivo.size > 5 * 1024 * 1024:
+                raise ValidationError(
+                    f'"{arquivo.name}": arquivo muito grande ({arquivo.size // 1024} KB). Limite: 5 MB.'
+                )
+            return arquivos
+
         for arquivo in arquivos:
             if not arquivo.name.lower().endswith('.xml'):
-                raise ValidationError(f'"{arquivo.name}": apenas arquivos .xml são aceitos.')
+                raise ValidationError(f'"{arquivo.name}": apenas arquivos .xml são aceitos (ou um único .pdf).')
             if arquivo.size > 5 * 1024 * 1024:
                 raise ValidationError(
                     f'"{arquivo.name}": arquivo muito grande ({arquivo.size // 1024} KB). Limite: 5 MB.'

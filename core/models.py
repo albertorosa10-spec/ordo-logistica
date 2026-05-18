@@ -247,16 +247,21 @@ class Agendamento(models.Model):
 
 
 class NFeArquivo(models.Model):
-    agendamento = models.ForeignKey(
+    TIPO_ARQUIVO_CHOICES = [('XML', 'XML'), ('PDF', 'PDF')]
+
+    agendamento  = models.ForeignKey(
         Agendamento, on_delete=models.CASCADE, related_name='nfe_arquivos'
     )
-    chave     = models.CharField('Chave NF-e', max_length=44)
-    arquivo   = models.FileField('XML', upload_to='xmls/%Y/%m/')
-    aprovado  = models.BooleanField('Aprovado', null=True, default=None)  # None=pendente
-    criado_em = models.DateTimeField(auto_now_add=True)
+    tipo_arquivo = models.CharField('Tipo', max_length=3, choices=TIPO_ARQUIVO_CHOICES, default='XML')
+    chave        = models.CharField('Chave NF-e', max_length=44, blank=True, default='')
+    arquivo      = models.FileField('Arquivo', upload_to='xmls/%Y/%m/')
+    aprovado     = models.BooleanField('Aprovado', null=True, default=None)  # None=pendente
+    criado_em    = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.chave[-6:]} — Ag.#{self.agendamento_id}"
+        if self.tipo_arquivo == 'PDF':
+            return f"PDF — Ag.#{self.agendamento_id}"
+        return f"{self.chave[-6:] if self.chave else '?'} — Ag.#{self.agendamento_id}"
 
     class Meta:
         verbose_name        = 'Arquivo NF-e'

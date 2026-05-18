@@ -327,9 +327,32 @@ def upload_nfe(request, agendamento_id):
     erro_validacao = None
 
     if request.method == 'POST' and form.is_valid():
-        empresa  = EmpresaOperadora.objects.filter(ativa=True).first()
+        arquivos = form.cleaned_data['arquivo_nfe']
+
+        # CROSS: detect PDF upload (single file ending in .pdf)
+        primeiro_arquivo = arquivos[0] if arquivos else None
+        is_pdf_upload = (
+            is_cross
+            and len(arquivos) == 1
+            and primeiro_arquivo is not None
+            and primeiro_arquivo.name.lower().endswith('.pdf')
+        )
+
+        if is_pdf_upload:
+            # PDF path: no XML parsing, store as PDF document, keep CONFIRMADO status
+            arquivo = primeiro_arquivo
+            arquivo.seek(0)
+            conteudo = arquivo.read()
+            nome = arquivo.name.split('/')[-1]
+
+            nfe_obj = NFeArquivo(agendamento=agendamento, tipo_arquivo='PDF', chave='', aprovado=True)
+            nfe_obj.arquivo.save(nome, ContentFile(conteudo), save=True)
+
+            messages.success(request, "Documento PDF vinculado ao agendamento.")
+            return redirect('dashboard_industria')
+
+        empresa   = EmpresaOperadora.objects.filter(ativa=True).first()
         cnpj_dest = empresa.cnpj if empresa else ""
-        arquivos  = form.cleaned_data['arquivo_nfe']
 
         # Valida cada arquivo e extrai chave
         erros        = []
@@ -377,14 +400,20 @@ def upload_nfe(request, agendamento_id):
                 primeiro['nome'], ContentFile(primeiro['conteudo']), save=False
             )
             agendamento.chave_nfe = ",".join(chaves)
-            agendamento.status    = 'AGUARDANDO_FISCAL'
-            agendamento.save()
 
-            messages.warning(
-                request,
-                f"⚠️ {len(dados)} NF-e(s) recebida(s). Seu agendamento entrou em 'Pré-entrada Fiscal'. "
-                "Aguarde a liberação do nosso setor interno para confirmar sua entrada."
-            )
+            if is_cross:
+                # CROSS XML upload: auto-confirm, no fiscal queue
+                agendamento.nfe_validada = True
+                agendamento.save()
+                messages.success(request, "XML da NF-e vinculado ao agendamento Crossdocking.")
+            else:
+                agendamento.status = 'AGUARDANDO_FISCAL'
+                agendamento.save()
+                messages.warning(
+                    request,
+                    f"⚠️ {len(dados)} NF-e(s) recebida(s). Seu agendamento entrou em 'Pré-entrada Fiscal'. "
+                    "Aguarde a liberação do nosso setor interno para confirmar sua entrada."
+                )
             return redirect('dashboard_industria')
 
     return render(request, 'industria/upload_nfe.html', {
