@@ -5,98 +5,275 @@
 {% block main_wrapper_class %}{% endblock %}
 
 {% block extra_css %}
-.cli-login-hero {
+.login-wrapper {
     min-height: 100vh;
-    background:
-        radial-gradient(ellipse at 20% 50%, rgba(139,92,246,0.08) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 20%, rgba(0,180,216,0.06) 0%, transparent 60%),
-        var(--ordo-bg);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--ordo-bg);
+}
+
+@media (max-width: 768px) {
+    .login-wrapper { grid-template-columns: 1fr; }
+    .login-brand   { display: none; }
+}
+
+/* LADO ESQUERDO */
+.login-brand {
+    background: #0A1628;
+    border-right: 1px solid rgba(0,200,150,0.15);
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
-    padding: 2rem;
+    align-items: center;
+    padding: 4rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
 }
-.cli-login-card {
-    background: var(--ordo-surface);
-    border: 1px solid rgba(139,92,246,0.25);
-    border-radius: 20px;
-    padding: 2.5rem 2rem;
+.login-brand::before {
+    content: '';
+    position: absolute;
+    top: -100px; left: -100px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(0,200,150,0.07) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.brand-logo {
+    font-size: 2.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #00C896, #0077B6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -2px;
+    margin-bottom: 0.2rem;
+    line-height: 1;
+}
+.brand-portal-label {
+    font-size: 0.65rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #00C896;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+.brand-divider {
+    width: 48px; height: 1px;
+    background: linear-gradient(90deg, transparent, #00C896, transparent);
+    margin: 0 auto 1.5rem;
+}
+.brand-tagline {
+    font-size: 0.88rem;
+    color: #8892B0;
+    line-height: 1.65;
+    max-width: 320px;
+    margin-bottom: 3rem;
+}
+.brand-icon-wrap {
+    width: 88px; height: 88px;
+    border-radius: 22px;
+    background: rgba(0,200,150,0.08);
+    border: 1px solid rgba(0,200,150,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.2rem;
+    color: #00C896;
+}
+
+/* LADO DIREITO */
+.login-form-side {
+    background: #0d1520;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 3rem 2rem;
+}
+.login-form-box {
     width: 100%;
-    max-width: 420px;
+    max-width: 400px;
 }
-.cli-logo {
-    font-size: 2rem; font-weight: 800; letter-spacing: -1.5px;
-    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text; line-height: 1;
-    text-align: center; margin-bottom: 0.2rem;
+.login-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #CCD6F6;
+    margin-bottom: 0.35rem;
+    letter-spacing: -0.3px;
 }
-.cli-logo-sub {
-    font-size: .68rem; letter-spacing: 4px; text-transform: uppercase;
-    color: var(--ordo-text-dim); text-align: center; margin-bottom: 2rem;
+.login-subtitle {
+    font-size: 0.82rem;
+    color: #8892B0;
+    margin-bottom: 2rem;
 }
-.cli-label {
-    font-size: .72rem; text-transform: uppercase; letter-spacing: .5px;
-    color: var(--ordo-text-dim); margin-bottom: 6px; display: block;
+
+.cli-field-icon {
+    position: relative;
+    margin-bottom: 1.25rem;
 }
-.cli-input {
-    width: 100%; background: var(--ordo-surface-2);
-    border: 1.5px solid var(--ordo-border); color: var(--ordo-text);
-    border-radius: 10px; padding: .8rem 1rem; font-size: .95rem;
-    font-family: inherit; margin-bottom: 1rem;
+.cli-field-icon .field-icon {
+    position: absolute;
+    left: 14px; top: 50%; transform: translateY(-50%);
+    color: #8892B0; font-size: 0.85rem;
+    pointer-events: none;
 }
-.cli-input:focus { outline: 2px solid #8b5cf6; border-color: #8b5cf6; }
-.cli-btn {
-    width: 100%; background: #8b5cf6; color: #fff;
-    border: none; border-radius: 10px; padding: .85rem 1.5rem;
-    font-size: .95rem; font-weight: 700; cursor: pointer;
-    margin-top: .5rem; transition: filter .15s;
+.cli-field-icon input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #CCD6F6;
+    border-radius: 10px;
+    padding: 0.82rem 1rem 0.82rem 2.6rem;
+    font-size: 0.92rem;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
-.cli-btn:hover { filter: brightness(.92); }
-.cli-error {
-    background: rgba(255,77,109,.1); border: 1px solid rgba(255,77,109,.3);
-    border-radius: 10px; padding: .85rem 1rem; margin-bottom: 1rem;
-    font-size: .88rem; color: var(--ordo-red); text-align: center;
+.cli-field-icon input:focus {
+    outline: none;
+    border-color: #00C896;
+    box-shadow: 0 0 0 3px rgba(0,200,150,0.12);
 }
-.cli-back {
-    margin-top: 1.5rem; font-size: .78rem; color: var(--ordo-text-dim);
+.cli-field-icon input::placeholder { color: #4a5568; }
+
+.cli-field-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #8892B0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.btn-cli-login {
+    width: 100%;
+    background: #00C896;
+    color: #071018;
+    border: none;
+    border-radius: 10px;
+    padding: 0.88rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    margin-top: 0.25rem;
+    transition: filter 0.2s, transform 0.2s;
+}
+.btn-cli-login:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+
+.cli-login-error {
+    background: rgba(255,77,109,0.08);
+    border: 1px solid rgba(255,77,109,0.25);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+    color: #FF4D6D;
+}
+.cli-login-notice {
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.75rem;
+    color: #4a5568;
+    line-height: 1.6;
     text-align: center;
 }
-.cli-back a { color: #8b5cf6; text-decoration: none; }
+.login-back {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.78rem;
+}
+.login-back a { color: #00C896; text-decoration: none; font-weight: 500; }
+.login-back a:hover { text-decoration: underline; }
 {% endblock %}
 
 {% block content %}
-<div class="cli-login-hero">
-    <div class="cli-login-card fade-in">
-        <div class="cli-logo">ZAKAZ</div>
-        <div class="cli-logo-sub">Portal do Cliente</div>
+<div class="login-wrapper">
 
-        {% if error %}
-        <div class="cli-error">
-            <i class="fa-solid fa-circle-exclamation me-2"></i>{{ error }}
+    <!-- LADO ESQUERDO: Brand -->
+    <div class="login-brand fade-in">
+        <div class="brand-logo">ZAKAZ</div>
+        <div class="brand-portal-label">Portal do Cliente</div>
+        <div class="brand-divider"></div>
+        <p class="brand-tagline">
+            Acompanhe o status das suas entregas em tempo real.
+        </p>
+        <div class="brand-icon-wrap">
+            <i class="fa-solid fa-boxes-stacked"></i>
         </div>
-        {% endif %}
-
-        <form method="post" novalidate>
-            {% csrf_token %}
-            <label class="cli-label" for="cnpj">CNPJ da empresa</label>
-            <input id="cnpj" type="text" name="cnpj" class="cli-input"
-                   placeholder="00.000.000/0000-00"
-                   value="{{ cnpj_val }}" maxlength="18" autofocus required>
-
-            <label class="cli-label" for="password">Senha</label>
-            <input id="password" type="password" name="password" class="cli-input"
-                   placeholder="••••••••" required>
-
-            <button type="submit" class="cli-btn">
-                <i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Entrar
-            </button>
-        </form>
     </div>
 
-    <div class="cli-back fade-in fade-in-delay-1">
-        <a href="{% url 'home' %}"><i class="fa-solid fa-arrow-left me-1"></i> Voltar ao início</a>
+    <!-- LADO DIREITO: Formulário -->
+    <div class="login-form-side">
+        <div class="login-form-box fade-in fade-in-delay-1">
+
+            <p class="login-title">Acesso ao Portal</p>
+            <p class="login-subtitle">Use suas credenciais de acesso.</p>
+
+            {% if error %}
+            <div class="cli-login-error">
+                <i class="fa-solid fa-circle-exclamation me-2"></i>{{ error }}
+            </div>
+            {% endif %}
+
+            <form method="post" novalidate id="cli-login-form">
+                {% csrf_token %}
+
+                <div>
+                    <label class="cli-field-label" for="cli-cnpj">
+                        <i class="fa-solid fa-building me-1"></i> CNPJ
+                    </label>
+                    <div class="cli-field-icon">
+                        <i class="fa-solid fa-building field-icon"></i>
+                        <input id="cli-cnpj" type="text" name="cnpj"
+                               placeholder="00.000.000/0000-00"
+                               value="{{ cnpj_val }}"
+                               maxlength="18" autofocus required>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="cli-field-label" for="cli-senha">
+                        <i class="fa-solid fa-lock me-1"></i> Senha
+                    </label>
+                    <div class="cli-field-icon">
+                        <i class="fa-solid fa-lock field-icon"></i>
+                        <input id="cli-senha" type="password" name="password"
+                               placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-cli-login" id="btn-cli-submit">
+                    <i class="fa-solid fa-right-to-bracket me-2"></i>Entrar
+                </button>
+            </form>
+
+            <div class="cli-login-notice">
+                <i class="fa-solid fa-shield-halved me-1" style="color:#00C896;"></i>
+                O acesso ao portal é fornecido exclusivamente pela equipe AG Simões.
+            </div>
+
+            <div class="login-back mt-3">
+                <a href="{% url 'home' %}">
+                    <i class="fa-solid fa-arrow-left fa-xs me-1"></i> Voltar para a Home
+                </a>
+            </div>
+
+        </div>
     </div>
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('cli-login-form').addEventListener('submit', function() {
+        const btn = document.getElementById('btn-cli-submit');
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Verificando...';
+        btn.disabled = true;
+    });
+</script>
 {% endblock %}

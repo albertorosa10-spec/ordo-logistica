@@ -981,6 +981,7 @@ def cliente_dashboard(request):
         'entregues':     entregues[:30],
         'total_ativos':  total_ativos,
         'entregues_mes': entregues_mes,
+        'agora':         agora,
     })
 
 

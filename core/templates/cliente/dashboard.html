@@ -5,273 +5,498 @@
 {% block main_wrapper_class %}{% endblock %}
 
 {% block extra_css %}
-.cli-dash {
+/* ================================================
+   LAYOUT: sidebar fixa + área principal
+   ================================================ */
+.cli-layout {
+    display: flex;
     min-height: 100vh;
-    background:
-        radial-gradient(ellipse at 10% 30%, rgba(139,92,246,0.06) 0%, transparent 60%),
-        var(--ordo-bg);
-    padding: 2rem 1.5rem;
+    background: #0d1520;
+}
+
+/* ---- SIDEBAR ---- */
+.cli-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: #0A1628;
+    border-right: 1px solid rgba(255,255,255,0.06);
     display: flex;
     flex-direction: column;
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    z-index: 100;
+}
+
+.cli-sb-logo {
+    padding: 1.4rem 1.4rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.cli-sb-logo .logo-mark {
+    font-size: 1.4rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #00C896, #0077B6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+    line-height: 1;
+}
+.cli-sb-logo .logo-portal {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: #00C896;
+    margin-top: 3px;
+    font-weight: 600;
+}
+
+.cli-sb-divider {
+    height: 1px;
+    background: linear-gradient(90deg, rgba(0,200,150,0.3), transparent);
+    margin: 0.1rem 1.4rem 0.75rem;
+}
+
+.cli-sb-nav {
+    flex: 1;
+    padding: 0.25rem 0.75rem;
+}
+.cli-sb-nav-item {
+    display: flex;
     align-items: center;
+    gap: 0.7rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #8892B0;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 2px;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+}
+.cli-sb-nav-item i { width: 16px; text-align: center; font-size: 0.82rem; }
+.cli-sb-nav-item:hover { background: rgba(255,255,255,0.04); color: #CCD6F6; }
+.cli-sb-nav-item.active {
+    background: rgba(0,200,150,0.08);
+    color: #00C896;
+    border: 1px solid rgba(0,200,150,0.15);
 }
 
-/* Topo */
+.cli-sb-footer {
+    padding: 0.85rem 1.1rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+.cli-sb-cliente-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #CCD6F6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+    margin-bottom: 1px;
+}
+.cli-sb-cliente-role {
+    font-size: 0.66rem;
+    color: #8892B0;
+    margin-bottom: 0.65rem;
+}
+.cli-sb-logout-btn {
+    font-size: 0.72rem;
+    color: rgba(255,77,109,0.6);
+    background: none;
+    border: 1px solid rgba(255,77,109,0.2);
+    border-radius: 6px;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.cli-sb-logout-btn:hover {
+    color: #FF4D6D;
+    border-color: rgba(255,77,109,0.5);
+}
+
+/* ---- ÁREA PRINCIPAL ---- */
+.cli-main {
+    margin-left: 220px;
+    flex: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
 .cli-topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    width: 100%; max-width: 900px; margin-bottom: 2rem;
-    gap: 1rem; flex-wrap: wrap;
+    background: #0A1628;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
-.cli-brand { font-size: 1.5rem; font-weight: 800; letter-spacing: -1px;
-    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text; line-height: 1; }
-.cli-brand-name { font-size: .78rem; color: var(--ordo-text-dim); margin-top: 2px; }
-.cli-logout {
-    font-size: .78rem; color: var(--ordo-text-dim); text-decoration: none;
-    border: 1px solid var(--ordo-border); border-radius: 8px;
-    padding: .4rem .9rem; transition: border-color .15s;
+.cli-page-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #CCD6F6;
+    letter-spacing: -0.2px;
+    line-height: 1.2;
 }
-.cli-logout:hover { border-color: #8b5cf6; color: #8b5cf6; }
+.cli-page-sub {
+    font-size: 0.75rem;
+    color: #00C896;
+    font-weight: 500;
+    margin-top: 1px;
+}
+.cli-topbar-date {
+    font-size: 0.75rem;
+    color: #8892B0;
+    text-align: right;
+}
 
-/* KPIs */
+.cli-body { padding: 2rem; flex: 1; }
+
+/* ---- KPIs ---- */
 .cli-kpis {
-    display: grid; grid-template-columns: repeat(2, 1fr);
-    gap: 1rem; width: 100%; max-width: 600px; margin-bottom: 2rem;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    max-width: 480px;
+    margin-bottom: 2rem;
 }
-@media (max-width: 400px) { .cli-kpis { grid-template-columns: 1fr; } }
+.cli-kpi {
+    background: #111e2d;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: border-color 0.2s;
+}
+.cli-kpi:hover { border-color: rgba(0,200,150,0.25); }
+.cli-kpi-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+.cli-kpi-val {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #CCD6F6;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+.cli-kpi-lbl {
+    font-size: 0.67rem;
+    color: #8892B0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
 
-.kpi-card {
-    background: var(--ordo-surface);
-    border: 1px solid var(--ordo-border);
-    border-radius: 14px; padding: 1.25rem 1rem;
-    text-align: center;
+/* ---- SEÇÃO ---- */
+.cli-section { margin-bottom: 2rem; }
+.cli-section-head {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #8892B0;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
-.kpi-val { font-size: 2rem; font-weight: 800; line-height: 1; }
-.kpi-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .5px;
-    color: var(--ordo-text-dim); margin-top: 4px; }
-.kpi-purple { color: #8b5cf6; }
-.kpi-green  { color: var(--ordo-green); }
-.kpi-yellow { color: var(--ordo-yellow); }
-.kpi-blue   { color: var(--ordo-accent); }
+.cli-section-head::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.05);
+}
 
-/* Tabelas */
-.cli-section {
-    width: 100%; max-width: 900px; margin-bottom: 2rem;
-}
-.cli-section-title {
-    font-size: .8rem; text-transform: uppercase; letter-spacing: 1px;
-    color: var(--ordo-text-dim); margin-bottom: .75rem;
-    display: flex; align-items: center; gap: .5rem;
-}
+/* ---- TABELA ---- */
 .cli-table-wrap {
-    background: var(--ordo-surface);
-    border: 1px solid var(--ordo-border);
-    border-radius: 14px; overflow: hidden;
+    background: #111e2d;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    overflow: hidden;
 }
 .cli-table {
-    width: 100%; border-collapse: collapse;
-    font-size: .88rem;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
 }
-.cli-table th {
-    padding: .75rem 1rem; text-align: left;
-    font-size: .68rem; text-transform: uppercase; letter-spacing: .5px;
-    color: var(--ordo-text-dim);
-    border-bottom: 1px solid var(--ordo-border);
+.cli-table thead th {
+    background: rgba(255,255,255,0.025);
+    padding: 0.7rem 1rem;
+    text-align: left;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #8892B0;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    white-space: nowrap;
 }
-.cli-table td {
-    padding: .85rem 1rem;
+.cli-table tbody td {
+    padding: 0.82rem 1rem;
     border-bottom: 1px solid rgba(255,255,255,0.04);
     vertical-align: middle;
+    color: #CCD6F6;
 }
-.cli-table tr:last-child td { border-bottom: none; }
+.cli-table tbody tr:last-child td { border-bottom: none; }
 .cli-table tbody tr:hover { background: rgba(255,255,255,0.02); }
 
-/* Badges de status */
-.badge-status {
-    display: inline-flex; align-items: center; gap: .35rem;
-    font-size: .72rem; font-weight: 600; padding: .25rem .65rem;
-    border-radius: 20px; white-space: nowrap;
+.mono { font-family: 'Courier New', monospace; color: #00C896; font-weight: 600; font-size: 0.83rem; }
+
+/* ---- BADGES ---- */
+.b {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    font-size: 0.72rem; font-weight: 600;
+    padding: 0.22rem 0.6rem;
+    border-radius: 6px;
+    white-space: nowrap;
 }
-.badge-confirmado { background: rgba(0,180,216,.12); color: var(--ordo-accent); }
-.badge-patio      { background: rgba(255,183,3,.12);  color: var(--ordo-yellow); }
-.badge-descarga   { background: rgba(139,92,246,.12); color: #a78bfa; }
-.badge-pre        { background: rgba(136,146,176,.1); color: var(--ordo-text-dim); }
-.badge-entregue   { background: rgba(0,212,160,.12);  color: var(--ordo-green); }
+.b-integral  { background: rgba(0,200,150,0.1);  color: #00C896; }
+.b-parcial   { background: rgba(255,183,3,0.1);   color: #FFB703; }
+.b-agendado  { background: rgba(0,180,216,0.1);   color: #4fc3f7; }
+.b-patio     { background: rgba(255,140,0,0.1);   color: #ffa040; }
+.b-descarga  { background: rgba(139,92,246,0.1);  color: #a78bfa; }
+.b-process   { background: rgba(136,146,176,0.08); color: #8892B0; }
+.b-entregue  { background: rgba(0,200,150,0.08);  color: #00C896; }
 
 .cli-empty {
-    padding: 2rem; text-align: center;
-    color: var(--ordo-text-dim); font-size: .88rem;
+    padding: 2.5rem;
+    text-align: center;
+    color: #8892B0;
+    font-size: 0.85rem;
 }
+.cli-empty i { font-size: 1.5rem; display: block; margin-bottom: 0.5rem; opacity: 0.4; }
 
-@media (max-width: 600px) {
-    .cli-table th:nth-child(3),
-    .cli-table td:nth-child(3) { display: none; }
+/* ---- RESPONSIVO ---- */
+@media (max-width: 900px) {
+    .cli-sidebar { width: 60px; }
+    .cli-sb-logo .logo-mark { font-size: 1rem; }
+    .cli-sb-logo .logo-portal,
+    .cli-sb-nav-item span,
+    .cli-sb-cliente-name,
+    .cli-sb-cliente-role { display: none; }
+    .cli-sb-nav-item { justify-content: center; padding: 0.6rem; }
+    .cli-sb-nav-item i { width: auto; }
+    .cli-sb-footer { padding: 0.75rem; }
+    .cli-main { margin-left: 60px; }
+    .cli-kpis { max-width: 100%; }
+}
+@media (max-width: 640px) {
+    .cli-body { padding: 1.25rem; }
+    .cli-topbar { padding: 0.85rem 1.25rem; }
+    .cli-table thead th:nth-child(2),
+    .cli-table tbody td:nth-child(2) { display: none; }
 }
 {% endblock %}
 
 {% block content %}
-<div class="cli-dash">
+<div class="cli-layout">
 
-    <!-- Topbar -->
-    <div class="cli-topbar fade-in">
-        <div>
-            <div class="cli-brand">ZAKAZ</div>
-            <div class="cli-brand-name">{{ cliente.razao_social }}</div>
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="cli-sidebar">
+        <div class="cli-sb-logo">
+            <div class="logo-mark">ZAKAZ</div>
+            <div class="logo-portal">Portal do Cliente</div>
         </div>
-        <form method="post" action="{% url 'cliente_logout' %}">
-            {% csrf_token %}
-            <button type="submit" class="cli-logout">
-                <i class="fa-solid fa-right-from-bracket me-1"></i>Sair
-            </button>
-        </form>
-    </div>
+        <div class="cli-sb-divider"></div>
 
-    <!-- KPIs -->
-    <div class="cli-kpis fade-in fade-in-delay-1">
-        <div class="kpi-card">
-            <div class="kpi-val kpi-purple">{{ total_ativos }}</div>
-            <div class="kpi-label">Pedidos Ativos</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-val kpi-green">{{ entregues_mes }}</div>
-            <div class="kpi-label">Entregues este Mês</div>
-        </div>
-    </div>
+        <nav class="cli-sb-nav">
+            <a class="cli-sb-nav-item active">
+                <i class="fa-solid fa-box-open"></i>
+                <span>Meus Pedidos</span>
+            </a>
+            <span class="cli-sb-nav-item" style="opacity:.4; cursor:default;">
+                <i class="fa-solid fa-user"></i>
+                <span>Minha Conta</span>
+            </span>
+        </nav>
 
-    <!-- Pedidos em Andamento -->
-    <div class="cli-section fade-in fade-in-delay-1">
-        <div class="cli-section-title">
-            <i class="fa-solid fa-circle-dot" style="color:#8b5cf6;"></i>
-            Pedidos em Andamento
+        <div class="cli-sb-footer">
+            <div class="cli-sb-cliente-name">{{ cliente.razao_social }}</div>
+            <div class="cli-sb-cliente-role">Cliente</div>
+            <form method="post" action="{% url 'cliente_logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="cli-sb-logout-btn">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Sair</span>
+                </button>
+            </form>
         </div>
-        <div class="cli-table-wrap">
-            {% if pendentes %}
-            <table class="cli-table">
-                <thead>
-                    <tr>
-                        <th>Nº Pedido</th>
-                        <th>Fornecedor</th>
-                        <th>Atendimento</th>
-                        <th>Agendado para</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% for item in pendentes %}
-                {% with p=item.pedido ag=item.ag %}
-                <tr>
-                    <td style="font-family:monospace; color:var(--ordo-accent); font-weight:600;">
-                        {{ p.numero_pedido_cliente }}
-                    </td>
-                    <td style="color:var(--ordo-text-dim);">
-                        {% if ag and ag.fornecedor %}{{ ag.fornecedor.razao_social }}{% else %}—{% endif %}
-                    </td>
-                    <td>
-                        {% if p.tipo_atendimento == 'INTEGRAL' %}
-                        <span style="color:var(--ordo-green); font-size:.8rem; font-weight:600;">Integral</span>
-                        {% else %}
-                        <span style="color:var(--ordo-yellow); font-size:.8rem; font-weight:600;">Parcial</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if ag and ag.inicio %}
-                            {{ ag.inicio|date:"d/m/Y" }}
-                            <span style="color:var(--ordo-text-dim); font-size:.8rem;">
-                                às {{ ag.inicio|date:"H:i" }}
-                            </span>
-                        {% else %}—{% endif %}
-                    </td>
-                    <td>
-                        {% if ag %}
-                            {% if ag.status == 'CONFIRMADO' %}
-                            <span class="badge-status badge-confirmado">
-                                <i class="fa-solid fa-calendar-check"></i> Agendado
-                            </span>
-                            {% elif ag.status == 'EM_PATIO' %}
-                            <span class="badge-status badge-patio">
-                                <i class="fa-solid fa-truck"></i> No Pátio
-                            </span>
-                            {% elif ag.status == 'EM_DESCARGA' %}
-                            <span class="badge-status badge-descarga">
-                                <i class="fa-solid fa-boxes-packing"></i> Em Descarga
-                            </span>
-                            {% else %}
-                            <span class="badge-status badge-pre">
-                                <i class="fa-solid fa-hourglass-half"></i> Em Processamento
-                            </span>
-                            {% endif %}
-                        {% else %}
-                        <span class="badge-status badge-pre">
-                            <i class="fa-solid fa-hourglass-half"></i> Pendente
-                        </span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endwith %}
-                {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <div class="cli-empty">
-                <i class="fa-solid fa-inbox me-2"></i>Nenhum pedido em andamento.
+    </aside>
+
+    <!-- ===== ÁREA PRINCIPAL ===== -->
+    <div class="cli-main">
+
+        <!-- Topbar -->
+        <div class="cli-topbar">
+            <div>
+                <div class="cli-page-title">Meus Pedidos</div>
+                <div class="cli-page-sub">{{ cliente.razao_social }}</div>
             </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Entregas Realizadas -->
-    <div class="cli-section fade-in fade-in-delay-2">
-        <div class="cli-section-title">
-            <i class="fa-solid fa-circle-check" style="color:var(--ordo-green);"></i>
-            Entregas Realizadas (últimos 30 dias)
-        </div>
-        <div class="cli-table-wrap">
-            {% if entregues %}
-            <table class="cli-table">
-                <thead>
-                    <tr>
-                        <th>Nº Pedido</th>
-                        <th>Fornecedor</th>
-                        <th>Atendimento</th>
-                        <th>Entregue em</th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% for item in entregues %}
-                {% with p=item.pedido ag=item.ag %}
-                <tr>
-                    <td style="font-family:monospace; color:var(--ordo-accent); font-weight:600;">
-                        {{ p.numero_pedido_cliente }}
-                    </td>
-                    <td style="color:var(--ordo-text-dim);">
-                        {% if ag.fornecedor %}{{ ag.fornecedor.razao_social }}{% else %}—{% endif %}
-                    </td>
-                    <td>
-                        {% if p.tipo_atendimento == 'INTEGRAL' %}
-                        <span style="color:var(--ordo-green); font-size:.8rem; font-weight:600;">Integral</span>
-                        {% else %}
-                        <span style="color:var(--ordo-yellow); font-size:.8rem; font-weight:600;">Parcial</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span class="badge-status badge-entregue">
-                            <i class="fa-solid fa-circle-check"></i>
-                            {{ ag.horario_finalizacao|date:"d/m/Y" }}
-                        </span>
-                    </td>
-                </tr>
-                {% endwith %}
-                {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <div class="cli-empty">
-                <i class="fa-solid fa-box-open me-2"></i>Nenhuma entrega nos últimos 30 dias.
+            <div class="cli-topbar-date">
+                <i class="fa-regular fa-calendar me-1"></i>
+                {{ agora|date:"d/m/Y" }}
             </div>
-            {% endif %}
         </div>
-    </div>
 
-</div>
+        <!-- Conteúdo -->
+        <div class="cli-body fade-in">
+
+            <!-- KPIs -->
+            <div class="cli-kpis">
+                <div class="cli-kpi">
+                    <div class="cli-kpi-icon" style="background:rgba(0,200,150,0.08); color:#00C896;">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                    <div>
+                        <div class="cli-kpi-val">{{ total_ativos }}</div>
+                        <div class="cli-kpi-lbl">Pedidos Ativos</div>
+                    </div>
+                </div>
+                <div class="cli-kpi">
+                    <div class="cli-kpi-icon" style="background:rgba(0,180,216,0.08); color:#4fc3f7;">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <div class="cli-kpi-val">{{ entregues_mes }}</div>
+                        <div class="cli-kpi-lbl">Entregues este mês</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela Em Andamento -->
+            <div class="cli-section">
+                <div class="cli-section-head">
+                    <i class="fa-solid fa-circle-dot" style="color:#00C896; font-size:0.6rem;"></i>
+                    Em Andamento
+                </div>
+                <div class="cli-table-wrap">
+                    {% if pendentes %}
+                    <table class="cli-table">
+                        <thead>
+                            <tr>
+                                <th>Nº Pedido</th>
+                                <th>Fornecedor</th>
+                                <th>Atendimento</th>
+                                <th>Agendado para</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in pendentes %}{% with p=item.pedido ag=item.ag %}
+                        <tr>
+                            <td><span class="mono">{{ p.numero_pedido_cliente }}</span></td>
+                            <td style="color:#8892B0;">
+                                {% if ag and ag.fornecedor %}{{ ag.fornecedor.razao_social }}{% else %}—{% endif %}
+                            </td>
+                            <td>
+                                {% if p.tipo_atendimento == 'INTEGRAL' %}
+                                <span class="b b-integral">Integral</span>
+                                {% else %}
+                                <span class="b b-parcial">Parcial</span>
+                                {% endif %}
+                            </td>
+                            <td style="color:#8892B0; font-size:0.83rem;">
+                                {% if ag and ag.inicio %}
+                                    {{ ag.inicio|date:"d/m/Y" }}
+                                    <span style="opacity:.6;">{{ ag.inicio|date:"H:i" }}</span>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td>
+                                {% if ag %}
+                                    {% if ag.status == 'CONFIRMADO' %}
+                                    <span class="b b-agendado"><i class="fa-solid fa-calendar-check"></i> Agendado</span>
+                                    {% elif ag.status == 'EM_PATIO' %}
+                                    <span class="b b-patio"><i class="fa-solid fa-truck"></i> No Pátio</span>
+                                    {% elif ag.status == 'EM_DESCARGA' %}
+                                    <span class="b b-descarga"><i class="fa-solid fa-boxes-packing"></i> Em Descarga</span>
+                                    {% else %}
+                                    <span class="b b-process"><i class="fa-solid fa-hourglass-half"></i> Em Processamento</span>
+                                    {% endif %}
+                                {% else %}
+                                <span class="b b-process"><i class="fa-solid fa-hourglass-half"></i> Pendente</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}{% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="cli-empty">
+                        <i class="fa-regular fa-inbox"></i>
+                        Nenhum pedido em andamento no momento.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Tabela Entregues -->
+            <div class="cli-section">
+                <div class="cli-section-head">
+                    <i class="fa-solid fa-circle-check" style="color:#4fc3f7; font-size:0.6rem;"></i>
+                    Entregues — Últimos 30 dias
+                </div>
+                <div class="cli-table-wrap">
+                    {% if entregues %}
+                    <table class="cli-table">
+                        <thead>
+                            <tr>
+                                <th>Nº Pedido</th>
+                                <th>Fornecedor</th>
+                                <th>Atendimento</th>
+                                <th>Entregue em</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in entregues %}{% with p=item.pedido ag=item.ag %}
+                        <tr>
+                            <td><span class="mono">{{ p.numero_pedido_cliente }}</span></td>
+                            <td style="color:#8892B0;">
+                                {% if ag.fornecedor %}{{ ag.fornecedor.razao_social }}{% else %}—{% endif %}
+                            </td>
+                            <td>
+                                {% if p.tipo_atendimento == 'INTEGRAL' %}
+                                <span class="b b-integral">Integral</span>
+                                {% else %}
+                                <span class="b b-parcial">Parcial</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="b b-entregue">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    {{ ag.horario_finalizacao|date:"d/m/Y" }}
+                                    <span style="opacity:.6; font-weight:400;">{{ ag.horario_finalizacao|date:"H:i" }}</span>
+                                </span>
+                            </td>
+                        </tr>
+                        {% endwith %}{% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="cli-empty">
+                        <i class="fa-regular fa-box-open"></i>
+                        Nenhuma entrega registrada nos últimos 30 dias.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div><!-- /cli-body -->
+    </div><!-- /cli-main -->
+</div><!-- /cli-layout -->
 {% endblock %}
