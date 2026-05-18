@@ -86,6 +86,80 @@
     transition: filter .15s; margin-top: .5rem;
 }
 .btn-processar:hover { filter: brightness(.9); }
+
+/* ---- Vínculo de Pedido do Cliente Final ---- */
+.vinc-card {
+    background: #1a2a3a; border: 1px solid var(--ordo-border);
+    border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+}
+.vinc-card.vinculado { border-color: #00C896; }
+.vinc-header {
+    display: flex; align-items: center; gap: .6rem;
+    margin-bottom: .75rem; font-weight: 700; font-size: .9rem;
+}
+.vinc-header .badge-pill {
+    margin-left: auto; font-size: .65rem; font-weight: 700;
+    padding: .25rem .65rem; border-radius: 999px;
+    background: rgba(0,200,150,.12); color: #00C896;
+    border: 1px solid rgba(0,200,150,.35);
+}
+.vinc-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: .65rem 1.25rem;
+}
+@media (max-width: 640px) { .vinc-grid { grid-template-columns: 1fr; } }
+.vinc-toggle {
+    display: inline-flex; align-items: center; gap: .5rem;
+    background: rgba(0,180,216,.08); color: var(--ordo-accent);
+    border: 1px dashed rgba(0,180,216,.35); border-radius: 8px;
+    padding: .55rem 1rem; font-size: .82rem; font-weight: 600;
+    cursor: pointer; transition: background .15s;
+}
+.vinc-toggle:hover { background: rgba(0,180,216,.16); }
+.vinc-form-wrapper { display: none; margin-top: 1rem; }
+.vinc-form-wrapper.aberto { display: block; }
+.vinc-field { margin-bottom: .85rem; }
+.vinc-label {
+    display: block; font-size: .7rem; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--ordo-text-dim); margin-bottom: 4px;
+}
+.vinc-input, .vinc-select, .vinc-textarea {
+    width: 100%; background: var(--ordo-surface-2);
+    border: 1px solid var(--ordo-border); color: var(--ordo-text);
+    border-radius: 8px; padding: .55rem .75rem; font-size: .85rem;
+    font-family: inherit;
+}
+.vinc-textarea { resize: vertical; min-height: 50px; }
+.vinc-input:focus, .vinc-select:focus, .vinc-textarea:focus {
+    outline: 2px solid var(--ordo-accent); border-color: var(--ordo-accent);
+}
+.vinc-radio-grupo { display: flex; gap: .5rem; }
+.vinc-radio-opt {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    gap: .4rem; padding: .5rem .65rem; border: 1.5px solid var(--ordo-border);
+    border-radius: 8px; cursor: pointer; font-size: .8rem; font-weight: 600;
+    user-select: none; transition: all .15s;
+}
+.vinc-radio-opt input { display: none; }
+.vinc-radio-opt.selecionado {
+    background: rgba(0,180,216,.12); color: var(--ordo-accent);
+    border-color: var(--ordo-accent);
+}
+.vinc-actions { display: flex; gap: .6rem; margin-top: .75rem; }
+.btn-vinc-save {
+    background: #00C896; color: #000; border: none; border-radius: 8px;
+    padding: .55rem 1.1rem; font-size: .85rem; font-weight: 700; cursor: pointer;
+}
+.btn-vinc-save:hover { filter: brightness(.92); }
+.btn-vinc-cancel {
+    background: transparent; color: var(--ordo-text-dim);
+    border: 1px solid var(--ordo-border); border-radius: 8px;
+    padding: .55rem 1.1rem; font-size: .85rem; cursor: pointer;
+}
+.btn-vinc-cancel:hover { color: var(--ordo-text); border-color: var(--ordo-text-dim); }
+.vinc-err {
+    font-size: .75rem; color: var(--ordo-red); margin-top: 4px;
+}
 {% endblock %}
 
 {% block content %}
@@ -182,6 +256,138 @@
 
     {# ---- COLUNA DIREITA: decisões por NF-e ---- #}
     <div class="col-lg-8">
+
+        {# ============ PEDIDO DE CLIENTE FINAL ============ #}
+        {% if pedido_existente %}
+        <div class="vinc-card vinculado" id="vinc-card">
+            <div class="vinc-header">
+                <i class="fa-solid fa-link" style="color:#00C896;"></i>
+                Pedido de Cliente Final
+                <span class="badge-pill">
+                    <i class="fa-solid fa-circle-check me-1"></i>Vinculado
+                </span>
+            </div>
+            <div class="vinc-grid">
+                <div>
+                    <div class="campo-label">Cliente</div>
+                    <div class="campo-valor">{{ pedido_existente.cliente.razao_social }}</div>
+                </div>
+                <div>
+                    <div class="campo-label">Nº do Pedido</div>
+                    <div class="campo-valor" style="font-family:monospace; color:var(--ordo-accent);">
+                        {{ pedido_existente.numero_pedido_cliente }}
+                    </div>
+                </div>
+                <div>
+                    <div class="campo-label">Tipo de Atendimento</div>
+                    <div class="campo-valor">{{ pedido_existente.get_tipo_atendimento_display }}</div>
+                </div>
+                <div>
+                    <div class="campo-label">Vinculado em</div>
+                    <div class="campo-valor" style="font-size:.82rem;">
+                        {{ pedido_existente.criado_em|date:"d/m/Y H:i" }}
+                    </div>
+                </div>
+                {% if pedido_existente.observacao %}
+                <div style="grid-column:1/-1;">
+                    <div class="campo-label">Observação</div>
+                    <div class="campo-valor" style="font-weight:400; font-size:.82rem;">
+                        {{ pedido_existente.observacao }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div style="margin-top:.85rem;">
+                <button type="button" class="vinc-toggle" onclick="abrirFormVinculo()">
+                    <i class="fa-solid fa-pen"></i> Editar vínculo
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <div class="vinc-card" id="vinc-card">
+            <div class="vinc-header">
+                <i class="fa-solid fa-link" style="color:var(--ordo-accent);"></i>
+                Pedido de Cliente Final
+            </div>
+            <button type="button" class="vinc-toggle" onclick="abrirFormVinculo()">
+                <i class="fa-solid fa-plus"></i> Vincular Pedido de Cliente Final
+            </button>
+        </div>
+        {% endif %}
+
+        {# ---- Formulário inline (toggle) ---- #}
+        <div class="vinc-form-wrapper {% if abrir_vinculo %}aberto{% endif %}" id="vinc-form-wrapper">
+            <div class="vinc-card">
+                <div class="vinc-header">
+                    <i class="fa-solid fa-pen-to-square" style="color:var(--ordo-accent);"></i>
+                    {% if pedido_existente %}Editar vínculo{% else %}Novo vínculo de pedido{% endif %}
+                </div>
+                <form method="post" id="form-vinculo">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="vincular_pedido">
+
+                    <div class="vinc-field">
+                        <label class="vinc-label" for="id_cliente">Cliente Final</label>
+                        <select name="cliente" id="id_cliente" class="vinc-select" required>
+                            <option value="">Selecione o cliente...</option>
+                            {% for c in vinculo_form.cliente.field.queryset %}
+                            <option value="{{ c.pk }}"
+                                {% if pedido_existente and pedido_existente.cliente_id == c.pk %}selected{% endif %}>
+                                {{ c.razao_social }}{% if c.cnpj %} — {{ c.cnpj }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if vinculo_form.cliente.errors %}
+                        <div class="vinc-err">{{ vinculo_form.cliente.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="vinc-field">
+                        <label class="vinc-label" for="id_numero_pedido_cliente">Nº do Pedido do Cliente</label>
+                        <input type="text" name="numero_pedido_cliente" id="id_numero_pedido_cliente"
+                               class="vinc-input" maxlength="50" required
+                               value="{{ pedido_existente.numero_pedido_cliente|default:'' }}"
+                               placeholder="Ex: PED-2026-001234">
+                        {% if vinculo_form.numero_pedido_cliente.errors %}
+                        <div class="vinc-err">{{ vinculo_form.numero_pedido_cliente.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="vinc-field">
+                        <label class="vinc-label">Tipo de Atendimento</label>
+                        <div class="vinc-radio-grupo">
+                            {% with sel=pedido_existente.tipo_atendimento|default:'INTEGRAL' %}
+                            <label class="vinc-radio-opt {% if sel == 'INTEGRAL' %}selecionado{% endif %}" data-val="INTEGRAL">
+                                <input type="radio" name="tipo_atendimento" value="INTEGRAL"
+                                    {% if sel == 'INTEGRAL' %}checked{% endif %}>
+                                <i class="fa-solid fa-check-double"></i> Integral
+                            </label>
+                            <label class="vinc-radio-opt {% if sel == 'PARCIAL' %}selecionado{% endif %}" data-val="PARCIAL">
+                                <input type="radio" name="tipo_atendimento" value="PARCIAL"
+                                    {% if sel == 'PARCIAL' %}checked{% endif %}>
+                                <i class="fa-solid fa-clipboard-check"></i> Parcial
+                            </label>
+                            {% endwith %}
+                        </div>
+                    </div>
+
+                    <div class="vinc-field">
+                        <label class="vinc-label" for="id_observacao">Observação (opcional)</label>
+                        <textarea name="observacao" id="id_observacao" class="vinc-textarea" rows="2"
+                                  placeholder="Detalhes adicionais...">{{ pedido_existente.observacao|default:'' }}</textarea>
+                    </div>
+
+                    <div class="vinc-actions">
+                        <button type="submit" class="btn-vinc-save">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Salvar Vínculo
+                        </button>
+                        <button type="button" class="btn-vinc-cancel" onclick="fecharFormVinculo()">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         {% if not nfe_list %}
         <div class="ordo-card">
@@ -301,8 +507,30 @@
 
 {% block extra_js %}
 <script>
+function abrirFormVinculo() {
+  var w = document.getElementById('vinc-form-wrapper');
+  if (w) w.classList.add('aberto');
+}
+function fecharFormVinculo() {
+  var w = document.getElementById('vinc-form-wrapper');
+  if (w) w.classList.remove('aberto');
+}
+
 (function () {
   'use strict';
+
+  // Radio: Tipo de Atendimento
+  document.querySelectorAll('.vinc-radio-opt').forEach(function (opt) {
+    opt.addEventListener('click', function () {
+      var grupo = this.parentElement;
+      grupo.querySelectorAll('.vinc-radio-opt').forEach(function (o) {
+        o.classList.remove('selecionado');
+      });
+      this.classList.add('selecionado');
+      var radio = this.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+    });
+  });
 
   document.querySelectorAll('.nfe-decisao-card').forEach(function (card) {
     var radios       = card.querySelectorAll('input[type="radio"]');

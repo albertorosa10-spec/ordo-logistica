@@ -14,8 +14,9 @@ urlpatterns = [
     # ------------------------------------------
     # PÚBLICO: Home e Portaria
     # ------------------------------------------
-    path('',          views.home,             name='home'),
-    path('portaria/', views.consulta_portaria, name='consulta'),
+    path('',              views.home,                 name='home'),
+    path('portaria/',     views.consulta_portaria,    name='consulta'),
+    path('rastreamento/', views.rastreamento_pedido,  name='rastreamento'),
 
     # ------------------------------------------
     # AUTH: Login e Logout (rotas canônicas)

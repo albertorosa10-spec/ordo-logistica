@@ -9,7 +9,8 @@ from django.utils.html import format_html
 from datetime import timedelta
 from .models import (
     EmpresaOperadora, Doca, Fornecedor,
-    Agendamento, AgendamentoDoca, LogAgendamento
+    Agendamento, AgendamentoDoca, LogAgendamento,
+    Cliente, PedidoCliente,
 )
 
 @admin.register(EmpresaOperadora)
@@ -152,3 +153,18 @@ class LogAgendamentoAdmin(admin.ModelAdmin):
     list_display    = ['agendamento', 'status_anterior', 'status_novo', 'data', 'usuario']
     list_filter     = ['status_novo']
     readonly_fields = ['agendamento', 'status_anterior', 'status_novo', 'data', 'usuario']
+
+
+@admin.register(Cliente)
+class ClienteAdmin(admin.ModelAdmin):
+    list_display  = ['razao_social', 'cnpj', 'dias_transito', 'ativo', 'criado_em']
+    list_filter   = ['ativo']
+    search_fields = ['razao_social', 'cnpj']
+
+
+@admin.register(PedidoCliente)
+class PedidoClienteAdmin(admin.ModelAdmin):
+    list_display  = ['numero_pedido_cliente', 'cliente', 'agendamento', 'tipo_atendimento', 'criado_em', 'criado_por']
+    list_filter   = ['tipo_atendimento', 'cliente']
+    search_fields = ['numero_pedido_cliente', 'cliente__razao_social']
+    readonly_fields = ['criado_em', 'criado_por']

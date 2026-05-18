@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+
+{% block title %}Rastreie seu Pedido — Zakaz{% endblock %}
+{% block body_class %}no-sidebar{% endblock %}
+{% block main_wrapper_class %}{% endblock %}
+
+{% block extra_css %}
+.rastr-hero {
+    min-height: 100vh;
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(0,180,216,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(0,212,160,0.05) 0%, transparent 60%),
+        var(--ordo-bg);
+    padding: 3rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.rastr-logo {
+    font-size: 2.2rem; font-weight: 800; letter-spacing: -1.5px;
+    background: linear-gradient(135deg, var(--ordo-accent), var(--ordo-green));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; line-height: 1;
+}
+.rastr-sub {
+    font-size: .72rem; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--ordo-text-dim); margin-bottom: 2rem;
+}
+.rastr-card {
+    background: var(--ordo-surface);
+    border: 1px solid var(--ordo-border);
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 540px;
+    width: 100%;
+    margin-bottom: 1.25rem;
+}
+.rastr-titulo {
+    font-size: 1.15rem; font-weight: 700; color: var(--ordo-text);
+    margin-bottom: .35rem; text-align: center;
+}
+.rastr-help {
+    font-size: .82rem; color: var(--ordo-text-dim);
+    text-align: center; margin-bottom: 1.5rem;
+}
+.rastr-input {
+    width: 100%; background: var(--ordo-surface-2);
+    border: 1.5px solid var(--ordo-border); color: var(--ordo-text);
+    border-radius: 10px; padding: .85rem 1rem; font-size: 1rem;
+    font-family: inherit; text-align: center; letter-spacing: 1px;
+}
+.rastr-input:focus { outline: 2px solid var(--ordo-accent); border-color: var(--ordo-accent); }
+.rastr-btn {
+    width: 100%; background: var(--ordo-accent); color: #000;
+    border: none; border-radius: 10px; padding: .85rem 1.5rem;
+    font-size: .95rem; font-weight: 700; cursor: pointer;
+    margin-top: 1rem; transition: filter .15s;
+}
+.rastr-btn:hover { filter: brightness(.92); }
+
+/* Card de status */
+.status-card {
+    border-radius: 16px; padding: 1.75rem;
+    text-align: center; margin-bottom: 1.25rem;
+}
+.status-card.fin   { background: linear-gradient(135deg, rgba(0,212,160,.12), rgba(0,180,216,.06)); border: 1px solid rgba(0,212,160,.3); }
+.status-card.desc  { background: linear-gradient(135deg, rgba(139,92,246,.12), rgba(0,180,216,.06)); border: 1px solid rgba(139,92,246,.3); }
+.status-card.patio { background: linear-gradient(135deg, rgba(255,183,3,.12), rgba(0,180,216,.06)); border: 1px solid rgba(255,183,3,.3); }
+.status-card.conf  { background: linear-gradient(135deg, rgba(0,180,216,.10), rgba(0,180,216,.04)); border: 1px solid rgba(0,180,216,.3); }
+.status-card.pre   { background: rgba(136,146,176,.07); border: 1px solid var(--ordo-border); }
+
+.status-icon  { font-size: 2.8rem; margin-bottom: .75rem; }
+.status-fin   { color: var(--ordo-green); }
+.status-desc  { color: #a78bfa; }
+.status-patio { color: var(--ordo-yellow); }
+.status-conf  { color: var(--ordo-accent); }
+.status-pre   { color: var(--ordo-text-dim); }
+
+.status-titulo {
+    font-size: 1.15rem; font-weight: 700; margin-bottom: .35rem;
+}
+.status-desc-txt {
+    font-size: .88rem; color: var(--ordo-text-dim); line-height: 1.5;
+}
+.prazo-loja {
+    margin-top: 1rem; padding-top: 1rem;
+    border-top: 1px solid var(--ordo-border);
+    font-size: .88rem;
+}
+.prazo-loja strong { color: var(--ordo-green); }
+
+/* Card de detalhes */
+.det-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+@media (max-width: 480px) { .det-grid { grid-template-columns: 1fr; } }
+.det-item-label {
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--ordo-text-dim); margin-bottom: 3px;
+}
+.det-item-valor {
+    font-size: .92rem; font-weight: 600; color: var(--ordo-text);
+}
+
+/* Não encontrado */
+.nao-encontrado {
+    background: rgba(255,77,109,.08);
+    border: 1px solid rgba(255,77,109,.25);
+    border-radius: 12px; padding: 1.25rem;
+    text-align: center; color: var(--ordo-red);
+    font-size: .9rem; max-width: 540px; width: 100%;
+    margin-bottom: 1.25rem;
+}
+.rastr-footer-link {
+    margin-top: 1.5rem; font-size: .78rem; color: var(--ordo-text-dim);
+}
+.rastr-footer-link a { color: var(--ordo-accent); text-decoration: none; }
+{% endblock %}
+
+{% block content %}
+<div class="rastr-hero">
+
+    <div class="fade-in text-center">
+        <div class="rastr-logo">ZAKAZ</div>
+        <div class="rastr-sub">Rastreio de Pedido</div>
+    </div>
+
+    {# ---- FORMULÁRIO ---- #}
+    <div class="rastr-card fade-in fade-in-delay-1">
+        <div class="rastr-titulo">Rastreie seu pedido</div>
+        <div class="rastr-help">
+            Digite o número do pedido fornecido pelo seu setor de compras.
+        </div>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <input type="text" name="numero_pedido" class="rastr-input"
+                   placeholder="Nº do seu pedido"
+                   value="{{ numero_buscado }}"
+                   maxlength="50" autofocus required>
+            <button type="submit" class="rastr-btn">
+                <i class="fa-solid fa-magnifying-glass me-2"></i>Rastrear Pedido
+            </button>
+        </form>
+    </div>
+
+    {# ---- NÃO ENCONTRADO ---- #}
+    {% if nao_encontrado %}
+    <div class="nao-encontrado fade-in">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>
+        Pedido não encontrado. Verifique o número e tente novamente.
+    </div>
+    {% endif %}
+
+    {# ---- RESULTADO ---- #}
+    {% if pedido %}
+    {% with ag=pedido.agendamento %}
+
+    {# Card de Status #}
+    {% if ag %}
+    <div class="rastr-card fade-in" style="padding:0; max-width:540px;">
+
+        {% if ag.status == 'FINALIZADO' %}
+        <div class="status-card fin">
+            <div class="status-icon status-fin"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="status-titulo">Entregue no CD</div>
+            <div class="status-desc-txt">
+                Sua mercadoria foi recebida em
+                <strong style="color:var(--ordo-text);">
+                    {{ ag.horario_finalizacao|date:"d/m/Y" }} às {{ ag.horario_finalizacao|date:"H:i" }}
+                </strong>
+            </div>
+            {% if prazo_loja %}
+            <div class="prazo-loja">
+                Prazo estimado nas suas lojas:
+                <strong>{{ prazo_loja|date:"d/m/Y" }}</strong>
+            </div>
+            {% endif %}
+        </div>
+
+        {% elif ag.status == 'EM_DESCARGA' %}
+        <div class="status-card desc">
+            <div class="status-icon status-desc"><i class="fa-solid fa-boxes-packing"></i></div>
+            <div class="status-titulo">Em Descarga no CD agora</div>
+            <div class="status-desc-txt">
+                Veículo descarregando no centro de distribuição.
+            </div>
+        </div>
+
+        {% elif ag.status == 'EM_PATIO' %}
+        <div class="status-card patio">
+            <div class="status-icon status-patio"><i class="fa-solid fa-truck"></i></div>
+            <div class="status-titulo">Veículo no Pátio do CD</div>
+            <div class="status-desc-txt">
+                Aguardando início da descarga.
+            </div>
+        </div>
+
+        {% elif ag.status == 'CONFIRMADO' %}
+        <div class="status-card conf">
+            <div class="status-icon status-conf"><i class="fa-solid fa-calendar-check"></i></div>
+            <div class="status-titulo">Entrega agendada</div>
+            <div class="status-desc-txt">
+                Para
+                <strong style="color:var(--ordo-text);">
+                    {{ ag.inicio|date:"d/m/Y" }} às {{ ag.inicio|date:"H:i" }}
+                </strong>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="status-card pre">
+            <div class="status-icon status-pre"><i class="fa-solid fa-hourglass-half"></i></div>
+            <div class="status-titulo">Entrega em processamento</div>
+            <div class="status-desc-txt">
+                Pedido em análise.
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+    {% endif %}
+
+    {# Card de Detalhes #}
+    <div class="rastr-card fade-in">
+        <div class="det-grid">
+            <div>
+                <div class="det-item-label">Cliente</div>
+                <div class="det-item-valor">{{ pedido.cliente.razao_social }}</div>
+            </div>
+            <div>
+                <div class="det-item-label">Nº do Pedido</div>
+                <div class="det-item-valor" style="font-family:monospace; color:var(--ordo-accent);">
+                    {{ pedido.numero_pedido_cliente }}
+                </div>
+            </div>
+            {% if ag %}
+            <div>
+                <div class="det-item-label">Fornecedor</div>
+                <div class="det-item-valor">{{ ag.fornecedor.razao_social }}</div>
+            </div>
+            {% endif %}
+            <div>
+                <div class="det-item-label">Tipo de Atendimento</div>
+                <div class="det-item-valor">{{ pedido.get_tipo_atendimento_display }}</div>
+            </div>
+            {% if pedido.observacao %}
+            <div style="grid-column:1/-1;">
+                <div class="det-item-label">Observação</div>
+                <div class="det-item-valor" style="font-weight:400; font-size:.85rem;">
+                    {{ pedido.observacao }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% endwith %}
+    {% endif %}
+
+    <div class="rastr-footer-link fade-in fade-in-delay-2">
+        <a href="{% url 'home' %}"><i class="fa-solid fa-arrow-left me-1"></i> Voltar ao início</a>
+    </div>
+
+</div>
+{% endblock %}

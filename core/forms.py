@@ -8,7 +8,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
-from .models import Fornecedor, Agendamento
+from .models import Fornecedor, Agendamento, Cliente
 
 
 # ==========================================
@@ -416,3 +416,32 @@ class NovoAgendamentoForm(forms.ModelForm):
             cleaned['inicio'] = inicio
 
         return cleaned
+
+# ==========================================
+# VÍNCULO DE PEDIDO DO CLIENTE FINAL (FISCAL)
+# ==========================================
+
+class VinculoPedidoClienteForm(forms.Form):
+    cliente = forms.ModelChoiceField(
+        queryset=Cliente.objects.filter(ativo=True),
+        label="Cliente Final",
+        empty_label="Selecione o cliente..."
+    )
+    numero_pedido_cliente = forms.CharField(
+        max_length=50,
+        label="Nº do Pedido do Cliente"
+    )
+    tipo_atendimento = forms.ChoiceField(
+        choices=[("INTEGRAL", "Integral"), ("PARCIAL", "Parcial")],
+        label="Tipo de Atendimento",
+        initial="INTEGRAL"
+    )
+    observacao = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 2}),
+        required=False,
+        label="Observação (opcional)"
+    )
+
+    def clean_numero_pedido_cliente(self):
+        return self.cleaned_data["numero_pedido_cliente"].strip()
+

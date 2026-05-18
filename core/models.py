@@ -281,3 +281,55 @@ class LogAgendamento(models.Model):
     status_novo     = models.CharField(max_length=50)
     data            = models.DateTimeField(auto_now_add=True)
     usuario         = models.CharField(max_length=100, null=True, blank=True)
+
+
+# ==========================================
+# CLIENTE FINAL E VÍNCULO DE PEDIDO
+# ==========================================
+
+class Cliente(models.Model):
+    razao_social  = models.CharField('Razão Social', max_length=200)
+    cnpj          = models.CharField('CNPJ', max_length=14, blank=True)
+    email_contato = models.EmailField('E-mail de Contato', blank=True)
+    dias_transito = models.IntegerField('Dias de trânsito até loja', default=2)
+    ativo         = models.BooleanField('Ativo', default=True)
+    criado_em     = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name        = 'Cliente Final'
+        verbose_name_plural = 'Clientes Finais'
+        ordering            = ['razao_social']
+
+    def __str__(self):
+        return self.razao_social
+
+
+class PedidoCliente(models.Model):
+    ATENDIMENTO_CHOICES = [
+        ('INTEGRAL', 'Integral'),
+        ('PARCIAL',  'Parcial'),
+    ]
+
+    cliente               = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='pedidos')
+    numero_pedido_cliente = models.CharField('Nº do Pedido do Cliente', max_length=50)
+    agendamento           = models.OneToOneField(
+        Agendamento, on_delete=models.CASCADE,
+        related_name='pedido_cliente', null=True, blank=True
+    )
+    tipo_atendimento      = models.CharField(
+        'Tipo de Atendimento', max_length=10,
+        choices=ATENDIMENTO_CHOICES, default='INTEGRAL'
+    )
+    observacao            = models.TextField('Observação', blank=True)
+    criado_em             = models.DateTimeField(auto_now_add=True)
+    criado_por            = models.ForeignKey(
+        'auth.User', on_delete=models.SET_NULL, null=True, blank=True
+    )
+
+    class Meta:
+        verbose_name        = 'Pedido de Cliente'
+        verbose_name_plural = 'Pedidos de Clientes'
+        ordering            = ['-criado_em']
+
+    def __str__(self):
+        return f"{self.cliente} — Pedido {self.numero_pedido_cliente}"

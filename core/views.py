@@ -20,7 +20,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_GET
 
-from .models import Agendamento, Fornecedor, EmpresaOperadora, Doca, LogAgendamento, NFeArquivo, SHADOW_BUFFER
+from .models import Agendamento, Fornecedor, EmpresaOperadora, Doca, LogAgendamento, NFeArquivo, Cliente, PedidoCliente, SHADOW_BUFFER
 
 
 def _e_staff(user):
@@ -39,6 +39,7 @@ from .forms import (
     LoginIndustriaForm,
     NovoAgendamentoForm,
     UploadNFeXmlForm,
+    VinculoPedidoClienteForm,
 )
 from .integrations import (
     consultar_cnpj_brasilapi,
@@ -904,6 +905,39 @@ def fiscal_dashboard(request):
     })
 
 @login_required(login_url='/staff/login/')
+def rastreamento_pedido(request):
+    """Rastreamento público de pedido por número (sem login)."""
+    pedido       = None
+    nao_encontrado = False
+    numero_buscado = ''
+
+    if request.method == 'POST':
+        numero_buscado = (request.POST.get('numero_pedido') or '').strip()
+        if numero_buscado:
+            pedido = (
+                PedidoCliente.objects
+                .select_related('cliente', 'agendamento__fornecedor')
+                .filter(numero_pedido_cliente__iexact=numero_buscado)
+                .first()
+            )
+            if not pedido:
+                nao_encontrado = True
+
+    # Calcula prazo estimado nas lojas (apenas se FINALIZADO)
+    prazo_loja = None
+    if pedido and pedido.agendamento and pedido.agendamento.status == 'FINALIZADO':
+        fim = pedido.agendamento.horario_finalizacao
+        if fim:
+            prazo_loja = fim + timedelta(days=pedido.cliente.dias_transito)
+
+    return render(request, 'rastreamento.html', {
+        'pedido':         pedido,
+        'nao_encontrado': nao_encontrado,
+        'numero_buscado': numero_buscado,
+        'prazo_loja':     prazo_loja,
+    })
+
+
 def fiscal_aprovar(request, pk):
     """Triagem fiscal individual por NFeArquivo."""
     if not request.user.groups.filter(name='analista_fiscal').exists():
@@ -921,6 +955,37 @@ def fiscal_aprovar(request, pk):
                 pass
             result.append({'nfe': nfe, 'resumo': resumo})
         return result
+
+    # ── Vínculo de Pedido do Cliente Final ────────────────────────────────
+    if request.method == 'POST' and request.POST.get('action') == 'vincular_pedido':
+        vinculo_form = VinculoPedidoClienteForm(request.POST)
+        if vinculo_form.is_valid():
+            cd = vinculo_form.cleaned_data
+            pedido, _criado = PedidoCliente.objects.update_or_create(
+                agendamento=agendamento,
+                defaults={
+                    'cliente':               cd['cliente'],
+                    'numero_pedido_cliente': cd['numero_pedido_cliente'],
+                    'tipo_atendimento':      cd['tipo_atendimento'],
+                    'observacao':            cd['observacao'],
+                    'criado_por':            request.user,
+                },
+            )
+            messages.success(
+                request,
+                f"Pedido {pedido.numero_pedido_cliente} do {pedido.cliente.razao_social} vinculado."
+            )
+            return redirect('fiscal_aprovar', pk=agendamento.pk)
+        # form inválido → cai no render abaixo com erros do form
+        pedido_existente = PedidoCliente.objects.filter(agendamento=agendamento).first()
+        return render(request, 'fiscal/aprovar.html', {
+            'agendamento':      agendamento,
+            'nfe_list':         _build_nfe_list(),
+            'agora':            timezone.now(),
+            'vinculo_form':     vinculo_form,
+            'pedido_existente': pedido_existente,
+            'abrir_vinculo':    True,
+        })
 
     if request.method == 'POST':
         nfe_arquivos = list(agendamento.nfe_arquivos.all())
@@ -995,10 +1060,14 @@ def fiscal_aprovar(request, pk):
                 )
             return redirect('fiscal_dashboard')
 
+    pedido_existente = PedidoCliente.objects.filter(agendamento=agendamento).first()
     return render(request, 'fiscal/aprovar.html', {
-        'agendamento': agendamento,
-        'nfe_list':    _build_nfe_list(),
-        'agora':       timezone.now(),
+        'agendamento':      agendamento,
+        'nfe_list':         _build_nfe_list(),
+        'agora':            timezone.now(),
+        'vinculo_form':     VinculoPedidoClienteForm(),
+        'pedido_existente': pedido_existente,
+        'abrir_vinculo':    False,
     })
 
 
