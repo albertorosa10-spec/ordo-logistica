@@ -288,6 +288,13 @@ class LogAgendamento(models.Model):
 # ==========================================
 
 class Cliente(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='cliente',
+        verbose_name='Usuário de Acesso'
+    )
     razao_social  = models.CharField('Razão Social', max_length=200)
     cnpj          = models.CharField('CNPJ', max_length=14, blank=True)
     email_contato = models.EmailField('E-mail de Contato', blank=True)

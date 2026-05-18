@@ -56,13 +56,16 @@
 /* Cards de acesso */
 .access-cards {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 2rem;
-    max-width: 680px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    max-width: 980px;
     width: 100%;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 860px) {
+    .access-cards { grid-template-columns: repeat(2, 1fr); max-width: 680px; }
+}
+@media (max-width: 540px) {
     .access-cards { grid-template-columns: 1fr; max-width: 380px; }
 }
 
@@ -111,6 +114,13 @@
 .access-card.gestao:hover { border-color: var(--ordo-green); }
 .access-card.gestao:hover::before { opacity: 1; }
 .access-card.gestao .card-icon { background: rgba(0,212,160,0.1); color: var(--ordo-green); }
+
+/* Card 3 — Portal do Cliente (roxo) */
+.access-card.cliente { border-color: rgba(139,92,246,0.2); }
+.access-card.cliente::before { background: linear-gradient(90deg, #8b5cf6, #6d28d9); }
+.access-card.cliente:hover { border-color: #8b5cf6; }
+.access-card.cliente:hover::before { opacity: 1; }
+.access-card.cliente .card-icon { background: rgba(139,92,246,0.1); color: #8b5cf6; }
 
 
 .card-icon {
@@ -204,20 +214,23 @@
             </span>
         </a>
 
-    </div><!-- /access-cards -->
-
-    <div class="fade-in fade-in-delay-2" style="margin-top:2.5rem; text-align:center;">
-        <a href="{% url 'rastreamento' %}"
-           style="font-size:.85rem; color:var(--ordo-accent); text-decoration:none;
-                  border:1px solid rgba(0,180,216,.3); border-radius:999px;
-                  padding:.55rem 1.4rem; display:inline-flex; align-items:center; gap:.5rem;
-                  transition:background .15s;"
-           onmouseover="this.style.background='rgba(0,180,216,.08)'"
-           onmouseout="this.style.background='transparent'">
-            <i class="fa-solid fa-magnifying-glass-location"></i>
-            Rastrear meu pedido
+        <!-- CARD 3: Portal do Cliente -->
+        <a href="{% url 'cliente_login' %}" class="access-card cliente">
+            <div class="card-icon">
+                <i class="fa-solid fa-store"></i>
+            </div>
+            <div>
+                <p class="card-title">Portal do Cliente</p>
+                <p class="card-desc">
+                    Acompanhe seus pedidos, status de entregas e prazos estimados nas lojas.
+                </p>
+            </div>
+            <span class="card-cta" style="color:#8b5cf6;">
+                <i class="fa-solid fa-arrow-right-to-bracket me-1"></i> Acessar com CNPJ
+            </span>
         </a>
-    </div>
+
+    </div><!-- /access-cards -->
 
     <div class="home-footer fade-in fade-in-delay-2">
         &copy; 2026 Zakaz &mdash; Plataforma v0.6<br>

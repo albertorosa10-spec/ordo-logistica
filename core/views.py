@@ -904,37 +904,97 @@ def fiscal_dashboard(request):
         },
     })
 
-@login_required(login_url='/staff/login/')
-def rastreamento_pedido(request):
-    """Rastreamento público de pedido por número (sem login)."""
-    pedido       = None
-    nao_encontrado = False
-    numero_buscado = ''
+# ==========================================
+# PORTAL DO CLIENTE
+# ==========================================
+
+def cliente_login(request):
+    """Login do cliente final via CNPJ + senha."""
+    if request.user.is_authenticated and hasattr(request.user, 'cliente'):
+        return redirect('cliente_dashboard')
+
+    error = None
+    cnpj_val = ''
 
     if request.method == 'POST':
-        numero_buscado = (request.POST.get('numero_pedido') or '').strip()
-        if numero_buscado:
-            pedido = (
-                PedidoCliente.objects
-                .select_related('cliente', 'agendamento__fornecedor')
-                .filter(numero_pedido_cliente__iexact=numero_buscado)
-                .first()
-            )
-            if not pedido:
-                nao_encontrado = True
+        cnpj_raw = request.POST.get('cnpj', '')
+        password = request.POST.get('password', '')
+        cnpj_val = cnpj_raw
 
-    # Calcula prazo estimado nas lojas (apenas se FINALIZADO)
-    prazo_loja = None
-    if pedido and pedido.agendamento and pedido.agendamento.status == 'FINALIZADO':
-        fim = pedido.agendamento.horario_finalizacao
-        if fim:
-            prazo_loja = fim + timedelta(days=pedido.cliente.dias_transito)
+        cnpj_digits = ''.join(filter(str.isdigit, cnpj_raw))
 
-    return render(request, 'rastreamento.html', {
-        'pedido':         pedido,
-        'nao_encontrado': nao_encontrado,
-        'numero_buscado': numero_buscado,
-        'prazo_loja':     prazo_loja,
+        try:
+            cliente = Cliente.objects.get(cnpj=cnpj_digits, ativo=True)
+        except Cliente.DoesNotExist:
+            error = "CNPJ não cadastrado ou inativo."
+            cliente = None
+
+        if cliente and cliente.user:
+            user = authenticate(request, username=cliente.user.username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('cliente_dashboard')
+            else:
+                error = "Senha incorreta."
+        elif cliente and not cliente.user:
+            error = "Conta de acesso não configurada. Contacte a AG Simões."
+
+    return render(request, 'cliente/login.html', {'error': error, 'cnpj_val': cnpj_val})
+
+
+@login_required(login_url='/cliente/login/')
+def cliente_dashboard(request):
+    """Dashboard do cliente final."""
+    if not hasattr(request.user, 'cliente'):
+        return render(request, '403.html', status=403)
+
+    cliente = request.user.cliente
+    agora   = timezone.now()
+    trinta_dias_atras = agora - timedelta(days=30)
+
+    pedidos_qs = (
+        PedidoCliente.objects
+        .filter(cliente=cliente)
+        .select_related('agendamento__fornecedor')
+        .order_by('-criado_em')
+    )
+
+    pendentes  = []
+    entregues  = []
+
+    for p in pedidos_qs:
+        ag = p.agendamento
+        if ag and ag.status == 'FINALIZADO':
+            prazo_loja = None
+            if ag.horario_finalizacao:
+                prazo_loja = ag.horario_finalizacao + timedelta(days=cliente.dias_transito)
+            entregues.append({'pedido': p, 'ag': ag, 'prazo_loja': prazo_loja})
+        else:
+            pendentes.append({'pedido': p, 'ag': ag})
+
+    total_ativos    = len(pendentes)
+    entregues_mes   = sum(
+        1 for e in entregues
+        if e['ag'] and e['ag'].horario_finalizacao and e['ag'].horario_finalizacao >= trinta_dias_atras
+    )
+    em_transito     = sum(
+        1 for e in entregues
+        if e['prazo_loja'] and e['prazo_loja'].date() >= agora.date()
+    )
+    agendados       = sum(
+        1 for p in pendentes
+        if p['ag'] and p['ag'].status == 'CONFIRMADO'
+    )
+
+    return render(request, 'cliente/dashboard.html', {
+        'cliente':       cliente,
+        'pendentes':     pendentes,
+        'entregues':     entregues[:30],
+        'total_ativos':  total_ativos,
+        'entregues_mes': entregues_mes,
+        'em_transito':   em_transito,
+        'agendados':     agendados,
+        'agora':         agora,
     })
 
 

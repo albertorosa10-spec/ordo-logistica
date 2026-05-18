@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Portal do Cliente — Zakaz{% endblock %}
+{% block body_class %}no-sidebar{% endblock %}
+{% block main_wrapper_class %}{% endblock %}
+
+{% block extra_css %}
+.cli-login-hero {
+    min-height: 100vh;
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(139,92,246,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(0,180,216,0.06) 0%, transparent 60%),
+        var(--ordo-bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+.cli-login-card {
+    background: var(--ordo-surface);
+    border: 1px solid rgba(139,92,246,0.25);
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 420px;
+}
+.cli-logo {
+    font-size: 2rem; font-weight: 800; letter-spacing: -1.5px;
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; line-height: 1;
+    text-align: center; margin-bottom: 0.2rem;
+}
+.cli-logo-sub {
+    font-size: .68rem; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--ordo-text-dim); text-align: center; margin-bottom: 2rem;
+}
+.cli-label {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--ordo-text-dim); margin-bottom: 6px; display: block;
+}
+.cli-input {
+    width: 100%; background: var(--ordo-surface-2);
+    border: 1.5px solid var(--ordo-border); color: var(--ordo-text);
+    border-radius: 10px; padding: .8rem 1rem; font-size: .95rem;
+    font-family: inherit; margin-bottom: 1rem;
+}
+.cli-input:focus { outline: 2px solid #8b5cf6; border-color: #8b5cf6; }
+.cli-btn {
+    width: 100%; background: #8b5cf6; color: #fff;
+    border: none; border-radius: 10px; padding: .85rem 1.5rem;
+    font-size: .95rem; font-weight: 700; cursor: pointer;
+    margin-top: .5rem; transition: filter .15s;
+}
+.cli-btn:hover { filter: brightness(.92); }
+.cli-error {
+    background: rgba(255,77,109,.1); border: 1px solid rgba(255,77,109,.3);
+    border-radius: 10px; padding: .85rem 1rem; margin-bottom: 1rem;
+    font-size: .88rem; color: var(--ordo-red); text-align: center;
+}
+.cli-back {
+    margin-top: 1.5rem; font-size: .78rem; color: var(--ordo-text-dim);
+    text-align: center;
+}
+.cli-back a { color: #8b5cf6; text-decoration: none; }
+{% endblock %}
+
+{% block content %}
+<div class="cli-login-hero">
+    <div class="cli-login-card fade-in">
+        <div class="cli-logo">ZAKAZ</div>
+        <div class="cli-logo-sub">Portal do Cliente</div>
+
+        {% if error %}
+        <div class="cli-error">
+            <i class="fa-solid fa-circle-exclamation me-2"></i>{{ error }}
+        </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <label class="cli-label" for="cnpj">CNPJ da empresa</label>
+            <input id="cnpj" type="text" name="cnpj" class="cli-input"
+                   placeholder="00.000.000/0000-00"
+                   value="{{ cnpj_val }}" maxlength="18" autofocus required>
+
+            <label class="cli-label" for="password">Senha</label>
+            <input id="password" type="password" name="password" class="cli-input"
+                   placeholder="••••••••" required>
+
+            <button type="submit" class="cli-btn">
+                <i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Entrar
+            </button>
+        </form>
+    </div>
+
+    <div class="cli-back fade-in fade-in-delay-1">
+        <a href="{% url 'home' %}"><i class="fa-solid fa-arrow-left me-1"></i> Voltar ao início</a>
+    </div>
+</div>
+{% endblock %}

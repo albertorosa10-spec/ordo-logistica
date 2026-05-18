@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+
+{% block title %}Meus Pedidos — Zakaz{% endblock %}
+{% block body_class %}no-sidebar{% endblock %}
+{% block main_wrapper_class %}{% endblock %}
+
+{% block extra_css %}
+.cli-dash {
+    min-height: 100vh;
+    background:
+        radial-gradient(ellipse at 10% 30%, rgba(139,92,246,0.06) 0%, transparent 60%),
+        var(--ordo-bg);
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Topo */
+.cli-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; max-width: 900px; margin-bottom: 2rem;
+    gap: 1rem; flex-wrap: wrap;
+}
+.cli-brand { font-size: 1.5rem; font-weight: 800; letter-spacing: -1px;
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; line-height: 1; }
+.cli-brand-name { font-size: .78rem; color: var(--ordo-text-dim); margin-top: 2px; }
+.cli-logout {
+    font-size: .78rem; color: var(--ordo-text-dim); text-decoration: none;
+    border: 1px solid var(--ordo-border); border-radius: 8px;
+    padding: .4rem .9rem; transition: border-color .15s;
+}
+.cli-logout:hover { border-color: #8b5cf6; color: #8b5cf6; }
+
+/* KPIs */
+.cli-kpis {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 1rem; width: 100%; max-width: 900px; margin-bottom: 2rem;
+}
+@media (max-width: 700px) { .cli-kpis { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 400px) { .cli-kpis { grid-template-columns: 1fr; } }
+
+.kpi-card {
+    background: var(--ordo-surface);
+    border: 1px solid var(--ordo-border);
+    border-radius: 14px; padding: 1.25rem 1rem;
+    text-align: center;
+}
+.kpi-val { font-size: 2rem; font-weight: 800; line-height: 1; }
+.kpi-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--ordo-text-dim); margin-top: 4px; }
+.kpi-purple { color: #8b5cf6; }
+.kpi-green  { color: var(--ordo-green); }
+.kpi-yellow { color: var(--ordo-yellow); }
+.kpi-blue   { color: var(--ordo-accent); }
+
+/* Tabelas */
+.cli-section {
+    width: 100%; max-width: 900px; margin-bottom: 2rem;
+}
+.cli-section-title {
+    font-size: .8rem; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--ordo-text-dim); margin-bottom: .75rem;
+    display: flex; align-items: center; gap: .5rem;
+}
+.cli-table-wrap {
+    background: var(--ordo-surface);
+    border: 1px solid var(--ordo-border);
+    border-radius: 14px; overflow: hidden;
+}
+.cli-table {
+    width: 100%; border-collapse: collapse;
+    font-size: .88rem;
+}
+.cli-table th {
+    padding: .75rem 1rem; text-align: left;
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--ordo-text-dim);
+    border-bottom: 1px solid var(--ordo-border);
+}
+.cli-table td {
+    padding: .85rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: middle;
+}
+.cli-table tr:last-child td { border-bottom: none; }
+.cli-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+/* Badges de status */
+.badge-status {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-size: .72rem; font-weight: 600; padding: .25rem .65rem;
+    border-radius: 20px; white-space: nowrap;
+}
+.badge-confirmado { background: rgba(0,180,216,.12); color: var(--ordo-accent); }
+.badge-patio      { background: rgba(255,183,3,.12);  color: var(--ordo-yellow); }
+.badge-descarga   { background: rgba(139,92,246,.12); color: #a78bfa; }
+.badge-pre        { background: rgba(136,146,176,.1); color: var(--ordo-text-dim); }
+.badge-entregue   { background: rgba(0,212,160,.12);  color: var(--ordo-green); }
+
+.cli-empty {
+    padding: 2rem; text-align: center;
+    color: var(--ordo-text-dim); font-size: .88rem;
+}
+
+/* Prazo */
+.prazo-ok       { color: var(--ordo-green); font-weight: 600; }
+.prazo-atrasado { color: var(--ordo-yellow); font-weight: 600; }
+
+@media (max-width: 600px) {
+    .cli-table th:nth-child(3),
+    .cli-table td:nth-child(3) { display: none; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="cli-dash">
+
+    <!-- Topbar -->
+    <div class="cli-topbar fade-in">
+        <div>
+            <div class="cli-brand">ZAKAZ</div>
+            <div class="cli-brand-name">{{ cliente.razao_social }}</div>
+        </div>
+        <form method="post" action="{% url 'cliente_logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="cli-logout">
+                <i class="fa-solid fa-right-from-bracket me-1"></i>Sair
+            </button>
+        </form>
+    </div>
+
+    <!-- KPIs -->
+    <div class="cli-kpis fade-in fade-in-delay-1">
+        <div class="kpi-card">
+            <div class="kpi-val kpi-purple">{{ total_ativos }}</div>
+            <div class="kpi-label">Pedidos Ativos</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-val kpi-green">{{ entregues_mes }}</div>
+            <div class="kpi-label">Entregas (30 dias)</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-val kpi-yellow">{{ em_transito }}</div>
+            <div class="kpi-label">Em Trânsito</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-val kpi-blue">{{ agendados }}</div>
+            <div class="kpi-label">Agendados</div>
+        </div>
+    </div>
+
+    <!-- Pedidos em Andamento -->
+    <div class="cli-section fade-in fade-in-delay-1">
+        <div class="cli-section-title">
+            <i class="fa-solid fa-circle-dot" style="color:#8b5cf6;"></i>
+            Pedidos em Andamento
+        </div>
+        <div class="cli-table-wrap">
+            {% if pendentes %}
+            <table class="cli-table">
+                <thead>
+                    <tr>
+                        <th>Nº Pedido</th>
+                        <th>Status</th>
+                        <th>Fornecedor</th>
+                        <th>Previsão Entrega</th>
+                        <th>Atendimento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for item in pendentes %}
+                {% with p=item.pedido ag=item.ag %}
+                <tr>
+                    <td style="font-family:monospace; color:var(--ordo-accent); font-weight:600;">
+                        {{ p.numero_pedido_cliente }}
+                    </td>
+                    <td>
+                        {% if ag %}
+                            {% if ag.status == 'CONFIRMADO' %}
+                            <span class="badge-status badge-confirmado">
+                                <i class="fa-solid fa-calendar-check"></i> Agendado
+                            </span>
+                            {% elif ag.status == 'EM_PATIO' %}
+                            <span class="badge-status badge-patio">
+                                <i class="fa-solid fa-truck"></i> No Pátio
+                            </span>
+                            {% elif ag.status == 'EM_DESCARGA' %}
+                            <span class="badge-status badge-descarga">
+                                <i class="fa-solid fa-boxes-packing"></i> Em Descarga
+                            </span>
+                            {% else %}
+                            <span class="badge-status badge-pre">
+                                <i class="fa-solid fa-hourglass-half"></i> Em Processamento
+                            </span>
+                            {% endif %}
+                        {% else %}
+                        <span class="badge-status badge-pre">
+                            <i class="fa-solid fa-hourglass-half"></i> Pendente
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td style="color:var(--ordo-text-dim);">
+                        {% if ag and ag.fornecedor %}{{ ag.fornecedor.razao_social }}{% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if ag and ag.inicio %}
+                            {{ ag.inicio|date:"d/m/Y" }}
+                            <span style="color:var(--ordo-text-dim); font-size:.8rem;">
+                                às {{ ag.inicio|date:"H:i" }}
+                            </span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if p.tipo_atendimento == 'INTEGRAL' %}
+                        <span style="color:var(--ordo-green); font-size:.8rem; font-weight:600;">Integral</span>
+                        {% else %}
+                        <span style="color:var(--ordo-yellow); font-size:.8rem; font-weight:600;">Parcial</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endwith %}
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="cli-empty">
+                <i class="fa-solid fa-inbox me-2"></i>Nenhum pedido em andamento.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Entregas Realizadas -->
+    <div class="cli-section fade-in fade-in-delay-2">
+        <div class="cli-section-title">
+            <i class="fa-solid fa-circle-check" style="color:var(--ordo-green);"></i>
+            Entregas Realizadas (últimos 30 dias)
+        </div>
+        <div class="cli-table-wrap">
+            {% if entregues %}
+            <table class="cli-table">
+                <thead>
+                    <tr>
+                        <th>Nº Pedido</th>
+                        <th>Entregue em</th>
+                        <th>Fornecedor</th>
+                        <th>Prazo nas Lojas</th>
+                        <th>Atendimento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for item in entregues %}
+                {% with p=item.pedido ag=item.ag %}
+                <tr>
+                    <td style="font-family:monospace; color:var(--ordo-accent); font-weight:600;">
+                        {{ p.numero_pedido_cliente }}
+                    </td>
+                    <td>
+                        <span class="badge-status badge-entregue">
+                            <i class="fa-solid fa-circle-check"></i>
+                            {{ ag.horario_finalizacao|date:"d/m/Y" }}
+                        </span>
+                    </td>
+                    <td style="color:var(--ordo-text-dim);">
+                        {% if ag.fornecedor %}{{ ag.fornecedor.razao_social }}{% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if item.prazo_loja %}
+                            {% if item.prazo_loja.date >= agora.date %}
+                            <span class="prazo-ok">{{ item.prazo_loja|date:"d/m/Y" }}</span>
+                            {% else %}
+                            <span class="prazo-atrasado">{{ item.prazo_loja|date:"d/m/Y" }}</span>
+                            {% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if p.tipo_atendimento == 'INTEGRAL' %}
+                        <span style="color:var(--ordo-green); font-size:.8rem; font-weight:600;">Integral</span>
+                        {% else %}
+                        <span style="color:var(--ordo-yellow); font-size:.8rem; font-weight:600;">Parcial</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endwith %}
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="cli-empty">
+                <i class="fa-solid fa-box-open me-2"></i>Nenhuma entrega nos últimos 30 dias.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

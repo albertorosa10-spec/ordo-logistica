@@ -16,7 +16,12 @@ urlpatterns = [
     # ------------------------------------------
     path('',              views.home,                 name='home'),
     path('portaria/',     views.consulta_portaria,    name='consulta'),
-    path('rastreamento/', views.rastreamento_pedido,  name='rastreamento'),
+    # ------------------------------------------
+    # PORTAL DO CLIENTE
+    # ------------------------------------------
+    path('cliente/login/',      views.cliente_login,      name='cliente_login'),
+    path('cliente/dashboard/',  views.cliente_dashboard,  name='cliente_dashboard'),
+    path('cliente/logout/',     views.logout_view,        name='cliente_logout'),
 
     # ------------------------------------------
     # AUTH: Login e Logout (rotas canônicas)
