@@ -157,7 +157,7 @@ class LogAgendamentoAdmin(admin.ModelAdmin):
 
 @admin.register(Cliente)
 class ClienteAdmin(admin.ModelAdmin):
-    list_display  = ['razao_social', 'cnpj', 'dias_transito', 'ativo', 'criado_em']
+    list_display  = ['razao_social', 'cnpj', 'ativo', 'criado_em']
     list_filter   = ['ativo']
     search_fields = ['razao_social', 'cnpj']
 

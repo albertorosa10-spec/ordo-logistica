@@ -965,25 +965,14 @@ def cliente_dashboard(request):
     for p in pedidos_qs:
         ag = p.agendamento
         if ag and ag.status == 'FINALIZADO':
-            prazo_loja = None
-            if ag.horario_finalizacao:
-                prazo_loja = ag.horario_finalizacao + timedelta(days=cliente.dias_transito)
-            entregues.append({'pedido': p, 'ag': ag, 'prazo_loja': prazo_loja})
+            entregues.append({'pedido': p, 'ag': ag})
         else:
             pendentes.append({'pedido': p, 'ag': ag})
 
-    total_ativos    = len(pendentes)
-    entregues_mes   = sum(
+    total_ativos  = len(pendentes)
+    entregues_mes = sum(
         1 for e in entregues
-        if e['ag'] and e['ag'].horario_finalizacao and e['ag'].horario_finalizacao >= trinta_dias_atras
-    )
-    em_transito     = sum(
-        1 for e in entregues
-        if e['prazo_loja'] and e['prazo_loja'].date() >= agora.date()
-    )
-    agendados       = sum(
-        1 for p in pendentes
-        if p['ag'] and p['ag'].status == 'CONFIRMADO'
+        if e['ag'].horario_finalizacao and e['ag'].horario_finalizacao >= trinta_dias_atras
     )
 
     return render(request, 'cliente/dashboard.html', {
@@ -992,9 +981,6 @@ def cliente_dashboard(request):
         'entregues':     entregues[:30],
         'total_ativos':  total_ativos,
         'entregues_mes': entregues_mes,
-        'em_transito':   em_transito,
-        'agendados':     agendados,
-        'agora':         agora,
     })
 
 

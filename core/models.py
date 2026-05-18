@@ -298,7 +298,6 @@ class Cliente(models.Model):
     razao_social  = models.CharField('Razão Social', max_length=200)
     cnpj          = models.CharField('CNPJ', max_length=14, blank=True)
     email_contato = models.EmailField('E-mail de Contato', blank=True)
-    dias_transito = models.IntegerField('Dias de trânsito até loja', default=2)
     ativo         = models.BooleanField('Ativo', default=True)
     criado_em     = models.DateTimeField(auto_now_add=True)
 
