@@ -246,7 +246,7 @@ class LoginIndustriaForm(forms.Form):
 class UploadNFeXmlForm(forms.Form):
     arquivo_nfe = MultipleFileField(
         label="Arquivos da NF-e",
-        help_text="Selecione um ou mais arquivos .xml ou um arquivo .pdf (máx. 5 MB cada, até 100 arquivos)",
+        help_text="XML (.xml) até 5 MB · PDF (.pdf) até 20 MB · máx. 100 arquivos",
         required=False,
         widget=MultipleFileInput(attrs={
             'class': 'upload-file-input',
@@ -262,32 +262,32 @@ class UploadNFeXmlForm(forms.Form):
         if len(arquivos) > 100:
             raise ValidationError("Limite de 100 arquivos por envio.")
 
-        # Single PDF: pass through without XML validation (CROSS only path)
-        if len(arquivos) == 1 and arquivos[0].name.lower().endswith('.pdf'):
-            arquivo = arquivos[0]
-            if arquivo.size > 5 * 1024 * 1024:
-                raise ValidationError(
-                    f'"{arquivo.name}": arquivo muito grande ({arquivo.size // 1024} KB). Limite: 5 MB.'
-                )
-            return arquivos
-
         for arquivo in arquivos:
-            if not arquivo.name.lower().endswith('.xml'):
-                raise ValidationError(f'"{arquivo.name}": apenas arquivos .xml são aceitos (ou um único .pdf).')
-            if arquivo.size > 5 * 1024 * 1024:
+            nome = arquivo.name.lower()
+            if nome.endswith('.pdf'):
+                if arquivo.size > 20 * 1024 * 1024:
+                    raise ValidationError(
+                        f'"{arquivo.name}": PDF muito grande ({arquivo.size // 1024} KB). Limite: 20 MB.'
+                    )
+            elif nome.endswith('.xml'):
+                if arquivo.size > 5 * 1024 * 1024:
+                    raise ValidationError(
+                        f'"{arquivo.name}": arquivo muito grande ({arquivo.size // 1024} KB). Limite: 5 MB.'
+                    )
+                try:
+                    cabecalho = arquivo.read(512).decode('utf-8', errors='ignore')
+                    arquivo.seek(0)
+                    if 'portalfiscal.inf.br/nfe' not in cabecalho and 'nfeProc' not in cabecalho:
+                        if '<' not in cabecalho:
+                            raise ValidationError(f'"{arquivo.name}": não parece ser um XML válido de NF-e.')
+                except ValidationError:
+                    raise
+                except Exception:
+                    arquivo.seek(0)
+            else:
                 raise ValidationError(
-                    f'"{arquivo.name}": arquivo muito grande ({arquivo.size // 1024} KB). Limite: 5 MB.'
+                    f'"{arquivo.name}": apenas arquivos .xml ou .pdf são aceitos.'
                 )
-            try:
-                cabecalho = arquivo.read(512).decode('utf-8', errors='ignore')
-                arquivo.seek(0)
-                if 'portalfiscal.inf.br/nfe' not in cabecalho and 'nfeProc' not in cabecalho:
-                    if '<' not in cabecalho:
-                        raise ValidationError(f'"{arquivo.name}": não parece ser um XML válido de NF-e.')
-            except ValidationError:
-                raise
-            except Exception:
-                arquivo.seek(0)
         return arquivos
 
 

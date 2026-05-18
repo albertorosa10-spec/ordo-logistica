@@ -329,92 +329,114 @@ def upload_nfe(request, agendamento_id):
     if request.method == 'POST' and form.is_valid():
         arquivos = form.cleaned_data['arquivo_nfe']
 
-        # CROSS: detect PDF upload (single file ending in .pdf)
-        primeiro_arquivo = arquivos[0] if arquivos else None
-        is_pdf_upload = (
-            is_cross
-            and len(arquivos) == 1
-            and primeiro_arquivo is not None
-            and primeiro_arquivo.name.lower().endswith('.pdf')
-        )
+        if is_cross:
+            # ── CROSS: processa lote misto PDF + XML ──────────────────────────
+            empresa   = EmpresaOperadora.objects.filter(ativa=True).first()
+            cnpj_dest = empresa.cnpj if empresa else ""
 
-        if is_pdf_upload:
-            # PDF path: no XML parsing, store as PDF document, keep CONFIRMADO status
-            arquivo = primeiro_arquivo
-            arquivo.seek(0)
-            conteudo = arquivo.read()
-            nome = arquivo.name.split('/')[-1]
+            salvos      = 0
+            erros_cross = []
+            chaves_novas = []
 
-            nfe_obj = NFeArquivo(agendamento=agendamento, tipo_arquivo='PDF', chave='', aprovado=True)
-            nfe_obj.arquivo.save(nome, ContentFile(conteudo), save=True)
+            for arquivo in arquivos:
+                nome_lower = arquivo.name.lower()
 
-            messages.success(request, "Documento PDF vinculado ao agendamento.")
-            return redirect('dashboard_industria')
-
-        empresa   = EmpresaOperadora.objects.filter(ativa=True).first()
-        cnpj_dest = empresa.cnpj if empresa else ""
-
-        # Valida cada arquivo e extrai chave
-        erros        = []
-        arquivos_ok  = []  # list of (arquivo, chave)
-        for arquivo in arquivos:
-            chave, valido, mensagem = validar_nfe_xml(arquivo, cnpj_dest)
-            if not valido:
-                logger.warning('NF-e inválida — arquivo: %s | motivo: %s', arquivo.name, mensagem)
-                if 'CNPJ do destinatário' in mensagem:
-                    erros.append(
-                        '❌ NF-e inválida: o destinatário da nota não corresponde à '
-                        'AG Simões Direta Distribuição. Verifique se a nota foi emitida '
-                        'corretamente contra o nosso CNPJ e tente novamente.'
+                if nome_lower.endswith('.pdf'):
+                    arquivo.seek(0)
+                    conteudo = arquivo.read()
+                    nfe_obj = NFeArquivo(
+                        agendamento=agendamento, tipo_arquivo='PDF', chave='', aprovado=True
                     )
-                else:
-                    erros.append(mensagem)
+                    nfe_obj.arquivo.save(arquivo.name.split('/')[-1], ContentFile(conteudo), save=True)
+                    salvos += 1
+
+                elif nome_lower.endswith('.xml'):
+                    chave, valido, mensagem = validar_nfe_xml(arquivo, cnpj_dest)
+                    if not valido:
+                        logger.warning('CROSS XML inválido — %s | %s', arquivo.name, mensagem)
+                        erros_cross.append(f"{arquivo.name}: {mensagem}")
+                    else:
+                        arquivo.seek(0)
+                        conteudo = arquivo.read()
+                        nfe_obj = NFeArquivo(
+                            agendamento=agendamento, tipo_arquivo='XML', chave=chave, aprovado=True
+                        )
+                        nfe_obj.arquivo.save(arquivo.name.split('/')[-1], ContentFile(conteudo), save=True)
+                        chaves_novas.append(chave)
+                        salvos += 1
+
+            if salvos == 0:
+                erro_validacao = " | ".join(erros_cross) or "Nenhum arquivo foi processado."
             else:
-                arquivo.seek(0)
-                arquivos_ok.append((arquivo, chave))
-
-        if erros:
-            erro_validacao = " | ".join(erros)
-        else:
-            # Lê todo o conteúdo em memória antes de qualquer save
-            # (saves do FileField consomem o buffer da InMemoryUploadedFile)
-            dados = []
-            for arquivo, chave in arquivos_ok:
-                arquivo.seek(0)
-                dados.append({
-                    'nome':     arquivo.name.split('/')[-1],
-                    'conteudo': arquivo.read(),
-                    'chave':    chave,
-                })
-
-            # Persiste um NFeArquivo por arquivo
-            chaves = []
-            for d in dados:
-                nfe_obj = NFeArquivo(agendamento=agendamento, chave=d['chave'])
-                nfe_obj.arquivo.save(d['nome'], ContentFile(d['conteudo']), save=True)
-                chaves.append(d['chave'])
-
-            # Atualiza Agendamento (arquivo_xml recebe o primeiro arquivo para compat com fiscal_aprovar)
-            primeiro = dados[0]
-            agendamento.arquivo_xml.save(
-                primeiro['nome'], ContentFile(primeiro['conteudo']), save=False
-            )
-            agendamento.chave_nfe = ",".join(chaves)
-
-            if is_cross:
-                # CROSS XML upload: auto-confirm, no fiscal queue
+                if chaves_novas:
+                    existentes = [c for c in (agendamento.chave_nfe or '').split(',') if c.strip()]
+                    agendamento.chave_nfe = ",".join(existentes + chaves_novas)
                 agendamento.nfe_validada = True
                 agendamento.save()
-                messages.success(request, "XML da NF-e vinculado ao agendamento Crossdocking.")
+
+                msg = f"{salvos} documento(s) vinculado(s) ao agendamento."
+                if erros_cross:
+                    msg += f" Atenção: {len(erros_cross)} arquivo(s) com erro não foram salvos."
+                    messages.warning(request, msg)
+                else:
+                    messages.success(request, msg)
+                return redirect('dashboard_industria')
+
+        else:
+            # ── DIRETA: todos os XMLs devem ser válidos → AGUARDANDO_FISCAL ──
+            empresa   = EmpresaOperadora.objects.filter(ativa=True).first()
+            cnpj_dest = empresa.cnpj if empresa else ""
+
+            erros       = []
+            arquivos_ok = []
+            for arquivo in arquivos:
+                chave, valido, mensagem = validar_nfe_xml(arquivo, cnpj_dest)
+                if not valido:
+                    logger.warning('NF-e inválida — arquivo: %s | motivo: %s', arquivo.name, mensagem)
+                    if 'CNPJ do destinatário' in mensagem:
+                        erros.append(
+                            '❌ NF-e inválida: o destinatário da nota não corresponde à '
+                            'AG Simões Direta Distribuição. Verifique se a nota foi emitida '
+                            'corretamente contra o nosso CNPJ e tente novamente.'
+                        )
+                    else:
+                        erros.append(mensagem)
+                else:
+                    arquivo.seek(0)
+                    arquivos_ok.append((arquivo, chave))
+
+            if erros:
+                erro_validacao = " | ".join(erros)
             else:
-                agendamento.status = 'AGUARDANDO_FISCAL'
+                dados = []
+                for arquivo, chave in arquivos_ok:
+                    arquivo.seek(0)
+                    dados.append({
+                        'nome':     arquivo.name.split('/')[-1],
+                        'conteudo': arquivo.read(),
+                        'chave':    chave,
+                    })
+
+                chaves = []
+                for d in dados:
+                    nfe_obj = NFeArquivo(agendamento=agendamento, chave=d['chave'])
+                    nfe_obj.arquivo.save(d['nome'], ContentFile(d['conteudo']), save=True)
+                    chaves.append(d['chave'])
+
+                primeiro = dados[0]
+                agendamento.arquivo_xml.save(
+                    primeiro['nome'], ContentFile(primeiro['conteudo']), save=False
+                )
+                agendamento.chave_nfe = ",".join(chaves)
+                agendamento.status    = 'AGUARDANDO_FISCAL'
                 agendamento.save()
+
                 messages.warning(
                     request,
                     f"⚠️ {len(dados)} NF-e(s) recebida(s). Seu agendamento entrou em 'Pré-entrada Fiscal'. "
                     "Aguarde a liberação do nosso setor interno para confirmar sua entrada."
                 )
-            return redirect('dashboard_industria')
+                return redirect('dashboard_industria')
 
     return render(request, 'industria/upload_nfe.html', {
         'agendamento': agendamento,

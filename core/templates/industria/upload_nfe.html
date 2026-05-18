@@ -628,7 +628,8 @@
                  name="arquivo_nfe"
                  id="id_arquivo_nfe"
                  accept=".xml,text/xml,application/xml,.pdf,application/pdf"
-                 aria-label="Selecionar arquivo XML ou PDF">
+                 multiple
+                 aria-label="Selecionar arquivos XML ou PDF">
           {% else %}
           <input type="file"
                  name="arquivo_nfe"
@@ -644,11 +645,11 @@
 
           {% if agendamento.tipo_operacao == 'CROSS' %}
           <div class="up-dz-title" id="dz-title">
-            Arraste o arquivo XML ou PDF aqui
+            Arraste os arquivos XML ou PDF aqui
           </div>
           <div class="up-dz-sub" id="dz-sub">
             ou <span style="color:var(--up-accent); text-decoration:underline;">clique para selecionar</span>
-            &nbsp;·&nbsp; Aceita XML (.xml) ou PDF (.pdf) &nbsp;·&nbsp; Máx. 5 MB
+            &nbsp;·&nbsp; XML (.xml): máx. 5 MB &nbsp;·&nbsp; PDF (.pdf): máx. 20 MB &nbsp;·&nbsp; até 20 arquivos
           </div>
           {% else %}
           <div class="up-dz-title" id="dz-title">
@@ -656,7 +657,7 @@
           </div>
           <div class="up-dz-sub" id="dz-sub">
             ou <span style="color:var(--up-accent); text-decoration:underline;">clique para selecionar</span>
-            &nbsp;·&nbsp; Selecione um ou mais arquivos XML (máximo 100) &nbsp;·&nbsp; Máx. 5 MB cada
+            &nbsp;·&nbsp; Apenas XML (.xml) &nbsp;·&nbsp; máx. 5 MB cada &nbsp;·&nbsp; até 100 arquivos
           </div>
           {% endif %}
 
@@ -743,81 +744,77 @@
   }
 
   var fileIcon = document.getElementById('file-icon');
-  var isCross  = {{ agendamento.tipo_operacao|yesno:"false,true,false" }};
-  {% if agendamento.tipo_operacao == 'CROSS' %}isCross = true;{% else %}isCross = false;{% endif %}
+  {% if agendamento.tipo_operacao == 'CROSS' %}var isCross = true;{% else %}var isCross = false;{% endif %}
+
+  var MAX_PDF = 20 * 1024 * 1024;
+  var MAX_XML =  5 * 1024 * 1024;
 
   function onFilesChange(files) {
     if (!files || files.length === 0) return;
 
-    // CROSS: allow single PDF or single XML
-    if (isCross && files.length === 1) {
-      var f = files[0];
-      var isPdf = f.name.toLowerCase().endsWith('.pdf');
-      var isXml = f.name.toLowerCase().endsWith('.xml');
-      if (!isPdf && !isXml) {
-        dzTitle.textContent = 'Arquivo inválido: apenas .xml ou .pdf';
-        dzTitle.style.color = 'var(--up-red)';
-        dropzone.classList.remove('file-ok');
-        btnProc.disabled = true;
-        btnTexto.textContent = 'Corrija o arquivo e tente novamente';
-        return;
-      }
-      if (f.size > 5 * 1024 * 1024) {
-        dzTitle.textContent = f.name + ' (> 5 MB)';
-        dzTitle.style.color = 'var(--up-red)';
-        dropzone.classList.remove('file-ok');
-        btnProc.disabled = true;
-        btnTexto.textContent = 'Arquivo muito grande';
-        return;
-      }
-      dropzone.classList.add('file-ok');
-      dzTitle.textContent = 'Arquivo selecionado';
-      dzTitle.style.color = '';
-      dzSub.style.display = 'none';
-      dzIcon.innerHTML    = '<i class="fa-solid fa-file-circle-check"></i>';
-      if (fileIcon) fileIcon.className = isPdf ? 'fa-solid fa-file-pdf' : 'fa-solid fa-file-code';
-      fileNome.textContent = f.name;
-      fileSize.textContent = '(' + formatBytes(f.size) + ')';
-      fileInfo.classList.add('visivel');
-      btnProc.disabled     = false;
-      btnTexto.textContent = isPdf ? 'Vincular PDF ao Agendamento' : 'Processar XML da NF-e';
-      btnIcon.className    = isPdf ? 'fa-solid fa-paperclip' : 'fa-solid fa-magnifying-glass-chart';
-      return;
-    }
-
-    var invalidos = [];
+    var invalidos  = [];
     var totalBytes = 0;
+    var nPdf = 0, nXml = 0;
+
     for (var i = 0; i < files.length; i++) {
-      var f = files[i];
-      if (!f.name.toLowerCase().endsWith('.xml')) invalidos.push(f.name + ' (não é .xml)');
-      else if (f.size > 5 * 1024 * 1024)         invalidos.push(f.name + ' (> 5 MB)');
-      else                                         totalBytes += f.size;
+      var f    = files[i];
+      var nome = f.name.toLowerCase();
+      if (nome.endsWith('.pdf')) {
+        if (!isCross) { invalidos.push(f.name + ' (.pdf não é aceito aqui)'); continue; }
+        if (f.size > MAX_PDF) { invalidos.push(f.name + ' (PDF > 20 MB)'); continue; }
+        totalBytes += f.size;
+        nPdf++;
+      } else if (nome.endsWith('.xml')) {
+        if (f.size > MAX_XML) { invalidos.push(f.name + ' (XML > 5 MB)'); continue; }
+        totalBytes += f.size;
+        nXml++;
+      } else {
+        invalidos.push(f.name + ' (extensão inválida)');
+      }
     }
 
     if (invalidos.length > 0) {
       dzTitle.textContent = 'Arquivo(s) inválido(s): ' + invalidos[0];
       dzTitle.style.color = 'var(--up-red)';
       dropzone.classList.remove('file-ok');
-      btnProc.disabled = true;
+      btnProc.disabled     = true;
       btnTexto.textContent = 'Corrija os arquivos e tente novamente';
       return;
     }
 
-    var n = files.length;
+    var n = nPdf + nXml;
     dropzone.classList.add('file-ok');
-    dzTitle.textContent = n === 1 ? 'Arquivo selecionado' : n + ' arquivos selecionados';
     dzTitle.style.color = '';
     dzSub.style.display = 'none';
     dzIcon.innerHTML    = '<i class="fa-solid fa-file-circle-check"></i>';
-    if (fileIcon) fileIcon.className = 'fa-solid fa-file-code';
 
-    fileNome.textContent = n === 1 ? files[0].name : n + ' arquivos XML';
+    if (n === 1) {
+      dzTitle.textContent = 'Arquivo selecionado';
+      fileNome.textContent = files[0].name;
+      if (fileIcon) fileIcon.className = nPdf === 1 ? 'fa-solid fa-file-pdf' : 'fa-solid fa-file-code';
+    } else {
+      var partes = [];
+      if (nXml > 0) partes.push(nXml + ' XML');
+      if (nPdf > 0) partes.push(nPdf + ' PDF');
+      dzTitle.textContent  = partes.join(' + ') + ' selecionados';
+      fileNome.textContent = partes.join(' + ');
+      if (fileIcon) fileIcon.className = 'fa-solid fa-files';
+    }
     fileSize.textContent = '(' + formatBytes(totalBytes) + ' total)';
     fileInfo.classList.add('visivel');
 
-    btnProc.disabled     = false;
-    btnTexto.textContent = n === 1 ? 'Processar NF-e' : 'Processar ' + n + ' NF-es';
-    btnIcon.className    = 'fa-solid fa-magnifying-glass-chart';
+    btnProc.disabled = false;
+    if (isCross) {
+      btnTexto.textContent = n === 1 && nPdf === 1
+        ? 'Vincular PDF ao Agendamento'
+        : 'Vincular ' + n + ' documento(s)';
+      btnIcon.className = nPdf > 0 && nXml === 0
+        ? 'fa-solid fa-paperclip'
+        : 'fa-solid fa-magnifying-glass-chart';
+    } else {
+      btnTexto.textContent = n === 1 ? 'Processar NF-e' : 'Processar ' + n + ' NF-es';
+      btnIcon.className    = 'fa-solid fa-magnifying-glass-chart';
+    }
   }
 
   /* ---- Input change (clique / seleção) ---- */
