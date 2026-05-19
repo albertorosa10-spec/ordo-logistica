@@ -483,6 +483,18 @@
   }
   .dg-dia-slot.vago { background:#f7f9fc; display:flex; align-items:center; }
   .dg-dia-slot-vago-txt { font-size:.72rem; color:#b0bec5; font-style:italic; }
+
+  /* Slots fixos no modo DIA */
+  .sf-block {
+    display:flex; align-items:center; gap:.5rem;
+    padding:.35rem .6rem; border-radius:6px;
+    font-size:.72rem; font-weight:600;
+    border-left:3px solid;
+  }
+  .sf-heineken { background:rgba(0,107,63,.1);  border-color:#006B3F; color:#006B3F; }
+  .sf-pepsico  { background:rgba(0,75,147,.1);  border-color:#004B93; color:#004B93; }
+  .sf-cross    { background:rgba(30,58,95,.25); border-color:#4a6080; color:#7a8faa; }
+  .sf-direta   { background:rgba(30,58,95,.15); border-color:#3a5070; color:#8892B0; }
   .dg-dia-acoes { margin-top:.4rem; display:flex; gap:.35rem; flex-wrap:wrap; }
 
   /* ── MODO SEMANA ── */
@@ -799,7 +811,6 @@
                 <span class="dg-cal-card-badge">{% if ag.tipo_operacao == 'CROSS' %}⇄ Cross{% else %}↑ Direta{% endif %}</span>
                 <span class="dg-cal-card-badge">{{ ag.get_tipo_carga_display }}</span>
               </div>
-              {# Botões de ação — clique não propaga para o card #}
               <div class="dg-dia-acoes" onclick="event.stopPropagation()">
                 {% if ag.status == 'CONFIRMADO' %}
                 <form method="post" action="/gestor/checkin/{{ ag.pk }}/">
@@ -838,6 +849,25 @@
               </div>
             </div>
             {% endfor %}
+          {% elif slot.slot_fixo %}
+            {# Slot reservado pela grade fixa — sem agendamento real #}
+            {% if slot.slot_fixo.tipo == 'HEINEKEN' %}
+            <div class="sf-block sf-heineken">
+              <span>🍺</span> Heineken — Agenda Fixa
+            </div>
+            {% elif slot.slot_fixo.tipo == 'PEPSICO' %}
+            <div class="sf-block sf-pepsico">
+              <span>🔵</span> PepsiCo — Agenda Fixa
+            </div>
+            {% elif slot.slot_fixo.tipo == 'CROSS' %}
+            <div class="sf-block sf-cross">
+              <span>⇄</span> Crossdocking disponível
+            </div>
+            {% else %}
+            <div class="sf-block sf-direta">
+              <span>📦</span> AG Simões disponível
+            </div>
+            {% endif %}
           {% else %}
             <span class="dg-dia-slot-vago-txt">— vago —</span>
           {% endif %}

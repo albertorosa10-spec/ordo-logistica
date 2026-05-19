@@ -296,10 +296,10 @@ class UploadNFeXmlForm(forms.Form):
 # FORM: NOVO AGENDAMENTO
 # ==========================================
 
-# Slots por tipo de operação
-SLOTS_DIRETA = [(f"{h:02d}:00", f"{h:02d}:00") for h in [7, 9, 11, 13, 15]]
-SLOTS_CROSS  = [(f"{h:02d}:00", f"{h:02d}:00") for h in [8, 10, 12, 14, 16]]
+# Choices abrangentes 07-18; grade real vem do SlotFixo via AJAX
+SLOTS_TODOS = [(f"{h:02d}:00", f"{h:02d}:00") for h in range(7, 19)]
 
+# Fallback quando não há grade SlotFixo configurada
 HORAS_DIRETA = {7, 9, 11, 13, 15}
 HORAS_CROSS  = {8, 10, 12, 14, 16}
 
@@ -322,7 +322,7 @@ class NovoAgendamentoForm(forms.ModelForm):
     )
     hora_slot = forms.ChoiceField(
         label='Horário',
-        choices=SLOTS_DIRETA + SLOTS_CROSS,  # ambos aceitos; clean() valida por tipo_operacao
+        choices=SLOTS_TODOS,  # grade real via AJAX; clean() valida contra SlotFixo
         widget=forms.Select(attrs={
             'class': 'na-hora-select',
             'id': 'id_hora_slot',
@@ -401,17 +401,32 @@ class NovoAgendamentoForm(forms.ModelForm):
                     'O horário de agendamento deve ser no futuro.'
                 )
 
-            # ----- Validar horário × tipo de operação -----
-            if tipo_op == 'DIRETA' and hora not in HORAS_DIRETA:
-                slots = ', '.join(f'{h:02d}:00' for h in sorted(HORAS_DIRETA))
-                raise forms.ValidationError(
-                    f'Agendamentos Direta usam horários ímpares: {slots}.'
+            # ----- Validar horário × tipo de operação (grade fixa > fallback) -----
+            dow = data.weekday()
+            if dow < 5:
+                from .models import SlotFixo
+                tipo_slot = 'DIRETA' if tipo_op == 'DIRETA' else 'CROSS'
+                grade_horas = set(
+                    SlotFixo.objects.filter(dia_semana=dow, tipo=tipo_slot, ativo=True)
+                    .values_list('hora', flat=True)
                 )
-            if tipo_op == 'CROSS' and hora not in HORAS_CROSS:
-                slots = ', '.join(f'{h:02d}:00' for h in sorted(HORAS_CROSS))
-                raise forms.ValidationError(
-                    f'Agendamentos Crossdocking usam horários pares: {slots}.'
-                )
+                if grade_horas and hora not in grade_horas:
+                    slots_str = ', '.join(f'{h:02d}:00' for h in sorted(grade_horas))
+                    raise forms.ValidationError(
+                        f'Horário indisponível. Slots {tipo_op}: {slots_str}.'
+                    )
+                elif not grade_horas:
+                    # Fallback: regras originais
+                    if tipo_op == 'DIRETA' and hora not in HORAS_DIRETA:
+                        slots_str = ', '.join(f'{h:02d}:00' for h in sorted(HORAS_DIRETA))
+                        raise forms.ValidationError(
+                            f'Agendamentos Direta usam horários: {slots_str}.'
+                        )
+                    if tipo_op == 'CROSS' and hora not in HORAS_CROSS:
+                        slots_str = ', '.join(f'{h:02d}:00' for h in sorted(HORAS_CROSS))
+                        raise forms.ValidationError(
+                            f'Agendamentos Crossdocking usam horários: {slots_str}.'
+                        )
 
             cleaned['inicio'] = inicio
 

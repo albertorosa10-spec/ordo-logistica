@@ -70,6 +70,8 @@ class Fornecedor(models.Model):
     bloqueado          = models.BooleanField('Bloqueio Fiscal', default=False)
     motivo_bloqueio    = models.TextField('Motivo do Bloqueio', blank=True)
     permite_multi_doca = models.BooleanField('Permite Multi-Doca?', default=False)
+    agenda_fixa        = models.BooleanField('Grade Fixa?', default=False)
+    cor_marca          = models.CharField('Cor da Marca', max_length=7, blank=True, default='')
 
     def __str__(self):
         return f"{self.razao_social} ({self.cnpj})"
@@ -339,3 +341,35 @@ class PedidoCliente(models.Model):
 
     def __str__(self):
         return f"{self.cliente} — Pedido {self.numero_pedido_cliente}"
+
+
+# ==========================================
+# GRADE FIXA DE AGENDAMENTOS
+# ==========================================
+
+class SlotFixo(models.Model):
+    DIAS_CHOICES = [
+        (0, 'Segunda'), (1, 'Terça'), (2, 'Quarta'),
+        (3, 'Quinta'),  (4, 'Sexta'),
+    ]
+    TIPO_CHOICES = [
+        ('HEINEKEN', 'Heineken'),
+        ('PEPSICO',  'PepsiCo'),
+        ('CROSS',    'Crossdocking'),
+        ('DIRETA',   'AG Simões'),
+    ]
+
+    dia_semana = models.IntegerField('Dia da Semana', choices=DIAS_CHOICES)
+    hora       = models.IntegerField('Hora')  # 7..18
+    tipo       = models.CharField('Tipo', max_length=10, choices=TIPO_CHOICES)
+    ativo      = models.BooleanField('Ativo', default=True)
+
+    class Meta:
+        unique_together = ['dia_semana', 'hora']
+        ordering        = ['dia_semana', 'hora']
+        verbose_name        = 'Slot Fixo'
+        verbose_name_plural = 'Slots Fixos'
+
+    def __str__(self):
+        dias = dict(self.DIAS_CHOICES)
+        return f"{dias.get(self.dia_semana, '?')} {self.hora:02d}:00 — {self.get_tipo_display()}"

@@ -10,7 +10,7 @@ from datetime import timedelta
 from .models import (
     EmpresaOperadora, Doca, Fornecedor,
     Agendamento, AgendamentoDoca, LogAgendamento,
-    Cliente, PedidoCliente,
+    Cliente, PedidoCliente, SlotFixo,
 )
 
 @admin.register(EmpresaOperadora)
@@ -160,6 +160,17 @@ class ClienteAdmin(admin.ModelAdmin):
     list_display  = ['razao_social', 'cnpj', 'ativo', 'criado_em']
     list_filter   = ['ativo']
     search_fields = ['razao_social', 'cnpj']
+
+
+@admin.register(SlotFixo)
+class SlotFixoAdmin(admin.ModelAdmin):
+    list_display  = ['get_dia_display', 'hora', 'tipo', 'ativo']
+    list_filter   = ['dia_semana', 'tipo', 'ativo']
+    ordering      = ['dia_semana', 'hora']
+
+    def get_dia_display(self, obj):
+        return obj.get_dia_semana_display()
+    get_dia_display.short_description = 'Dia'
 
 
 @admin.register(PedidoCliente)

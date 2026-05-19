@@ -20,7 +20,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_GET
 
-from .models import Agendamento, Fornecedor, EmpresaOperadora, Doca, LogAgendamento, NFeArquivo, Cliente, PedidoCliente, SHADOW_BUFFER
+from .models import Agendamento, Fornecedor, EmpresaOperadora, Doca, LogAgendamento, NFeArquivo, Cliente, PedidoCliente, SlotFixo, SHADOW_BUFFER
 
 
 def _e_staff(user):
@@ -207,6 +207,50 @@ def api_consulta_cnpj(request, cnpj):
     if dados:
         return JsonResponse(dados)
     return JsonResponse({'erro': 'CNPJ não encontrado.'}, status=404)
+
+
+@require_GET
+@login_required
+def ajax_slots_disponiveis(request):
+    """Retorna slots livres para a data e tipo de operação informados."""
+    data_str = request.GET.get('data', '')
+    tipo_op  = request.GET.get('tipo', 'DIRETA').upper()
+
+    from datetime import datetime as dt_cls
+    try:
+        data = dt_cls.strptime(data_str, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'slots': [], 'erro': 'Data inválida.'}, status=400)
+
+    dow = data.weekday()
+    if dow >= 5:
+        return JsonResponse({'slots': []})
+
+    # Tipo de slot válido para o tipo de operação solicitado
+    tipo_slot = 'DIRETA' if tipo_op == 'DIRETA' else 'CROSS'
+
+    slots_base = list(
+        SlotFixo.objects.filter(dia_semana=dow, tipo=tipo_slot, ativo=True)
+        .values_list('hora', flat=True)
+    )
+
+    if not slots_base:
+        # Sem grade definida: usa regras originais
+        if tipo_op == 'DIRETA':
+            slots_base = [7, 9, 11, 13, 15]
+        else:
+            slots_base = [8, 10, 12, 14, 16]
+
+    # Remove horas já ocupadas por agendamentos ativos
+    _STATUS_OCUPA = ['PRE_AGENDADO', 'AGUARDANDO_FISCAL', 'CONFIRMADO', 'EM_PATIO', 'EM_DESCARGA']
+    ocupadas = set(
+        Agendamento.objects
+        .filter(inicio__date=data, tipo_operacao=tipo_op, status__in=_STATUS_OCUPA)
+        .values_list('inicio__hour', flat=True)
+    )
+
+    disponíveis = sorted(h for h in slots_base if h not in ocupadas)
+    return JsonResponse({'slots': [f'{h:02d}:00' for h in disponíveis]})
 
 # ==========================================
 # PORTAL DA INDÚSTRIA
@@ -609,14 +653,25 @@ def dashboard_logistica(request):
     HORAS_OP = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
     hoje     = timezone.now().date()
 
-    # DIA — lista de slots por hora
+    # DIA — lista de slots por hora, enriquecida com SlotFixo
     slots_hora = []
     if periodo == 'dia':
         ags_list = list(agendamentos)
-        for hora in HORAS_OP:
+        dow = data_filtro.weekday()
+        slots_fixos_map = {}
+        if dow < 5:
+            for sf in SlotFixo.objects.filter(dia_semana=dow, ativo=True):
+                slots_fixos_map[sf.hora] = sf
+
+        # Estende HORAS_OP para incluir horas extras da grade (ex: 17h, 18h na Terça/Quinta)
+        horas_grade = set(HORAS_OP) | set(slots_fixos_map.keys())
+        for hora in sorted(horas_grade):
+            slot_fixo = slots_fixos_map.get(hora)
+            ags_na_hora = [ag for ag in ags_list if ag.inicio.hour == hora]
             slots_hora.append({
-                'hora': hora,
-                'agendamentos': [ag for ag in ags_list if ag.inicio.hour == hora],
+                'hora':        hora,
+                'agendamentos': ags_na_hora,
+                'slot_fixo':   slot_fixo,
             })
 
     # SEMANA — 7 dias × horas

@@ -812,33 +812,56 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
   }
 
   /* ---------------------------------------------------------------
-     3. TOGGLE TIPO DE OPERAÇÃO — troca slots de horário
+     3. TOGGLE TIPO DE OPERAÇÃO — carrega slots via AJAX
      --------------------------------------------------------------- */
-  var SLOTS_DIRETA = ['07:00','09:00','11:00','13:00','15:00'];
-  var SLOTS_CROSS  = ['08:00','10:00','12:00','14:00','16:00'];
+  var SLOTS_FALLBACK_DIRETA = ['07:00','09:00','11:00','13:00','15:00'];
+  var SLOTS_FALLBACK_CROSS  = ['08:00','10:00','12:00','14:00','16:00'];
 
   var tipoOpInput = document.getElementById('id_tipo_operacao');
   var btnDireta   = document.getElementById('btn-direta');
   var btnCross    = document.getElementById('btn-cross');
   var tipoAtual   = 'DIRETA';
 
+  function carregarSlots(tipo, callback) {
+    var data = inputData ? inputData.value : '';
+    if (!data) {
+      callback(tipo === 'CROSS' ? SLOTS_FALLBACK_CROSS : SLOTS_FALLBACK_DIRETA);
+      return;
+    }
+    fetch('/industria/slots/?data=' + data + '&tipo=' + tipo)
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        callback(d.slots && d.slots.length ? d.slots : (tipo === 'CROSS' ? SLOTS_FALLBACK_CROSS : SLOTS_FALLBACK_DIRETA));
+      })
+      .catch(function() {
+        callback(tipo === 'CROSS' ? SLOTS_FALLBACK_CROSS : SLOTS_FALLBACK_DIRETA);
+      });
+  }
+
+  function popularSelectHora(slots) {
+    if (!selectHora) return;
+    var valorAtual = selectHora.value;
+    selectHora.innerHTML = '';
+    if (!slots.length) {
+      var opt = document.createElement('option');
+      opt.value = ''; opt.textContent = '— nenhum slot disponível —';
+      selectHora.appendChild(opt);
+      return;
+    }
+    slots.forEach(function(s) {
+      var opt = document.createElement('option');
+      opt.value = s; opt.textContent = s;
+      if (s === valorAtual) opt.selected = true;
+      selectHora.appendChild(opt);
+    });
+    atualizarSLA();
+  }
+
   function setTipoOp(tipo) {
     if (!tipoOpInput) return;
     tipoAtual = tipo;
     tipoOpInput.value = tipo;
-
-    var slots = tipo === 'CROSS' ? SLOTS_CROSS : SLOTS_DIRETA;
-    if (selectHora) {
-      var valorAtual = selectHora.value;
-      selectHora.innerHTML = '';
-      slots.forEach(function(s) {
-        var opt = document.createElement('option');
-        opt.value = s;
-        opt.textContent = s;
-        if (s === valorAtual) opt.selected = true;
-        selectHora.appendChild(opt);
-      });
-    }
+    carregarSlots(tipo, popularSelectHora);
 
     if (btnDireta) btnDireta.classList.toggle('active', tipo === 'DIRETA');
     if (btnCross)  btnCross.classList.toggle('active',  tipo === 'CROSS');
@@ -881,9 +904,12 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
   }
 
   /* ---------------------------------------------------------------
-     4. BIND DE EVENTOS — atualiza SLA ao muda data, hora ou qtd
+     4. BIND DE EVENTOS — atualiza slots ao mudar data; SLA ao mudar hora/qtd
      --------------------------------------------------------------- */
-  if (inputData)  inputData.addEventListener('change', atualizarSLA);
+  if (inputData)  inputData.addEventListener('change', function() {
+    carregarSlots(tipoAtual, popularSelectHora);
+    atualizarSLA();
+  });
   if (selectHora) selectHora.addEventListener('change', atualizarSLA);
   if (inputQtd)   inputQtd.addEventListener('input', atualizarSLA);
   if (selectTipo) selectTipo.addEventListener('change', atualizarSLA);
