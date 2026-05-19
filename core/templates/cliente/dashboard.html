@@ -255,6 +255,8 @@
 }
 .cli-table tbody tr:last-child td { border-bottom: none; }
 .cli-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+.cli-table tbody tr.clickable { cursor: pointer; }
+.cli-table tbody tr.clickable:hover { background: rgba(0,200,150,0.05); }
 
 .mono { font-family: 'Courier New', monospace; color: #00C896; font-weight: 600; font-size: 0.83rem; }
 
@@ -399,7 +401,7 @@
                         </thead>
                         <tbody>
                         {% for item in pendentes %}{% with p=item.pedido ag=item.ag %}
-                        <tr>
+                        <tr {% if ag %}class="clickable" onclick="window.location.href='{% url 'cliente_detalhe_pedido' p.pk %}'"{% endif %}>
                             <td><span class="mono">{{ p.numero_pedido_cliente }}</span></td>
                             <td style="color:#8892B0;">
                                 {% if ag and ag.fornecedor %}{{ ag.fornecedor.razao_social }}{% else %}—{% endif %}
@@ -464,7 +466,7 @@
                         </thead>
                         <tbody>
                         {% for item in entregues %}{% with p=item.pedido ag=item.ag %}
-                        <tr>
+                        <tr {% if ag %}class="clickable" onclick="window.location.href='{% url 'cliente_detalhe_pedido' p.pk %}'"{% endif %}>
                             <td><span class="mono">{{ p.numero_pedido_cliente }}</span></td>
                             <td style="color:#8892B0;">
                                 {% if ag.fornecedor %}{{ ag.fornecedor.razao_social }}{% else %}—{% endif %}

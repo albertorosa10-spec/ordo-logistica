@@ -21,6 +21,8 @@ urlpatterns = [
     # ------------------------------------------
     path('cliente/login/',      views.cliente_login,      name='cliente_login'),
     path('cliente/dashboard/',  views.cliente_dashboard,  name='cliente_dashboard'),
+    path('cliente/pedido/<int:pk>/', views.cliente_detalhe_pedido,
+         name='cliente_detalhe_pedido'),
     path('cliente/logout/',     views.logout_view,        name='cliente_logout'),
 
     # ------------------------------------------

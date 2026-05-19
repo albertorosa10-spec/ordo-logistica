@@ -985,6 +985,34 @@ def cliente_dashboard(request):
     })
 
 
+@login_required(login_url='/cliente/login/')
+def cliente_detalhe_pedido(request, pk):
+    """Detalhe de um pedido do cliente, com timeline pública."""
+    if not hasattr(request.user, 'cliente'):
+        return render(request, '403.html', status=403)
+
+    cliente = request.user.cliente
+    pedido = get_object_or_404(
+        PedidoCliente.objects.select_related('agendamento__fornecedor', 'cliente'),
+        pk=pk,
+    )
+
+    if pedido.cliente_id != cliente.id:
+        return render(request, '403.html', status=403)
+
+    ag = pedido.agendamento
+    status_liberado = bool(
+        ag and ag.status in ['CONFIRMADO', 'EM_PATIO', 'EM_DESCARGA', 'FINALIZADO']
+    )
+
+    return render(request, 'cliente/detalhe_pedido.html', {
+        'pedido':           pedido,
+        'agendamento':      ag,
+        'status_liberado':  status_liberado,
+        'cliente':          cliente,
+    })
+
+
 def fiscal_aprovar(request, pk):
     """Triagem fiscal individual por NFeArquivo."""
     if not request.user.groups.filter(name='analista_fiscal').exists():

@@ -1,0 +1,500 @@
+{% extends 'base.html' %}
+
+{% block title %}Pedido {{ pedido.numero_pedido_cliente }} — Zakaz{% endblock %}
+{% block body_class %}no-sidebar{% endblock %}
+{% block main_wrapper_class %}{% endblock %}
+
+{% block extra_css %}
+/* ================================================
+   Reaproveita layout do dashboard do cliente
+   ================================================ */
+.cli-layout { display: flex; min-height: 100vh; background: #0d1520; }
+
+.cli-sidebar {
+    width: 220px; flex-shrink: 0;
+    background: #0A1628;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    display: flex; flex-direction: column;
+    position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
+}
+.cli-sb-logo { padding: 1.4rem 1.4rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.cli-sb-logo .logo-mark {
+    font-size: 1.4rem; font-weight: 800;
+    background: linear-gradient(135deg, #00C896, #0077B6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; letter-spacing: -0.5px; line-height: 1;
+}
+.cli-sb-logo .logo-portal {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 3px;
+    color: #00C896; margin-top: 3px; font-weight: 600;
+}
+.cli-sb-divider { height: 1px; background: linear-gradient(90deg, rgba(0,200,150,0.3), transparent);
+    margin: 0.1rem 1.4rem 0.75rem; }
+.cli-sb-nav { flex: 1; padding: 0.25rem 0.75rem; }
+.cli-sb-nav-item {
+    display: flex; align-items: center; gap: 0.7rem;
+    padding: 0.6rem 0.75rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 500;
+    color: #8892B0; text-decoration: none;
+    transition: all 0.15s; margin-bottom: 2px;
+}
+.cli-sb-nav-item i { width: 16px; text-align: center; font-size: 0.82rem; }
+.cli-sb-nav-item:hover { background: rgba(255,255,255,0.04); color: #CCD6F6; }
+.cli-sb-nav-item.active {
+    background: rgba(0,200,150,0.08); color: #00C896;
+    border: 1px solid rgba(0,200,150,0.15);
+}
+.cli-sb-footer { padding: 0.85rem 1.1rem; border-top: 1px solid rgba(255,255,255,0.06); }
+.cli-sb-cliente-name {
+    font-size: 0.78rem; font-weight: 600; color: #CCD6F6;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 160px; margin-bottom: 1px;
+}
+.cli-sb-cliente-role { font-size: 0.66rem; color: #8892B0; margin-bottom: 0.65rem; }
+.cli-sb-logout-btn {
+    font-size: 0.72rem; color: rgba(255,77,109,0.6);
+    background: none; border: 1px solid rgba(255,77,109,0.2);
+    border-radius: 6px; padding: 0.3rem 0.7rem; cursor: pointer;
+    transition: all 0.15s; display: inline-flex; align-items: center; gap: 0.3rem;
+}
+.cli-sb-logout-btn:hover { color: #FF4D6D; border-color: rgba(255,77,109,0.5); }
+
+.cli-main { margin-left: 220px; flex: 1; min-height: 100vh;
+    display: flex; flex-direction: column; }
+
+.cli-topbar {
+    background: #0A1628; border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 1rem 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 0.75rem;
+}
+.cli-topbar-left { display: flex; align-items: center; gap: 1rem; }
+.cli-page-title { font-size: 1.1rem; font-weight: 700; color: #CCD6F6;
+    letter-spacing: -0.2px; line-height: 1.2; }
+.cli-page-title .mono { font-family: 'Courier New', monospace; color: #00C896; }
+.cli-page-sub { font-size: 0.78rem; color: #00C896; font-weight: 500; margin-top: 2px; }
+
+.cli-back-btn {
+    font-size: 0.78rem; color: #8892B0;
+    text-decoration: none; padding: 0.45rem 0.85rem;
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;
+    transition: all 0.15s; display: inline-flex; align-items: center; gap: 0.4rem;
+}
+.cli-back-btn:hover { color: #00C896; border-color: rgba(0,200,150,0.3); }
+
+.cli-body { padding: 2rem; flex: 1; max-width: 900px; width: 100%; }
+
+/* Badge atendimento */
+.b {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    font-size: 0.72rem; font-weight: 600;
+    padding: 0.22rem 0.6rem; border-radius: 6px;
+}
+.b-integral  { background: rgba(0,200,150,0.1);  color: #00C896; }
+.b-parcial   { background: rgba(255,183,3,0.1);   color: #FFB703; }
+
+/* ===== BLOCO A — em processamento ===== */
+.proc-card {
+    background: #111e2d;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 3rem 2rem;
+    text-align: center;
+    max-width: 520px;
+    margin: 2rem auto;
+}
+.proc-icon {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: rgba(0,200,150,0.08);
+    color: #00C896;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem;
+    margin: 0 auto 1.25rem;
+}
+.proc-title {
+    font-size: 1.1rem; font-weight: 700;
+    color: #CCD6F6; margin-bottom: 0.6rem;
+}
+.proc-text {
+    font-size: 0.88rem; color: #8892B0;
+    line-height: 1.65; max-width: 380px; margin: 0 auto;
+}
+
+/* ===== BLOCO B — cards de topo ===== */
+.cli-info-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+@media (max-width: 600px) { .cli-info-row { grid-template-columns: 1fr; } }
+
+.info-card {
+    background: #111e2d;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 1.25rem 1.4rem;
+    display: flex; align-items: center; gap: 1rem;
+}
+.info-card-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+}
+.info-card-lbl {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.7px;
+    color: #8892B0; margin-bottom: 4px; font-weight: 600;
+}
+.info-card-val { font-size: 1rem; font-weight: 700; color: #CCD6F6; line-height: 1.2; }
+.info-card-sub { font-size: 0.78rem; color: #8892B0; margin-top: 2px; }
+
+/* ===== TIMELINE ===== */
+.timeline-section { margin-top: 1rem; }
+.timeline-head {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.2px;
+    color: #8892B0; margin-bottom: 1.25rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.timeline-head::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.05); }
+
+.timeline {
+    background: #111e2d;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 2rem 2rem 1rem;
+    position: relative;
+}
+.tl-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    padding-bottom: 1.75rem;
+    position: relative;
+}
+.tl-step:last-child { padding-bottom: 0.5rem; }
+
+/* linha conectora */
+.tl-step:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 19px; top: 40px; bottom: 0;
+    width: 2px;
+    background: rgba(255,255,255,0.06);
+}
+.tl-step.done:not(:last-child)::before { background: rgba(0,200,150,0.25); }
+
+.tl-bullet {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    z-index: 2;
+    background: #0d1520;
+    border: 2px solid rgba(255,255,255,0.1);
+    color: #4a5568;
+}
+.tl-step.done .tl-bullet {
+    border-color: transparent;
+}
+.tl-bullet.done-green   { background: #00C896; color: #071018; border-color: #00C896; }
+.tl-bullet.done-orange  { background: #FFA040; color: #1a1208; border-color: #FFA040; }
+.tl-bullet.done-purple  { background: #8b5cf6; color: #fff;     border-color: #8b5cf6; }
+.tl-bullet.done-darkgr  { background: #00a884; color: #071018;  border-color: #00a884; }
+
+.tl-content { flex: 1; padding-top: 0.35rem; }
+.tl-title {
+    font-size: 0.95rem; font-weight: 700;
+    color: #CCD6F6; margin-bottom: 3px;
+}
+.tl-step:not(.done) .tl-title { color: #8892B0; font-weight: 600; }
+.tl-meta {
+    font-size: 0.82rem; color: #8892B0;
+    line-height: 1.5;
+}
+.tl-meta.muted { color: #4a5568; font-style: italic; }
+.tl-step.done .tl-meta { color: #CCD6F6; }
+.tl-step.done .tl-meta strong { color: #00C896; }
+
+/* status badge (info card) */
+.s-badge {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.85rem; font-weight: 700;
+}
+.s-confirmado { color: #4fc3f7; }
+.s-patio      { color: #FFA040; }
+.s-descarga   { color: #a78bfa; }
+.s-finalizado { color: #00C896; }
+
+@media (max-width: 900px) {
+    .cli-sidebar { width: 60px; }
+    .cli-sb-logo .logo-mark { font-size: 1rem; }
+    .cli-sb-logo .logo-portal,
+    .cli-sb-nav-item span,
+    .cli-sb-cliente-name,
+    .cli-sb-cliente-role { display: none; }
+    .cli-sb-nav-item { justify-content: center; padding: 0.6rem; }
+    .cli-main { margin-left: 60px; }
+}
+@media (max-width: 640px) {
+    .cli-body { padding: 1.25rem; }
+    .cli-topbar { padding: 0.85rem 1.25rem; }
+    .timeline { padding: 1.5rem 1.25rem 0.75rem; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="cli-layout">
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="cli-sidebar">
+        <div class="cli-sb-logo">
+            <div class="logo-mark">ZAKAZ</div>
+            <div class="logo-portal">Portal do Cliente</div>
+        </div>
+        <div class="cli-sb-divider"></div>
+
+        <nav class="cli-sb-nav">
+            <a href="{% url 'cliente_dashboard' %}" class="cli-sb-nav-item active">
+                <i class="fa-solid fa-box-open"></i>
+                <span>Meus Pedidos</span>
+            </a>
+            <span class="cli-sb-nav-item" style="opacity:.4; cursor:default;">
+                <i class="fa-solid fa-user"></i>
+                <span>Minha Conta</span>
+            </span>
+        </nav>
+
+        <div class="cli-sb-footer">
+            <div class="cli-sb-cliente-name">{{ cliente.razao_social }}</div>
+            <div class="cli-sb-cliente-role">Cliente</div>
+            <form method="post" action="{% url 'cliente_logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="cli-sb-logout-btn">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Sair</span>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- ===== ÁREA PRINCIPAL ===== -->
+    <div class="cli-main">
+
+        <!-- Topbar -->
+        <div class="cli-topbar">
+            <div class="cli-topbar-left">
+                <div>
+                    <div class="cli-page-title">
+                        Pedido <span class="mono">{{ pedido.numero_pedido_cliente }}</span>
+                    </div>
+                    <div class="cli-page-sub">
+                        {% if agendamento and agendamento.fornecedor %}
+                            {{ agendamento.fornecedor.razao_social }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+                </div>
+                {% if pedido.tipo_atendimento == 'INTEGRAL' %}
+                <span class="b b-integral">Integral</span>
+                {% else %}
+                <span class="b b-parcial">Parcial</span>
+                {% endif %}
+            </div>
+            <a href="{% url 'cliente_dashboard' %}" class="cli-back-btn">
+                <i class="fa-solid fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+
+        <div class="cli-body fade-in">
+
+        {% if not status_liberado %}
+            {# ===== BLOCO A — em processamento ===== #}
+            <div class="proc-card">
+                <div class="proc-icon">
+                    <i class="fa-regular fa-clock"></i>
+                </div>
+                <div class="proc-title">Pedido em Processamento</div>
+                <div class="proc-text">
+                    Sua entrega está sendo processada internamente.
+                    Você receberá acesso ao acompanhamento assim que for confirmada.
+                </div>
+            </div>
+        {% else %}
+            {# ===== BLOCO B — cards de topo ===== #}
+            <div class="cli-info-row">
+                <div class="info-card">
+                    <div class="info-card-icon" style="background:rgba(0,200,150,0.1); color:#00C896;">
+                        <i class="fa-regular fa-calendar"></i>
+                    </div>
+                    <div>
+                        <div class="info-card-lbl">Agendado para</div>
+                        <div class="info-card-val">{{ agendamento.inicio|date:"d/m/Y" }}</div>
+                        <div class="info-card-sub">às {{ agendamento.inicio|date:"H:i" }}</div>
+                    </div>
+                </div>
+                <div class="info-card">
+                    {% if agendamento.status == 'FINALIZADO' %}
+                        <div class="info-card-icon" style="background:rgba(0,200,150,0.1); color:#00C896;">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <div>
+                            <div class="info-card-lbl">Status atual</div>
+                            <div class="s-badge s-finalizado">Entrega Concluída</div>
+                        </div>
+                    {% elif agendamento.status == 'EM_DESCARGA' %}
+                        <div class="info-card-icon" style="background:rgba(139,92,246,0.1); color:#a78bfa;">
+                            <i class="fa-solid fa-boxes-packing"></i>
+                        </div>
+                        <div>
+                            <div class="info-card-lbl">Status atual</div>
+                            <div class="s-badge s-descarga">Descarga em Andamento</div>
+                        </div>
+                    {% elif agendamento.status == 'EM_PATIO' %}
+                        <div class="info-card-icon" style="background:rgba(255,160,64,0.1); color:#FFA040;">
+                            <i class="fa-solid fa-truck"></i>
+                        </div>
+                        <div>
+                            <div class="info-card-lbl">Status atual</div>
+                            <div class="s-badge s-patio">Veículo no CD</div>
+                        </div>
+                    {% else %}
+                        <div class="info-card-icon" style="background:rgba(0,180,216,0.1); color:#4fc3f7;">
+                            <i class="fa-solid fa-calendar-check"></i>
+                        </div>
+                        <div>
+                            <div class="info-card-lbl">Status atual</div>
+                            <div class="s-badge s-confirmado">Entrega Confirmada</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# ===== TIMELINE ===== #}
+            <div class="timeline-section">
+                <div class="timeline-head">
+                    <i class="fa-solid fa-route" style="color:#00C896; font-size:0.6rem;"></i>
+                    Acompanhamento da Entrega
+                </div>
+
+                <div class="timeline">
+
+                    {# ETAPA 1 — sempre concluída #}
+                    <div class="tl-step done">
+                        <div class="tl-bullet done-green">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <div class="tl-content">
+                            <div class="tl-title">Entrega Confirmada</div>
+                            <div class="tl-meta">
+                                Agendada para
+                                <strong>{{ agendamento.inicio|date:"d/m/Y" }}</strong>
+                                às <strong>{{ agendamento.inicio|date:"H:i" }}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# ETAPA 2 — Veículo no CD #}
+                    {% if agendamento.status == 'EM_PATIO' or agendamento.status == 'EM_DESCARGA' or agendamento.status == 'FINALIZADO' %}
+                    <div class="tl-step done">
+                        <div class="tl-bullet done-orange">
+                            <i class="fa-solid fa-truck"></i>
+                        </div>
+                        <div class="tl-content">
+                            <div class="tl-title">Veículo no CD</div>
+                            <div class="tl-meta">
+                                {% if agendamento.horario_entrada_patio %}
+                                Chegada em
+                                <strong>{{ agendamento.horario_entrada_patio|date:"d/m/Y" }}</strong>
+                                às <strong>{{ agendamento.horario_entrada_patio|date:"H:i" }}</strong>
+                                {% else %}
+                                Veículo registrado no centro de distribuição.
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="tl-step">
+                        <div class="tl-bullet">
+                            <i class="fa-solid fa-truck"></i>
+                        </div>
+                        <div class="tl-content">
+                            <div class="tl-title">Veículo no CD</div>
+                            <div class="tl-meta muted">Aguardando chegada do veículo</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {# ETAPA 3 — Descarga #}
+                    {% if agendamento.status == 'EM_DESCARGA' or agendamento.status == 'FINALIZADO' %}
+                    <div class="tl-step done">
+                        <div class="tl-bullet done-purple">
+                            <i class="fa-solid fa-boxes-packing"></i>
+                        </div>
+                        <div class="tl-content">
+                            <div class="tl-title">Descarga em Andamento</div>
+                            <div class="tl-meta">
+                                {% if agendamento.horario_inicio_descarga %}
+                                Início em
+                                <strong>{{ agendamento.horario_inicio_descarga|date:"d/m/Y" }}</strong>
+                                às <strong>{{ agendamento.horario_inicio_descarga|date:"H:i" }}</strong>
+                                {% else %}
+                                Descarga registrada no centro de distribuição.
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="tl-step">
+                        <div class="tl-bullet">
+                            <i class="fa-solid fa-boxes-packing"></i>
+                        </div>
+                        <div class="tl-content">
+                            <div class="tl-title">Descarga em Andamento</div>
+                            <div class="tl-meta muted">Aguardando início da descarga</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {# ETAPA 4 — Concluída #}
+                    {% if agendamento.status == 'FINALIZADO' %}
+                    <div class="tl-step done">
+                        <div class="tl-bullet done-darkgr">
+                            <i class="fa-solid fa-check-double"></i>
+                        </div>
+                        <div class="tl-content">
+                            <div class="tl-title">Entrega Concluída</div>
+                            <div class="tl-meta">
+                                {% if agendamento.horario_finalizacao %}
+                                Finalizada em
+                                <strong>{{ agendamento.horario_finalizacao|date:"d/m/Y" }}</strong>
+                                às <strong>{{ agendamento.horario_finalizacao|date:"H:i" }}</strong>
+                                {% else %}
+                                Entrega concluída com sucesso.
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="tl-step">
+                        <div class="tl-bullet">
+                            <i class="fa-solid fa-check-double"></i>
+                        </div>
+                        <div class="tl-content">
+                            <div class="tl-title">Entrega Concluída</div>
+                            <div class="tl-meta muted">Aguardando finalização</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                </div><!-- /timeline -->
+            </div>
+        {% endif %}
+
+        </div><!-- /cli-body -->
+    </div><!-- /cli-main -->
+</div>
+{% endblock %}
