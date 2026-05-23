@@ -471,11 +471,11 @@
                        background:rgba(255,255,255,.1); }
 
   /* ── MODO DIA ── */
-  .dg-dia-grid { display:grid; grid-template-columns:52px 1fr; }
-  .dg-dia-hora-label {
-    padding:.75rem .5rem .75rem 0; text-align:right; font-size:.72rem; font-weight:700;
-    color:var(--cinza-texto); border-right:1px solid var(--cinza-borda);
-    border-bottom:1px solid #f0f2f5; white-space:nowrap; line-height:1;
+  .dg-dia-grid { display:grid; grid-template-columns:1fr; }
+  .dg-bloco-label {
+    display:inline-block; font-size:.62rem; font-weight:700; letter-spacing:.04em;
+    color:var(--cinza-texto); background:#eef1f5; border-radius:4px;
+    padding:1px 6px; margin-bottom:.3rem;
   }
   .dg-dia-slot {
     padding:.45rem .7rem; border-bottom:1px solid #f0f2f5; min-height:64px;
@@ -685,7 +685,7 @@
           </svg>
         </div>
         <div class="dg-kpi-body">
-          <div class="dg-kpi-label">Total do Dia</div>
+          <div class="dg-kpi-label">{% if periodo == 'mes' %}Total do Mês{% elif periodo == 'semana' %}Total da Semana{% else %}Total do Dia{% endif %}</div>
           <div class="dg-kpi-valor" style="color:var(--az-acao);">{{ total }}</div>
           <div class="dg-kpi-detalhe">{{ titulo_periodo }}</div>
         </div>
@@ -784,7 +784,7 @@
     <div class="dg-cal-wrap">
       <div class="dg-cal-head">
         <span class="dg-cal-head-titulo">
-          {% if periodo == 'dia' %}Grade Horária{% elif periodo == 'semana' %}Calendário Semanal{% else %}Calendário Mensal{% endif %}
+          {% if periodo == 'dia' %}Grade de Operação{% elif periodo == 'semana' %}Calendário Semanal{% else %}Calendário Mensal{% endif %}
           &mdash; {{ titulo_periodo }}
         </span>
         <span class="dg-cal-head-info">
@@ -797,10 +797,8 @@
       {% if periodo == 'dia' %}
       <div class="dg-dia-grid">
         {% for slot in slots_hora %}
-        {# label da hora #}
-        <div class="dg-dia-hora-label">{{ slot.hora|stringformat:"02d" }}:00</div>
-        {# conteúdo do slot #}
         <div class="dg-dia-slot {% if not slot.agendamentos %}vago{% endif %}">
+          <div class="dg-bloco-label">Bloco {{ forloop.counter }}</div>
           {% if slot.agendamentos %}
             {% for ag in slot.agendamentos %}
             <div class="dg-cal-card cal-{{ ag.status }}"

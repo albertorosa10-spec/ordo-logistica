@@ -745,7 +745,7 @@ def dashboard_logistica(request):
         horas_grade = set(HORAS_OP) | set(slots_fixos_map.keys())
         for hora in sorted(horas_grade):
             slot_fixo = slots_fixos_map.get(hora)
-            ags_na_hora = [ag for ag in ags_list if ag.inicio.hour == hora]
+            ags_na_hora = [ag for ag in ags_list if timezone.localtime(ag.inicio).hour == hora]
             slots_hora.append({
                 'hora':        hora,
                 'agendamentos': ags_na_hora,
