@@ -9,7 +9,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.contrib.auth.models import User
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 # ==========================================
 # CONSTANTES GLOBAIS
@@ -107,9 +107,11 @@ class Agendamento(models.Model):
     fornecedor = models.ForeignKey(Fornecedor, on_delete=models.PROTECT, null=True, blank=True)
     docas      = models.ManyToManyField(Doca, through='AgendamentoDoca', verbose_name='Docas', blank=True)
 
-    numero_pedido  = models.CharField('Nº Pedido de Compra', max_length=20)
-    inicio         = models.DateTimeField('Horário de Início')
-    fim_estimado   = models.DateTimeField('Fim Estimado', null=True, blank=True)
+    numero_pedido    = models.CharField('Nº Pedido de Compra', max_length=20)
+    data_agendamento = models.DateField('Data do Agendamento', null=True, blank=True)
+    lacuna_numero    = models.IntegerField('Lacuna Nº', null=True, blank=True)
+    inicio           = models.DateTimeField('Horário de Início', null=True, blank=True)
+    fim_estimado     = models.DateTimeField('Fim Estimado', null=True, blank=True)
     tipo_carga     = models.CharField('Tipo de Carga', max_length=3, choices=TIPO_CARGA, default='PAL')
     qtd_itens      = models.IntegerField('Qtd. Itens/Caixas', default=1)
     tipo_operacao  = models.CharField(
@@ -168,7 +170,15 @@ class Agendamento(models.Model):
         return self.status_dinamico['label']
 
     def prazo_vinculo_nfe(self):
-        return self.inicio - timedelta(hours=PRAZO_VINCULO_NFE_HORAS) if self.inicio else None
+        if self.data_agendamento:
+            from datetime import time as _time
+            dt = timezone.make_aware(
+                datetime.combine(self.data_agendamento, _time(0, 0))
+            )
+            return dt - timedelta(hours=PRAZO_VINCULO_NFE_HORAS)
+        if self.inicio:
+            return self.inicio - timedelta(hours=PRAZO_VINCULO_NFE_HORAS)
+        return None
 
     def prazo_expirado(self):
         prazo = self.prazo_vinculo_nfe()
@@ -219,17 +229,44 @@ class Agendamento(models.Model):
             if fim.hour >= 18: raise ValidationError("Ultrapassa 18h.")
         if self.pk: self.verificar_conflito()
 
+    def _derivar_inicio(self):
+        """Deriva o datetime de início a partir de data_agendamento + lacuna_numero."""
+        if not (self.data_agendamento and self.lacuna_numero):
+            return
+        dow = self.data_agendamento.weekday()
+        tipo_slot = 'DIRETA' if self.tipo_operacao == 'DIRETA' else 'CROSS'
+        horas = sorted(
+            SlotFixo.objects.filter(dia_semana=dow, tipo=tipo_slot, ativo=True)
+            .values_list('hora', flat=True)
+        )
+        if not horas:
+            horas = [7, 9, 11, 13, 15] if self.tipo_operacao == 'DIRETA' else [8, 10, 12, 14, 16]
+        if self.lacuna_numero <= len(horas):
+            from datetime import time as _time
+            hora = horas[self.lacuna_numero - 1]
+            self.inicio = timezone.make_aware(
+                datetime.combine(self.data_agendamento, _time(hora, 0))
+            )
+
     def save(self, *args, **kwargs):
+        # Deriva inicio se ainda não definido
+        if not self.inicio and self.data_agendamento and self.lacuna_numero:
+            self._derivar_inicio()
+        # Garante data_agendamento a partir de inicio legado
+        if self.inicio and not self.data_agendamento:
+            self.data_agendamento = timezone.localtime(self.inicio).date()
+
         sd = self.status_dinamico['code']
         mapa_status = {
-            'PRE': 'PRE_AGENDADO', 
-            'FIS': 'AGUARDANDO_FISCAL', 
-            'CON': 'CONFIRMADO', 
-            'PAT': 'EM_PATIO', 
-            'DES': 'EM_DESCARGA', 
-            'FIN': 'FINALIZADO'
+            'PRE': 'PRE_AGENDADO',
+            'FIS': 'AGUARDANDO_FISCAL',
+            'CON': 'CONFIRMADO',
+            'PAT': 'EM_PATIO',
+            'DES': 'EM_DESCARGA',
+            'FIN': 'FINALIZADO',
         }
-        if sd in mapa_status: self.status = mapa_status[sd]
+        if sd in mapa_status:
+            self.status = mapa_status[sd]
 
         if self.inicio:
             self.fim_estimado = self.inicio + timedelta(minutes=self.calcular_duracao())
@@ -238,14 +275,17 @@ class Agendamento(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        if self.chave_nfe:
-            ultima = self.chave_nfe.split(',')[-1].strip()[-6:]
-        else:
-            ultima = 'sem NF-e'
-        return f"PO:{self.numero_pedido} | {self.inicio:%d/%m %H:%M} | {self.status_dinamico['label']} | {ultima}"
+        ultima = self.chave_nfe.split(',')[-1].strip()[-6:] if self.chave_nfe else 'sem NF-e'
+        data_str = self.data_agendamento.strftime('%d/%m') if self.data_agendamento else (
+            timezone.localtime(self.inicio).strftime('%d/%m') if self.inicio else '?'
+        )
+        lacuna_str = f'L{self.lacuna_numero}' if self.lacuna_numero else '?'
+        return f"PO:{self.numero_pedido} | {data_str} {lacuna_str} | {self.status_dinamico['label']} | {ultima}"
 
     class Meta:
-        ordering, verbose_name, verbose_name_plural = ['inicio'], 'Agendamento', 'Agendamentos'
+        ordering            = ['data_agendamento', 'lacuna_numero']
+        verbose_name        = 'Agendamento'
+        verbose_name_plural = 'Agendamentos'
 
 
 class NFeArquivo(models.Model):

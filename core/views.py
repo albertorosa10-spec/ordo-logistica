@@ -10,6 +10,7 @@ from datetime import timedelta, datetime
 
 logger = logging.getLogger(__name__)
 
+from django.db import models as db_models
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth import login, logout, authenticate
@@ -18,7 +19,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from django.utils import timezone
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_http_methods
 
 from .models import Agendamento, Fornecedor, EmpresaOperadora, Doca, LogAgendamento, NFeArquivo, Cliente, PedidoCliente, SlotFixo, SHADOW_BUFFER
 
@@ -284,8 +285,7 @@ def ajax_lacunas_dia(request):
             'aviso': 'Não há agendamentos aos finais de semana.',
         })
 
-    tipo_slot = 'DIRETA' if tipo_op == 'DIRETA' else 'CROSS'
-
+    tipo_slot  = 'DIRETA' if tipo_op == 'DIRETA' else 'CROSS'
     horas_base = sorted(
         SlotFixo.objects.filter(dia_semana=dow, tipo=tipo_slot, ativo=True)
         .values_list('hora', flat=True)
@@ -293,35 +293,50 @@ def ajax_lacunas_dia(request):
     if not horas_base:
         horas_base = [7, 9, 11, 13, 15] if tipo_op == 'DIRETA' else [8, 10, 12, 14, 16]
 
-    # Mapeia agendamentos ativos do dia/tipo por hora local
     _STATUS_OCUPA = ['PRE_AGENDADO', 'AGUARDANDO_FISCAL', 'CONFIRMADO', 'EM_PATIO', 'EM_DESCARGA']
+
+    # Busca por data_agendamento (novo) + fallback por inicio (legado)
     from datetime import datetime as _dt
     inicio_dia = timezone.make_aware(_dt(data.year, data.month, data.day, 0, 0))
     fim_dia    = inicio_dia + timedelta(days=1)
-    ags_do_dia = Agendamento.objects.filter(
-        inicio__gte=inicio_dia, inicio__lt=fim_dia,
+
+    ags_do_dia = list(Agendamento.objects.filter(
         tipo_operacao=tipo_op, status__in=_STATUS_OCUPA,
-    ).select_related('fornecedor')
-    ags_por_hora = {timezone.localtime(ag.inicio).hour: ag for ag in ags_do_dia}
+    ).filter(
+        db_models.Q(data_agendamento=data) |
+        db_models.Q(data_agendamento__isnull=True, inicio__gte=inicio_dia, inicio__lt=fim_dia)
+    ).select_related('fornecedor'))
+
+    # Monta mapa lacuna_numero → ag (prioridade: novo campo; fallback: hora do inicio)
+    ags_por_lacuna = {}
+    for ag in ags_do_dia:
+        if ag.lacuna_numero:
+            ags_por_lacuna[ag.lacuna_numero] = ag
+        elif ag.inicio:
+            h = timezone.localtime(ag.inicio).hour
+            try:
+                idx_legado = horas_base.index(h) + 1
+                ags_por_lacuna.setdefault(idx_legado, ag)
+            except ValueError:
+                pass
 
     # Fornecedor logado (para identificar "meu")
     fornecedor_user = Fornecedor.objects.filter(user=request.user).first()
-    fornecedor_id = fornecedor_user.id if fornecedor_user else None
+    fornecedor_id   = fornecedor_user.id if fornecedor_user else None
 
     lacunas = []
-    for idx, hora in enumerate(horas_base, start=1):
-        ag = ags_por_hora.get(hora)
+    for idx in range(1, len(horas_base) + 1):
+        ag = ags_por_lacuna.get(idx)
         if ag is None:
-            lacunas.append({'numero': idx, 'hora': hora, 'status': 'livre'})
+            lacunas.append({'numero': idx, 'status': 'livre'})
         elif fornecedor_id and ag.fornecedor_id == fornecedor_id:
             lacunas.append({
-                'numero': idx, 'hora': hora, 'status': 'meu',
-                'po': 'A definir' if ag.numero_pedido == 'CROSS-SEM-PO' else ag.numero_pedido,
+                'numero': idx, 'status': 'meu',
                 'ag_id': ag.id,
                 'status_label': ag.get_status_display(),
             })
         else:
-            lacunas.append({'numero': idx, 'hora': hora, 'status': 'ocupado'})
+            lacunas.append({'numero': idx, 'status': 'ocupado'})
 
     return JsonResponse({
         'data':       data_str,
@@ -329,6 +344,114 @@ def ajax_lacunas_dia(request):
         'dia_semana': DIAS_NOMES[dow],
         'lacunas':    lacunas,
     })
+
+
+# ==========================================
+# API REST — AGENDAMENTOS
+# ==========================================
+
+@login_required
+@require_http_methods(['POST'])
+def api_agendamento_create(request):
+    """POST /api/agendamento/ — cria agendamento via JSON."""
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'erro': 'JSON inválido.'}, status=400)
+
+    data_str      = body.get('data', '')
+    lacuna        = body.get('lacuna_numero')
+    tipo_op       = body.get('tipo_operacao', 'DIRETA').upper()
+    numero_pedido = (body.get('numero_pedido') or '').strip()
+    tipo_carga    = body.get('tipo_carga', 'PAL')
+    qtd_itens     = body.get('qtd_itens', 1)
+
+    try:
+        data = datetime.strptime(data_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        return JsonResponse({'erro': 'Data inválida (use YYYY-MM-DD).'}, status=400)
+
+    if not isinstance(lacuna, int) or lacuna < 1:
+        return JsonResponse({'erro': 'lacuna_numero deve ser inteiro >= 1.'}, status=400)
+
+    fornecedor = Fornecedor.objects.filter(user=request.user).first()
+    if not fornecedor:
+        return JsonResponse({'erro': 'Fornecedor não encontrado.'}, status=403)
+    if fornecedor.bloqueado:
+        return JsonResponse({'erro': 'Acesso bloqueado.'}, status=403)
+
+    dow = data.weekday()
+    if dow >= 5:
+        return JsonResponse({'erro': 'Sem agendamentos aos finais de semana.'}, status=400)
+
+    tipo_slot   = 'DIRETA' if tipo_op == 'DIRETA' else 'CROSS'
+    horas_grade = sorted(
+        SlotFixo.objects.filter(dia_semana=dow, tipo=tipo_slot, ativo=True)
+        .values_list('hora', flat=True)
+    )
+    if not horas_grade:
+        horas_grade = [7, 9, 11, 13, 15] if tipo_op == 'DIRETA' else [8, 10, 12, 14, 16]
+
+    if lacuna > len(horas_grade):
+        return JsonResponse(
+            {'erro': f'Lacuna {lacuna} não existe. Máximo para {tipo_op}: {len(horas_grade)}.'},
+            status=400,
+        )
+
+    _STATUS_OCUPA = ['PRE_AGENDADO', 'AGUARDANDO_FISCAL', 'CONFIRMADO', 'EM_PATIO', 'EM_DESCARGA']
+    if Agendamento.objects.filter(
+        data_agendamento=data, lacuna_numero=lacuna,
+        tipo_operacao=tipo_op, status__in=_STATUS_OCUPA,
+    ).exists():
+        return JsonResponse({'erro': 'Lacuna já ocupada.'}, status=409)
+
+    if tipo_op == 'DIRETA' and not numero_pedido:
+        return JsonResponse({'erro': 'numero_pedido é obrigatório para DIRETA.'}, status=400)
+    if tipo_op == 'CROSS' and not numero_pedido:
+        numero_pedido = 'CROSS-SEM-PO'
+
+    try:
+        qtd_itens = max(1, int(qtd_itens))
+    except (TypeError, ValueError):
+        qtd_itens = 1
+
+    ag = Agendamento.objects.create(
+        fornecedor       = fornecedor,
+        data_agendamento = data,
+        lacuna_numero    = lacuna,
+        tipo_operacao    = tipo_op,
+        numero_pedido    = numero_pedido,
+        tipo_carga       = tipo_carga if tipo_carga in ('PAL', 'BAT', 'FRA') else 'PAL',
+        qtd_itens        = qtd_itens,
+        nfe_validada     = (tipo_op == 'CROSS'),
+        status           = 'CONFIRMADO' if tipo_op == 'CROSS' else 'PRE_AGENDADO',
+    )
+    return JsonResponse({'status': 'success', 'agendamento_id': ag.id}, status=201)
+
+
+@login_required
+@require_http_methods(['DELETE'])
+def api_agendamento_delete(request, agendamento_id):
+    """DELETE /api/agendamento/<id>/ — cancela agendamento da indústria logada."""
+    fornecedor = Fornecedor.objects.filter(user=request.user).first()
+    if not fornecedor:
+        return JsonResponse({'erro': 'Fornecedor não encontrado.'}, status=403)
+
+    try:
+        ag = Agendamento.objects.get(pk=agendamento_id, fornecedor=fornecedor)
+    except Agendamento.DoesNotExist:
+        return JsonResponse({'erro': 'Agendamento não encontrado.'}, status=404)
+
+    if ag.status not in ['PRE_AGENDADO', 'AGUARDANDO_FISCAL', 'CONFIRMADO']:
+        return JsonResponse(
+            {'erro': f'Não é possível cancelar um agendamento com status "{ag.status}".'},
+            status=400,
+        )
+
+    ag.status = 'CANCELADO'
+    ag.save(update_fields=['status'])
+    return JsonResponse({'status': 'deleted'})
+
 
 # ==========================================
 # PORTAL DA INDÚSTRIA
@@ -382,44 +505,49 @@ def novo_agendamento(request):
 
     form = NovoAgendamentoForm(request.POST or None, fornecedor=fornecedor)
     if request.method == 'POST' and form.is_valid():
-        inicio      = form.cleaned_data['inicio']
-        tipo_op     = form.cleaned_data.get('tipo_operacao', 'DIRETA')
+        data    = form.cleaned_data['data']
+        lacuna  = form.cleaned_data['lacuna_numero']
+        tipo_op = form.cleaned_data.get('tipo_operacao', 'DIRETA')
 
-        # --- Verificação de conflito por horário × tipo de operação ---
         _STATUS_OCUPA = [
             'PRE_AGENDADO', 'AGUARDANDO_FISCAL',
             'CONFIRMADO', 'EM_PATIO', 'EM_DESCARGA',
         ]
         conflito_qs = Agendamento.objects.filter(
-            inicio=inicio,
+            data_agendamento=data,
+            lacuna_numero=lacuna,
             tipo_operacao=tipo_op,
             status__in=_STATUS_OCUPA,
         )
         if conflito_qs.exists():
-            ag_conf = conflito_qs.first()
+            ag_conf    = conflito_qs.first()
             tipo_label = 'Direta' if tipo_op == 'DIRETA' else 'Crossdocking'
             form.add_error(
                 None,
-                f'Já existe um agendamento {tipo_label} neste horário '
-                f'({ag_conf.inicio:%d/%m/%Y às %H:%M}, #{ag_conf.pk}). '
-                'Escolha outro horário.'
+                f'Já existe um agendamento {tipo_label} nesta lacuna '
+                f'(Lacuna {lacuna}, {data:%d/%m/%Y}, #{ag_conf.pk}). '
+                'Escolha outra lacuna.'
             )
         else:
-            agendamento            = form.save(commit=False)
-            agendamento.fornecedor = fornecedor
-            agendamento.inicio     = inicio
-
+            agendamento                  = form.save(commit=False)
+            agendamento.fornecedor       = fornecedor
+            agendamento.data_agendamento = data
+            agendamento.lacuna_numero    = lacuna
+            agendamento.inicio           = form.cleaned_data.get('inicio')
             if tipo_op == 'CROSS':
-                agendamento.nfe_validada = True   # CROSS pula triagem fiscal
+                agendamento.nfe_validada = True
             agendamento.save()
 
             if tipo_op == 'CROSS':
                 messages.success(
                     request,
-                    f"✅ Agendamento Crossdocking confirmado! Código: {agendamento.codigo_descarga}"
+                    f"✅ Crossdocking confirmado! Lacuna {lacuna} — {data:%d/%m/%Y}."
                 )
             else:
-                messages.success(request, "✅ Agendamento criado! Vincule a NF-e para confirmar.")
+                messages.success(
+                    request,
+                    f"✅ Pré-agendamento criado (Lacuna {lacuna}, {data:%d/%m/%Y}). Vincule a NF-e."
+                )
             return redirect('dashboard_industria')
 
     return render(request, 'industria/novo_agendamento.html', {
@@ -685,18 +813,26 @@ def dashboard_logistica(request):
         except (ValueError, TypeError):
             fornecedor_id = ''
 
-    if periodo == 'semana':
-        agendamentos = qs.filter(
-            inicio__date__gte=data_filtro,
-            inicio__date__lt=data_filtro + timedelta(days=7),
-        ).order_by('inicio')
-    elif periodo == 'mes':
-        agendamentos = qs.filter(
-            inicio__month=data_filtro.month,
-            inicio__year=data_filtro.year,
-        ).order_by('inicio')
-    else:
-        agendamentos = qs.filter(inicio__date=data_filtro).order_by('inicio')
+    def _qs_periodo(qs, periodo, data_filtro):
+        """Filtra queryset por período usando data_agendamento (novo) + inicio (legado)."""
+        if periodo == 'semana':
+            fim = data_filtro + timedelta(days=7)
+            return qs.filter(
+                db_models.Q(data_agendamento__gte=data_filtro, data_agendamento__lt=fim) |
+                db_models.Q(data_agendamento__isnull=True, inicio__date__gte=data_filtro, inicio__date__lt=fim)
+            ).order_by('data_agendamento', 'lacuna_numero')
+        if periodo == 'mes':
+            return qs.filter(
+                db_models.Q(data_agendamento__year=data_filtro.year, data_agendamento__month=data_filtro.month) |
+                db_models.Q(data_agendamento__isnull=True, inicio__year=data_filtro.year, inicio__month=data_filtro.month)
+            ).order_by('data_agendamento', 'lacuna_numero')
+        # dia (default)
+        return qs.filter(
+            db_models.Q(data_agendamento=data_filtro) |
+            db_models.Q(data_agendamento__isnull=True, inicio__date=data_filtro)
+        ).order_by('data_agendamento', 'lacuna_numero')
+
+    agendamentos = _qs_periodo(qs, periodo, data_filtro)
 
     _MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
@@ -731,41 +867,58 @@ def dashboard_logistica(request):
     HORAS_OP = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
     hoje     = timezone.now().date()
 
-    # DIA — lista de slots por hora, enriquecida com SlotFixo
+    # DIA — lista de slots (blocos) enriquecidos com SlotFixo
     slots_hora = []
     if periodo == 'dia':
         ags_list = list(agendamentos)
         dow = data_filtro.weekday()
-        slots_fixos_map = {}
+        slots_fixos_map = {}   # hora → SlotFixo
         if dow < 5:
             for sf in SlotFixo.objects.filter(dia_semana=dow, ativo=True):
                 slots_fixos_map[sf.hora] = sf
 
-        # Estende HORAS_OP para incluir horas extras da grade (ex: 17h, 18h na Terça/Quinta)
-        horas_grade = set(HORAS_OP) | set(slots_fixos_map.keys())
-        for hora in sorted(horas_grade):
-            slot_fixo = slots_fixos_map.get(hora)
-            ags_na_hora = [ag for ag in ags_list if timezone.localtime(ag.inicio).hour == hora]
+        horas_grade = sorted(set(HORAS_OP) | set(slots_fixos_map.keys()))
+
+        # Mapa lacuna → ag (novo campo) + fallback por hora (legado)
+        ags_por_lacuna = {}
+        for ag in ags_list:
+            if ag.lacuna_numero:
+                ags_por_lacuna.setdefault(ag.lacuna_numero, []).append(ag)
+            elif ag.inicio:
+                h = timezone.localtime(ag.inicio).hour
+                if h in horas_grade:
+                    idx = horas_grade.index(h) + 1
+                    ags_por_lacuna.setdefault(idx, []).append(ag)
+
+        for idx, hora in enumerate(horas_grade, start=1):
+            slot_fixo   = slots_fixos_map.get(hora)
+            ags_na_hora = ags_por_lacuna.get(idx, [])
             slots_hora.append({
-                'hora':        hora,
+                'hora':         hora,
                 'agendamentos': ags_na_hora,
-                'slot_fixo':   slot_fixo,
+                'slot_fixo':    slot_fixo,
             })
 
-    # SEMANA — 7 dias × horas
+    # SEMANA — 7 dias × slots
     dias_semana = []
     if periodo == 'semana':
         dias = [data_filtro + timedelta(days=i) for i in range(7)]
         ags_por_dia = {}
         for ag in agendamentos:
-            ags_por_dia.setdefault(ag.inicio.date(), []).append(ag)
+            dia_ag = ag.data_agendamento or (timezone.localtime(ag.inicio).date() if ag.inicio else None)
+            if dia_ag:
+                ags_por_dia.setdefault(dia_ag, []).append(ag)
         for dia in dias:
             ags_do_dia = ags_por_dia.get(dia, [])
             dias_semana.append({
                 'data':    dia,
                 'is_hoje': dia == hoje,
                 'slots': [
-                    {'hora': h, 'agendamentos': [ag for ag in ags_do_dia if ag.inicio.hour == h]}
+                    {'hora': h, 'agendamentos': [
+                        ag for ag in ags_do_dia
+                        if (ag.lacuna_numero and ag.lacuna_numero == (HORAS_OP.index(h) + 1 if h in HORAS_OP else -1)) or
+                           (not ag.lacuna_numero and ag.inicio and timezone.localtime(ag.inicio).hour == h)
+                    ]}
                     for h in HORAS_OP
                 ],
             })
@@ -775,7 +928,9 @@ def dashboard_logistica(request):
     if periodo == 'mes':
         ags_por_dia_mes = {}
         for ag in agendamentos:
-            ags_por_dia_mes.setdefault(ag.inicio.date(), []).append(ag)
+            dia_ag = ag.data_agendamento or (timezone.localtime(ag.inicio).date() if ag.inicio else None)
+            if dia_ag:
+                ags_por_dia_mes.setdefault(dia_ag, []).append(ag)
         for week in cal_module.monthcalendar(data_filtro.year, data_filtro.month):
             semana = []
             for day_num in week:

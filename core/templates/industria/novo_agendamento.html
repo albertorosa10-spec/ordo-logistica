@@ -823,13 +823,13 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
         <label class="na-field-label">
           Lacuna <span class="na-req">*</span>
         </label>
-        {{ form.hora_slot }}
+        {{ form.lacuna_numero }}
         <button type="button" class="na-lacuna-btn" id="btn-abrir-lacunas" disabled>
           <i class="fa-regular fa-square-plus"></i>
           <span id="lacuna-btn-text">Selecione uma data primeiro</span>
         </button>
-        {% if form.hora_slot.errors %}
-        <div class="na-field-error">{{ form.hora_slot.errors.0 }}</div>
+        {% if form.lacuna_numero.errors %}
+        <div class="na-field-error">{{ form.lacuna_numero.errors.0 }}</div>
         {% endif %}
       </div>
 
@@ -962,7 +962,7 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
      REFERÊNCIAS DOM
      --------------------------------------------------------------- */
   var inputData    = document.getElementById('id_data');
-  var selectHora   = document.getElementById('id_hora_slot');
+  var selectLacuna = document.getElementById('id_lacuna_numero');
   var selectTipo   = document.getElementById('id_tipo_carga');
   var inputQtd     = document.getElementById('id_qtd_itens');
   var slaPanel     = document.getElementById('sla-panel');
@@ -1002,7 +1002,7 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
   }
 
   /* ---------------------------------------------------------------
-     3. CÁLCULO DE SLA (NF-e deve ser vinculada 24h antes do início)
+     3. PAINEL SLA — prazo da NF-e baseado apenas na data
      --------------------------------------------------------------- */
   function atualizarSLA() {
     if (tipoAtual === 'CROSS') {
@@ -1011,69 +1011,46 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
     }
     if (slaPanel) slaPanel.style.display = '';
 
-    var data = inputData ? inputData.value   : '';
-    var hora = selectHora ? selectHora.value : '';
-
-    if (!data || !hora) {
-      slaPanel.classList.add('escondido');
+    var data = inputData ? inputData.value : '';
+    if (!data || lacunaConfirmadaNum === null) {
+      if (slaPanel) slaPanel.classList.add('escondido');
       return;
     }
 
-    // Montar datetime do agendamento
-    var partes = hora.split(':');
-    var hh = parseInt(partes[0], 10);
-    var mm = parseInt(partes[1] || '0', 10);
-    var dtAgendado = new Date(data + 'T' + String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0') + ':00');
+    // Prazo NF-e = data do agendamento às 00:00 - 24h = dia anterior às 00:00
+    var dtAgendado = new Date(data + 'T00:00:00');
+    var dtPrazo    = new Date(dtAgendado.getTime() - 24 * 60 * 60 * 1000);
+    var agora      = new Date();
+    var duracao    = calcularDuracao();
 
-    if (isNaN(dtAgendado.getTime())) {
-      slaPanel.classList.add('escondido');
-      return;
+    function fmtData(d) {
+      return String(d.getDate()).padStart(2,'0') + '/' +
+             String(d.getMonth()+1).padStart(2,'0') + '/' +
+             d.getFullYear();
     }
 
-    // Prazo NF-e = 24h antes do agendamento
-    var dtPrazo = new Date(dtAgendado.getTime() - 24 * 60 * 60 * 1000);
-    var agora   = new Date();
-    var duracao = calcularDuracao();
-
-    // Tempo restante para vincular a NF-e
-    var restanteMs  = dtPrazo - agora;
-    var restanteMin = Math.floor(restanteMs / 60000);
-
-    // Formatar
-    function fmtDt(d) {
-      return (
-        String(d.getDate()).padStart(2,'0') + '/' +
-        String(d.getMonth()+1).padStart(2,'0') + '/' +
-        d.getFullYear() + ' ' +
-        String(d.getHours()).padStart(2,'0') + ':' +
-        String(d.getMinutes()).padStart(2,'0')
-      );
-    }
-
-    document.getElementById('sla-descarga').textContent = fmtDt(dtAgendado);
+    document.getElementById('sla-descarga').textContent = fmtData(dtAgendado) + ' — Lacuna ' + lacunaConfirmadaNum;
     document.getElementById('sla-duracao').textContent  = '≈ ' + formatarMinutos(duracao);
-    document.getElementById('sla-prazo').textContent    = fmtDt(dtPrazo);
+    document.getElementById('sla-prazo').textContent    = fmtData(dtPrazo) + ' (até meia-noite)';
 
-    var elRestante = document.getElementById('sla-restante');
+    var restanteMs  = dtPrazo.getTime() + 24*60*60*1000 - agora.getTime();
+    var restanteMin = Math.floor(restanteMs / 60000);
+    var elRestante  = document.getElementById('sla-restante');
 
     if (restanteMin <= 0) {
-      elRestante.textContent  = 'Prazo expirado';
-      elRestante.className    = 'na-sla-item-value urgente';
-      btnSubmit.disabled      = true;
-      btnSubmit.title         = 'O prazo para vincular a NF-e já expirou.';
-    } else if (restanteMin < 360) {          // < 6 horas → urgente
-      elRestante.textContent  = formatarMinutos(restanteMin) + ' restantes ⚠';
-      elRestante.className    = 'na-sla-item-value urgente';
-      btnSubmit.disabled      = false;
-      btnSubmit.title         = '';
+      elRestante.textContent = 'Prazo expirado';
+      elRestante.className   = 'na-sla-item-value urgente';
+      btnSubmit.disabled     = true;
+    } else if (restanteMin < 360) {
+      elRestante.textContent = formatarMinutos(restanteMin) + ' restantes ⚠';
+      elRestante.className   = 'na-sla-item-value urgente';
+      btnSubmit.disabled     = false;
     } else {
-      elRestante.textContent  = formatarMinutos(restanteMin) + ' restantes';
-      elRestante.className    = 'na-sla-item-value ok';
-      btnSubmit.disabled      = false;
-      btnSubmit.title         = '';
+      elRestante.textContent = formatarMinutos(restanteMin) + ' restantes';
+      elRestante.className   = 'na-sla-item-value ok';
+      btnSubmit.disabled     = false;
     }
-
-    slaPanel.classList.remove('escondido');
+    if (slaPanel) slaPanel.classList.remove('escondido');
   }
 
   /* ---------------------------------------------------------------
@@ -1093,8 +1070,8 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
   var lcBtnCancel     = document.getElementById('lc-btn-cancel');
   var lcBtnConfirm    = document.getElementById('lc-btn-confirm');
 
-  var lacunaSelecionadaTmp = null;  // hora candidata no modal
-  var lacunaConfirmadaHora = null;  // hora gravada no form
+  var lacunaSelecionadaTmp = null;  // numero candidato no modal
+  var lacunaConfirmadaNum  = null;  // numero gravado no form
 
   function atualizarBotaoLacuna() {
     var data = inputData ? inputData.value : '';
@@ -1105,12 +1082,8 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
       return;
     }
     btnAbrirLacunas.disabled = false;
-    if (lacunaConfirmadaHora !== null) {
-      // Encontrar o número da lacuna correspondente já carregada
-      var numero = lacunaNumeroPorHora[lacunaConfirmadaHora];
-      lacunaBtnText.textContent = numero
-        ? 'Lacuna ' + numero + ' selecionada · trocar'
-        : 'Lacuna selecionada · trocar';
+    if (lacunaConfirmadaNum !== null) {
+      lacunaBtnText.textContent = 'Lacuna ' + lacunaConfirmadaNum + ' selecionada · trocar';
       btnAbrirLacunas.classList.add('selected');
     } else {
       lacunaBtnText.textContent = 'Escolher lacuna';
@@ -1118,11 +1091,8 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
     }
   }
 
-  var lacunaNumeroPorHora = {};
-
   function renderLacunas(payload) {
     lcGrid.innerHTML = '';
-    lacunaNumeroPorHora = {};
 
     if (payload.aviso || !payload.lacunas || !payload.lacunas.length) {
       var msg = document.createElement('div');
@@ -1135,37 +1105,30 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
 
     var tipoLabel = payload.tipo === 'CROSS' ? 'Crossdocking' : 'Direta';
     var dataParts = payload.data.split('-');
-    var dataFmt = dataParts[2] + '/' + dataParts[1] + '/' + dataParts[0];
+    var dataFmt   = dataParts[2] + '/' + dataParts[1] + '/' + dataParts[0];
     lcHeadSub.textContent = dataFmt + ' · ' + payload.dia_semana + ' · ' + tipoLabel;
 
     payload.lacunas.forEach(function(lac) {
-      lacunaNumeroPorHora[lac.hora] = lac.numero;
       var el = document.createElement('div');
       el.className = 'lc-slot ' + lac.status;
       el.textContent = lac.numero;
-      el.setAttribute('data-hora', lac.hora);
+      el.setAttribute('data-lacuna', lac.numero);
 
       if (lac.status === 'livre') {
         el.addEventListener('click', function() {
-          // Desseleciona anterior
           var prev = lcGrid.querySelector('.lc-slot.selecionada');
           if (prev) prev.classList.remove('selecionada');
           el.classList.add('selecionada');
-          lacunaSelecionadaTmp = lac.hora;
+          lacunaSelecionadaTmp = lac.numero;
           lcBtnConfirm.disabled = false;
         });
-        // Pré-seleciona se for a hora atualmente confirmada
-        if (lac.hora === lacunaConfirmadaHora) {
+        if (lac.numero === lacunaConfirmadaNum) {
           el.classList.add('selecionada');
-          lacunaSelecionadaTmp = lac.hora;
+          lacunaSelecionadaTmp = lac.numero;
           lcBtnConfirm.disabled = false;
         }
       } else if (lac.status === 'meu') {
-        var info = document.createElement('span');
-        info.className = 'lc-slot-info';
-        info.textContent = lac.po || 'Seu';
-        el.appendChild(info);
-        el.title = 'Seu agendamento — ' + (lac.po || '') + ' (' + (lac.status_label || '') + ')';
+        el.title = 'Seu agendamento — ' + (lac.status_label || '');
       } else {
         el.title = 'Lacuna ocupada';
       }
@@ -1176,9 +1139,9 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
   function abrirModal() {
     var data = inputData ? inputData.value : '';
     if (!data) return;
-    lacunaSelecionadaTmp = lacunaConfirmadaHora;
-    lcBtnConfirm.disabled = (lacunaConfirmadaHora === null);
-    lcGrid.innerHTML = '<div class="lc-vazio">Carregando...</div>';
+    lacunaSelecionadaTmp  = lacunaConfirmadaNum;
+    lcBtnConfirm.disabled = (lacunaConfirmadaNum === null);
+    lcGrid.innerHTML      = '<div class="lc-vazio">Carregando...</div>';
     modal.classList.add('open');
 
     fetch('/industria/lacunas/?data=' + data + '&tipo=' + tipoAtual)
@@ -1196,11 +1159,8 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
 
   function confirmarLacuna() {
     if (lacunaSelecionadaTmp === null) return;
-    lacunaConfirmadaHora = lacunaSelecionadaTmp;
-    if (selectHora) {
-      var hh = String(lacunaConfirmadaHora).padStart(2, '0');
-      selectHora.value = hh + ':00';
-    }
+    lacunaConfirmadaNum = lacunaSelecionadaTmp;
+    if (selectLacuna) selectLacuna.value = lacunaConfirmadaNum;
     atualizarBotaoLacuna();
     atualizarSLA();
     fecharModal();
@@ -1219,8 +1179,8 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
     tipoAtual = tipo;
     tipoOpInput.value = tipo;
     // Trocar tipo invalida a lacuna selecionada
-    lacunaConfirmadaHora = null;
-    if (selectHora) selectHora.value = '';
+    lacunaConfirmadaNum = null;
+    if (selectLacuna) selectLacuna.value = '';
     atualizarBotaoLacuna();
 
     if (btnDireta) btnDireta.classList.toggle('active', tipo === 'DIRETA');
@@ -1258,19 +1218,19 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
   if (btnDireta) btnDireta.addEventListener('click', function() { setTipoOp('DIRETA'); });
   if (btnCross)  btnCross.addEventListener('click',  function() { setTipoOp('CROSS'); });
 
-  // Hidrata estado a partir do valor já presente em hora_slot (re-submit com erros)
-  if (selectHora && selectHora.value) {
-    var hhInit = parseInt(selectHora.value.split(':')[0], 10);
-    if (!isNaN(hhInit)) lacunaConfirmadaHora = hhInit;
+  // Hidrata estado a partir do valor já presente em lacuna_numero (re-submit com erros)
+  if (selectLacuna && selectLacuna.value) {
+    var numInit = parseInt(selectLacuna.value, 10);
+    if (!isNaN(numInit) && numInit > 0) lacunaConfirmadaNum = numInit;
   }
 
   // Inicializa toggle de tipo de operação SEM resetar a lacuna (override temporário)
   if (tipoOpInput) {
-    var _horaPreservada = lacunaConfirmadaHora;
+    var _numPreservado = lacunaConfirmadaNum;
     setTipoOp(tipoOpInput.value || 'DIRETA');
-    lacunaConfirmadaHora = _horaPreservada;
-    if (selectHora && _horaPreservada !== null) {
-      selectHora.value = String(_horaPreservada).padStart(2, '0') + ':00';
+    lacunaConfirmadaNum = _numPreservado;
+    if (selectLacuna && _numPreservado !== null) {
+      selectLacuna.value = _numPreservado;
     }
   }
   atualizarBotaoLacuna();
@@ -1279,8 +1239,8 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
      4. BIND DE EVENTOS — ao mudar data, limpa lacuna e abre modal automático
      --------------------------------------------------------------- */
   if (inputData) inputData.addEventListener('change', function() {
-    lacunaConfirmadaHora = null;
-    if (selectHora) selectHora.value = '';
+    lacunaConfirmadaNum = null;
+    if (selectLacuna) selectLacuna.value = '';
     atualizarBotaoLacuna();
     atualizarSLA();
     if (inputData.value) abrirModal();

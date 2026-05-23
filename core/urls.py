@@ -100,4 +100,14 @@ urlpatterns = [
     path('api/cnpj/<str:cnpj>/', views.api_consulta_cnpj, name='api_consulta_cnpj'),
     path('industria/slots/', views.ajax_slots_disponiveis, name='ajax_slots_disponiveis'),
     path('industria/lacunas/', views.ajax_lacunas_dia, name='ajax_lacunas_dia'),
+
+    # ------------------------------------------
+    # API REST — AGENDAMENTOS (lacuna-based)
+    # ------------------------------------------
+    path('api/agendamento/',
+         views.api_agendamento_create, name='api_agendamento_create'),
+    path('api/agendamento/<int:agendamento_id>/',
+         views.api_agendamento_delete, name='api_agendamento_delete'),
+    path('api/lacunas/',
+         views.ajax_lacunas_dia, name='api_lacunas'),
 ]

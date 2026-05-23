@@ -296,22 +296,17 @@ class UploadNFeXmlForm(forms.Form):
 # FORM: NOVO AGENDAMENTO
 # ==========================================
 
-# Choices abrangentes 07-18; grade real vem do SlotFixo via AJAX
-SLOTS_TODOS = [(f"{h:02d}:00", f"{h:02d}:00") for h in range(7, 19)]
-
 # Fallback quando não há grade SlotFixo configurada
-HORAS_DIRETA = {7, 9, 11, 13, 15}
-HORAS_CROSS  = {8, 10, 12, 14, 16}
+HORAS_DIRETA = sorted([7, 9, 11, 13, 15])
+HORAS_CROSS  = sorted([8, 10, 12, 14, 16])
 
 
 class NovoAgendamentoForm(forms.ModelForm):
     """
-    Formulário de pré-agendamento (v0.9).
-    Suporta dois tipos de operação: DIRETA (horários ímpares) e CROSS (horários pares).
-    Docas removidas do fluxo de agendamento.
+    Formulário de pré-agendamento (v1.0).
+    Usa data + lacuna_numero como chave de agendamento (sem referência a horários).
     """
 
-    # ----- campos de data e hora (substituem o campo inicio) -----
     data = forms.DateField(
         label='Data do Agendamento',
         widget=forms.DateInput(attrs={
@@ -320,10 +315,10 @@ class NovoAgendamentoForm(forms.ModelForm):
             'id': 'id_data',
         }),
     )
-    hora_slot = forms.ChoiceField(
+    lacuna_numero = forms.IntegerField(
         label='Lacuna',
-        choices=SLOTS_TODOS,  # grade real via AJAX; clean() valida contra SlotFixo
-        widget=forms.HiddenInput(attrs={'id': 'id_hora_slot'}),
+        min_value=1,
+        widget=forms.HiddenInput(attrs={'id': 'id_lacuna_numero'}),
     )
 
     class Meta:
@@ -369,61 +364,45 @@ class NovoAgendamentoForm(forms.ModelForm):
 
     def clean(self):
         from django.utils import timezone
-        from datetime import datetime
+        from datetime import datetime, time as _time
+        from .models import SlotFixo
 
-        cleaned   = super().clean()
-        data      = cleaned.get('data')
-        hora_str  = cleaned.get('hora_slot', '07:00')
-        tipo_op   = cleaned.get('tipo_operacao', 'DIRETA')
+        cleaned = super().clean()
+        data    = cleaned.get('data')
+        lacuna  = cleaned.get('lacuna_numero')
+        tipo_op = cleaned.get('tipo_operacao', 'DIRETA')
 
-        # ----- numero_pedido: obrigatório para DIRETA, opcional para CROSS -----
+        # numero_pedido: obrigatório para DIRETA, opcional para CROSS
         numero_pedido = (cleaned.get('numero_pedido') or '').strip()
         if tipo_op == 'DIRETA' and not numero_pedido:
             self.add_error('numero_pedido', 'Informe o número do pedido.')
         elif tipo_op == 'CROSS' and not numero_pedido:
             cleaned['numero_pedido'] = 'CROSS-SEM-PO'
 
-        # ----- Montar o datetime completo -----
-        if data and hora_str:
-            hora, minuto = map(int, hora_str.split(':'))
-            try:
-                inicio = timezone.make_aware(
-                    datetime(data.year, data.month, data.day, hora, minuto)
+        if data and lacuna:
+            dow = data.weekday()
+            if dow >= 5:
+                raise forms.ValidationError('Não há agendamentos aos finais de semana.')
+
+            tipo_slot   = 'DIRETA' if tipo_op == 'DIRETA' else 'CROSS'
+            horas_grade = sorted(
+                SlotFixo.objects.filter(dia_semana=dow, tipo=tipo_slot, ativo=True)
+                .values_list('hora', flat=True)
+            )
+            if not horas_grade:
+                horas_grade = HORAS_DIRETA if tipo_op == 'DIRETA' else HORAS_CROSS
+
+            if lacuna < 1 or lacuna > len(horas_grade):
+                raise forms.ValidationError(
+                    f'Lacuna {lacuna} inválida. '
+                    f'Disponíveis: 1 a {len(horas_grade)} para {tipo_op}.'
                 )
-            except Exception:
-                raise forms.ValidationError('Data ou horário inválido.')
+
+            hora   = horas_grade[lacuna - 1]
+            inicio = timezone.make_aware(datetime(data.year, data.month, data.day, hora, 0))
 
             if inicio <= timezone.now():
-                raise forms.ValidationError(
-                    'O horário de agendamento deve ser no futuro.'
-                )
-
-            # ----- Validar horário × tipo de operação (grade fixa > fallback) -----
-            dow = data.weekday()
-            if dow < 5:
-                from .models import SlotFixo
-                tipo_slot = 'DIRETA' if tipo_op == 'DIRETA' else 'CROSS'
-                grade_horas = set(
-                    SlotFixo.objects.filter(dia_semana=dow, tipo=tipo_slot, ativo=True)
-                    .values_list('hora', flat=True)
-                )
-                if grade_horas and hora not in grade_horas:
-                    slots_str = ', '.join(f'{h:02d}:00' for h in sorted(grade_horas))
-                    raise forms.ValidationError(
-                        f'Horário indisponível. Slots {tipo_op}: {slots_str}.'
-                    )
-                elif not grade_horas:
-                    # Fallback: regras originais
-                    if tipo_op == 'DIRETA' and hora not in HORAS_DIRETA:
-                        slots_str = ', '.join(f'{h:02d}:00' for h in sorted(HORAS_DIRETA))
-                        raise forms.ValidationError(
-                            f'Agendamentos Direta usam horários: {slots_str}.'
-                        )
-                    if tipo_op == 'CROSS' and hora not in HORAS_CROSS:
-                        slots_str = ', '.join(f'{h:02d}:00' for h in sorted(HORAS_CROSS))
-                        raise forms.ValidationError(
-                            f'Agendamentos Crossdocking usam horários: {slots_str}.'
-                        )
+                raise forms.ValidationError('O agendamento deve ser para uma data/hora futura.')
 
             cleaned['inicio'] = inicio
 
