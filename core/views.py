@@ -241,16 +241,94 @@ def ajax_slots_disponiveis(request):
         else:
             slots_base = [8, 10, 12, 14, 16]
 
-    # Remove horas já ocupadas por agendamentos ativos
+    # Remove horas já ocupadas (compara horas no fuso local)
     _STATUS_OCUPA = ['PRE_AGENDADO', 'AGUARDANDO_FISCAL', 'CONFIRMADO', 'EM_PATIO', 'EM_DESCARGA']
-    ocupadas = set(
-        Agendamento.objects
-        .filter(inicio__date=data, tipo_operacao=tipo_op, status__in=_STATUS_OCUPA)
-        .values_list('inicio__hour', flat=True)
-    )
+    from datetime import datetime as _dt
+    inicio_dia = timezone.make_aware(_dt(data.year, data.month, data.day, 0, 0))
+    fim_dia    = inicio_dia + timedelta(days=1)
+    ocupadas = {
+        timezone.localtime(ag.inicio).hour
+        for ag in Agendamento.objects.filter(
+            inicio__gte=inicio_dia, inicio__lt=fim_dia,
+            tipo_operacao=tipo_op, status__in=_STATUS_OCUPA,
+        ).only('inicio')
+    }
 
     disponíveis = sorted(h for h in slots_base if h not in ocupadas)
     return JsonResponse({'slots': [f'{h:02d}:00' for h in disponíveis]})
+
+
+@require_GET
+@login_required
+def ajax_lacunas_dia(request):
+    """
+    Retorna todas as lacunas da grade para a data e tipo solicitados,
+    com status (livre/ocupado/meu) — sem expor informações de terceiros.
+    """
+    data_str = request.GET.get('data', '')
+    tipo_op  = request.GET.get('tipo', 'DIRETA').upper()
+
+    from datetime import datetime as dt_cls
+    try:
+        data = dt_cls.strptime(data_str, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'lacunas': [], 'erro': 'Data inválida.'}, status=400)
+
+    DIAS_NOMES = ['Segunda-feira', 'Terça-feira', 'Quarta-feira',
+                  'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']
+    dow = data.weekday()
+    if dow >= 5:
+        return JsonResponse({
+            'lacunas': [],
+            'dia_semana': DIAS_NOMES[dow],
+            'aviso': 'Não há agendamentos aos finais de semana.',
+        })
+
+    tipo_slot = 'DIRETA' if tipo_op == 'DIRETA' else 'CROSS'
+
+    horas_base = sorted(
+        SlotFixo.objects.filter(dia_semana=dow, tipo=tipo_slot, ativo=True)
+        .values_list('hora', flat=True)
+    )
+    if not horas_base:
+        horas_base = [7, 9, 11, 13, 15] if tipo_op == 'DIRETA' else [8, 10, 12, 14, 16]
+
+    # Mapeia agendamentos ativos do dia/tipo por hora local
+    _STATUS_OCUPA = ['PRE_AGENDADO', 'AGUARDANDO_FISCAL', 'CONFIRMADO', 'EM_PATIO', 'EM_DESCARGA']
+    from datetime import datetime as _dt
+    inicio_dia = timezone.make_aware(_dt(data.year, data.month, data.day, 0, 0))
+    fim_dia    = inicio_dia + timedelta(days=1)
+    ags_do_dia = Agendamento.objects.filter(
+        inicio__gte=inicio_dia, inicio__lt=fim_dia,
+        tipo_operacao=tipo_op, status__in=_STATUS_OCUPA,
+    ).select_related('fornecedor')
+    ags_por_hora = {timezone.localtime(ag.inicio).hour: ag for ag in ags_do_dia}
+
+    # Fornecedor logado (para identificar "meu")
+    fornecedor_user = Fornecedor.objects.filter(user=request.user).first()
+    fornecedor_id = fornecedor_user.id if fornecedor_user else None
+
+    lacunas = []
+    for idx, hora in enumerate(horas_base, start=1):
+        ag = ags_por_hora.get(hora)
+        if ag is None:
+            lacunas.append({'numero': idx, 'hora': hora, 'status': 'livre'})
+        elif fornecedor_id and ag.fornecedor_id == fornecedor_id:
+            lacunas.append({
+                'numero': idx, 'hora': hora, 'status': 'meu',
+                'po': 'A definir' if ag.numero_pedido == 'CROSS-SEM-PO' else ag.numero_pedido,
+                'ag_id': ag.id,
+                'status_label': ag.get_status_display(),
+            })
+        else:
+            lacunas.append({'numero': idx, 'hora': hora, 'status': 'ocupado'})
+
+    return JsonResponse({
+        'data':       data_str,
+        'tipo':       tipo_op,
+        'dia_semana': DIAS_NOMES[dow],
+        'lacunas':    lacunas,
+    })
 
 # ==========================================
 # PORTAL DA INDÚSTRIA

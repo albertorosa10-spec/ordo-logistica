@@ -99,4 +99,5 @@ urlpatterns = [
     # ------------------------------------------
     path('api/cnpj/<str:cnpj>/', views.api_consulta_cnpj, name='api_consulta_cnpj'),
     path('industria/slots/', views.ajax_slots_disponiveis, name='ajax_slots_disponiveis'),
+    path('industria/lacunas/', views.ajax_lacunas_dia, name='ajax_lacunas_dia'),
 ]

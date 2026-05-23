@@ -471,6 +471,244 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
 }
 
 /* ---------------------------------------------------------------
+   SELETOR DE LACUNA (botão que abre modal)
+   --------------------------------------------------------------- */
+.na-lacuna-btn {
+  width: 100%;
+  background: var(--na-surface-2);
+  border: 1px dashed var(--na-border);
+  border-radius: var(--na-radius-sm);
+  color: var(--na-text-dim);
+  padding: .75rem 1rem;
+  font-size: .88rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+}
+.na-lacuna-btn:hover:not(:disabled) {
+  border-color: var(--na-accent);
+  color: var(--na-accent);
+  background: rgba(0,180,216,.05);
+}
+.na-lacuna-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+.na-lacuna-btn.selected {
+  border-style: solid;
+  border-color: var(--na-accent);
+  background: rgba(0,180,216,.08);
+  color: var(--na-text);
+}
+
+/* ---------------------------------------------------------------
+   MODAL — SELEÇÃO DE LACUNA (estilo cinema)
+   --------------------------------------------------------------- */
+.lc-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.75);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+.lc-backdrop.open { display: flex; }
+
+.lc-modal {
+  background: #0d1f35;
+  border: 1px solid var(--na-border);
+  border-radius: 16px;
+  max-width: 560px;
+  width: 100%;
+  box-shadow: 0 24px 80px rgba(0,0,0,.6);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+.lc-head {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--na-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.lc-head-titulo {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--na-text);
+  letter-spacing: -.2px;
+}
+.lc-head-sub {
+  font-size: .72rem;
+  color: var(--na-text-dim);
+  margin-top: 3px;
+}
+.lc-close {
+  background: none;
+  border: none;
+  color: var(--na-text-dim);
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: .25rem .55rem;
+  border-radius: 6px;
+  transition: all .15s;
+  line-height: 1;
+}
+.lc-close:hover { background: rgba(255,255,255,.06); color: var(--na-text); }
+
+.lc-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.lc-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: .75rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 480px) {
+  .lc-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.lc-slot {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  position: relative;
+  user-select: none;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+.lc-slot.livre {
+  background: #fff;
+  color: #1a3558;
+  border: 2px solid #fff;
+}
+.lc-slot.livre:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,200,150,.3);
+  border-color: var(--na-accent);
+}
+.lc-slot.livre.selecionada {
+  background: var(--na-accent);
+  border-color: var(--na-accent);
+  color: #0A1628;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,200,150,.4);
+}
+.lc-slot.ocupado {
+  background: #4a5568;
+  color: #2d3748;
+  cursor: not-allowed;
+  opacity: .7;
+}
+.lc-slot.meu {
+  background: linear-gradient(135deg, #00C896, #00a884);
+  color: #fff;
+  cursor: default;
+  position: relative;
+}
+.lc-slot.meu::after {
+  content: '✓';
+  position: absolute;
+  top: 3px; right: 5px;
+  font-size: .65rem;
+  opacity: .8;
+}
+.lc-slot-info {
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: .55rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: rgba(0,0,0,.4);
+  padding: 1px 5px;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.lc-legenda {
+  display: flex;
+  gap: 1.25rem;
+  font-size: .75rem;
+  color: var(--na-text-dim);
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  border-top: 1px solid var(--na-border);
+}
+.lc-leg-item { display: flex; align-items: center; gap: .4rem; }
+.lc-leg-sq {
+  width: 14px; height: 14px;
+  border-radius: 4px;
+  display: inline-block;
+}
+.lc-leg-sq.livre   { background: #fff; }
+.lc-leg-sq.ocupado { background: #4a5568; }
+.lc-leg-sq.meu     { background: linear-gradient(135deg, #00C896, #00a884); }
+
+.lc-vazio {
+  text-align: center;
+  padding: 2rem;
+  color: var(--na-text-dim);
+  font-size: .9rem;
+}
+
+.lc-foot {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--na-border);
+  display: flex;
+  justify-content: space-between;
+  gap: .75rem;
+  background: rgba(0,0,0,.2);
+}
+.lc-btn-cancel {
+  background: transparent;
+  border: 1px solid var(--na-border);
+  color: var(--na-text-dim);
+  border-radius: 8px;
+  padding: .55rem 1.25rem;
+  font-size: .85rem;
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+.lc-btn-cancel:hover { color: var(--na-text); border-color: var(--na-text-dim); }
+
+.lc-btn-confirm {
+  background: linear-gradient(135deg, #00C896 0%, #009973 100%);
+  color: #0A1628;
+  border: none;
+  border-radius: 8px;
+  padding: .55rem 1.5rem;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: filter .15s;
+}
+.lc-btn-confirm:hover:not(:disabled) { filter: brightness(1.08); }
+.lc-btn-confirm:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ---------------------------------------------------------------
    RESPONSIVIDADE
    --------------------------------------------------------------- */
 @media (max-width: 680px) {
@@ -580,17 +818,16 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
         {% endif %}
       </div>
 
-      {# Hora: seletor de slots fixos 07h-17h #}
+      {# Lacuna: seletor visual via modal #}
       <div class="na-field">
-        <label class="na-field-label" for="id_hora_slot">
-          Horário <span class="na-req">*</span>
+        <label class="na-field-label">
+          Lacuna <span class="na-req">*</span>
         </label>
-        <div class="na-hora-wrap">
-          <div class="na-hora-icon">
-            <i class="fa-solid fa-clock"></i>
-          </div>
-          <div style="flex:1;">{{ form.hora_slot }}</div>
-        </div>
+        {{ form.hora_slot }}
+        <button type="button" class="na-lacuna-btn" id="btn-abrir-lacunas" disabled>
+          <i class="fa-regular fa-square-plus"></i>
+          <span id="lacuna-btn-text">Selecione uma data primeiro</span>
+        </button>
         {% if form.hora_slot.errors %}
         <div class="na-field-error">{{ form.hora_slot.errors.0 }}</div>
         {% endif %}
@@ -681,6 +918,34 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
 
 </div>{# /na-card #}
 </form>
+
+{# =============================================
+   MODAL — SELEÇÃO DE LACUNA (estilo cinema)
+   ============================================= #}
+<div class="lc-backdrop" id="lacuna-modal">
+  <div class="lc-modal">
+    <div class="lc-head">
+      <div>
+        <div class="lc-head-titulo">Escolha sua Lacuna</div>
+        <div class="lc-head-sub" id="lc-head-sub">—</div>
+      </div>
+      <button type="button" class="lc-close" id="lc-btn-fechar">×</button>
+    </div>
+    <div class="lc-body">
+      <div class="lc-grid" id="lc-grid"></div>
+      <div class="lc-legenda">
+        <div class="lc-leg-item"><span class="lc-leg-sq livre"></span> Disponível</div>
+        <div class="lc-leg-item"><span class="lc-leg-sq ocupado"></span> Ocupado</div>
+        <div class="lc-leg-item"><span class="lc-leg-sq meu"></span> Seu agendamento</div>
+      </div>
+    </div>
+    <div class="lc-foot">
+      <button type="button" class="lc-btn-cancel" id="lc-btn-cancel">Cancelar</button>
+      <button type="button" class="lc-btn-confirm" id="lc-btn-confirm" disabled>Confirmar</button>
+    </div>
+  </div>
+</div>
+
 </div>{# /na-wrapper #}
 {% endblock %}
 
@@ -812,56 +1077,151 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
   }
 
   /* ---------------------------------------------------------------
-     3. TOGGLE TIPO DE OPERAÇÃO — carrega slots via AJAX
+     3. SELETOR DE LACUNA — modal estilo cinema
      --------------------------------------------------------------- */
-  var SLOTS_FALLBACK_DIRETA = ['07:00','09:00','11:00','13:00','15:00'];
-  var SLOTS_FALLBACK_CROSS  = ['08:00','10:00','12:00','14:00','16:00'];
-
   var tipoOpInput = document.getElementById('id_tipo_operacao');
   var btnDireta   = document.getElementById('btn-direta');
   var btnCross    = document.getElementById('btn-cross');
   var tipoAtual   = 'DIRETA';
 
-  function carregarSlots(tipo, callback) {
+  var btnAbrirLacunas = document.getElementById('btn-abrir-lacunas');
+  var lacunaBtnText   = document.getElementById('lacuna-btn-text');
+  var modal           = document.getElementById('lacuna-modal');
+  var lcGrid          = document.getElementById('lc-grid');
+  var lcHeadSub       = document.getElementById('lc-head-sub');
+  var lcBtnFechar     = document.getElementById('lc-btn-fechar');
+  var lcBtnCancel     = document.getElementById('lc-btn-cancel');
+  var lcBtnConfirm    = document.getElementById('lc-btn-confirm');
+
+  var lacunaSelecionadaTmp = null;  // hora candidata no modal
+  var lacunaConfirmadaHora = null;  // hora gravada no form
+
+  function atualizarBotaoLacuna() {
     var data = inputData ? inputData.value : '';
     if (!data) {
-      callback(tipo === 'CROSS' ? SLOTS_FALLBACK_CROSS : SLOTS_FALLBACK_DIRETA);
+      btnAbrirLacunas.disabled = true;
+      lacunaBtnText.textContent = 'Selecione uma data primeiro';
+      btnAbrirLacunas.classList.remove('selected');
       return;
     }
-    fetch('/industria/slots/?data=' + data + '&tipo=' + tipo)
+    btnAbrirLacunas.disabled = false;
+    if (lacunaConfirmadaHora !== null) {
+      // Encontrar o número da lacuna correspondente já carregada
+      var numero = lacunaNumeroPorHora[lacunaConfirmadaHora];
+      lacunaBtnText.textContent = numero
+        ? 'Lacuna ' + numero + ' selecionada · trocar'
+        : 'Lacuna selecionada · trocar';
+      btnAbrirLacunas.classList.add('selected');
+    } else {
+      lacunaBtnText.textContent = 'Escolher lacuna';
+      btnAbrirLacunas.classList.remove('selected');
+    }
+  }
+
+  var lacunaNumeroPorHora = {};
+
+  function renderLacunas(payload) {
+    lcGrid.innerHTML = '';
+    lacunaNumeroPorHora = {};
+
+    if (payload.aviso || !payload.lacunas || !payload.lacunas.length) {
+      var msg = document.createElement('div');
+      msg.className = 'lc-vazio';
+      msg.textContent = payload.aviso || 'Nenhuma lacuna disponível para esta data.';
+      lcGrid.appendChild(msg);
+      lcBtnConfirm.disabled = true;
+      return;
+    }
+
+    var tipoLabel = payload.tipo === 'CROSS' ? 'Crossdocking' : 'Direta';
+    var dataParts = payload.data.split('-');
+    var dataFmt = dataParts[2] + '/' + dataParts[1] + '/' + dataParts[0];
+    lcHeadSub.textContent = dataFmt + ' · ' + payload.dia_semana + ' · ' + tipoLabel;
+
+    payload.lacunas.forEach(function(lac) {
+      lacunaNumeroPorHora[lac.hora] = lac.numero;
+      var el = document.createElement('div');
+      el.className = 'lc-slot ' + lac.status;
+      el.textContent = lac.numero;
+      el.setAttribute('data-hora', lac.hora);
+
+      if (lac.status === 'livre') {
+        el.addEventListener('click', function() {
+          // Desseleciona anterior
+          var prev = lcGrid.querySelector('.lc-slot.selecionada');
+          if (prev) prev.classList.remove('selecionada');
+          el.classList.add('selecionada');
+          lacunaSelecionadaTmp = lac.hora;
+          lcBtnConfirm.disabled = false;
+        });
+        // Pré-seleciona se for a hora atualmente confirmada
+        if (lac.hora === lacunaConfirmadaHora) {
+          el.classList.add('selecionada');
+          lacunaSelecionadaTmp = lac.hora;
+          lcBtnConfirm.disabled = false;
+        }
+      } else if (lac.status === 'meu') {
+        var info = document.createElement('span');
+        info.className = 'lc-slot-info';
+        info.textContent = lac.po || 'Seu';
+        el.appendChild(info);
+        el.title = 'Seu agendamento — ' + (lac.po || '') + ' (' + (lac.status_label || '') + ')';
+      } else {
+        el.title = 'Lacuna ocupada';
+      }
+      lcGrid.appendChild(el);
+    });
+  }
+
+  function abrirModal() {
+    var data = inputData ? inputData.value : '';
+    if (!data) return;
+    lacunaSelecionadaTmp = lacunaConfirmadaHora;
+    lcBtnConfirm.disabled = (lacunaConfirmadaHora === null);
+    lcGrid.innerHTML = '<div class="lc-vazio">Carregando...</div>';
+    modal.classList.add('open');
+
+    fetch('/industria/lacunas/?data=' + data + '&tipo=' + tipoAtual)
       .then(function(r) { return r.json(); })
-      .then(function(d) {
-        callback(d.slots && d.slots.length ? d.slots : (tipo === 'CROSS' ? SLOTS_FALLBACK_CROSS : SLOTS_FALLBACK_DIRETA));
-      })
+      .then(renderLacunas)
       .catch(function() {
-        callback(tipo === 'CROSS' ? SLOTS_FALLBACK_CROSS : SLOTS_FALLBACK_DIRETA);
+        lcGrid.innerHTML = '<div class="lc-vazio">Erro ao carregar lacunas.</div>';
       });
   }
 
-  function popularSelectHora(slots) {
-    if (!selectHora) return;
-    var valorAtual = selectHora.value;
-    selectHora.innerHTML = '';
-    if (!slots.length) {
-      var opt = document.createElement('option');
-      opt.value = ''; opt.textContent = '— nenhum slot disponível —';
-      selectHora.appendChild(opt);
-      return;
-    }
-    slots.forEach(function(s) {
-      var opt = document.createElement('option');
-      opt.value = s; opt.textContent = s;
-      if (s === valorAtual) opt.selected = true;
-      selectHora.appendChild(opt);
-    });
-    atualizarSLA();
+  function fecharModal() {
+    modal.classList.remove('open');
+    lacunaSelecionadaTmp = null;
   }
+
+  function confirmarLacuna() {
+    if (lacunaSelecionadaTmp === null) return;
+    lacunaConfirmadaHora = lacunaSelecionadaTmp;
+    if (selectHora) {
+      var hh = String(lacunaConfirmadaHora).padStart(2, '0');
+      selectHora.value = hh + ':00';
+    }
+    atualizarBotaoLacuna();
+    atualizarSLA();
+    fecharModal();
+  }
+
+  btnAbrirLacunas.addEventListener('click', abrirModal);
+  lcBtnFechar.addEventListener('click', fecharModal);
+  lcBtnCancel.addEventListener('click', fecharModal);
+  lcBtnConfirm.addEventListener('click', confirmarLacuna);
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) fecharModal();
+  });
 
   function setTipoOp(tipo) {
     if (!tipoOpInput) return;
     tipoAtual = tipo;
     tipoOpInput.value = tipo;
-    carregarSlots(tipo, popularSelectHora);
+    // Trocar tipo invalida a lacuna selecionada
+    lacunaConfirmadaHora = null;
+    if (selectHora) selectHora.value = '';
+    atualizarBotaoLacuna();
 
     if (btnDireta) btnDireta.classList.toggle('active', tipo === 'DIRETA');
     if (btnCross)  btnCross.classList.toggle('active',  tipo === 'CROSS');
@@ -898,19 +1258,33 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
   if (btnDireta) btnDireta.addEventListener('click', function() { setTipoOp('DIRETA'); });
   if (btnCross)  btnCross.addEventListener('click',  function() { setTipoOp('CROSS'); });
 
-  // Inicializa com o valor atual (útil em re-submit com erros)
-  if (tipoOpInput) {
-    setTipoOp(tipoOpInput.value || 'DIRETA');
+  // Hidrata estado a partir do valor já presente em hora_slot (re-submit com erros)
+  if (selectHora && selectHora.value) {
+    var hhInit = parseInt(selectHora.value.split(':')[0], 10);
+    if (!isNaN(hhInit)) lacunaConfirmadaHora = hhInit;
   }
 
+  // Inicializa toggle de tipo de operação SEM resetar a lacuna (override temporário)
+  if (tipoOpInput) {
+    var _horaPreservada = lacunaConfirmadaHora;
+    setTipoOp(tipoOpInput.value || 'DIRETA');
+    lacunaConfirmadaHora = _horaPreservada;
+    if (selectHora && _horaPreservada !== null) {
+      selectHora.value = String(_horaPreservada).padStart(2, '0') + ':00';
+    }
+  }
+  atualizarBotaoLacuna();
+
   /* ---------------------------------------------------------------
-     4. BIND DE EVENTOS — atualiza slots ao mudar data; SLA ao mudar hora/qtd
+     4. BIND DE EVENTOS — ao mudar data, limpa lacuna e abre modal automático
      --------------------------------------------------------------- */
-  if (inputData)  inputData.addEventListener('change', function() {
-    carregarSlots(tipoAtual, popularSelectHora);
+  if (inputData) inputData.addEventListener('change', function() {
+    lacunaConfirmadaHora = null;
+    if (selectHora) selectHora.value = '';
+    atualizarBotaoLacuna();
     atualizarSLA();
+    if (inputData.value) abrirModal();
   });
-  if (selectHora) selectHora.addEventListener('change', atualizarSLA);
   if (inputQtd)   inputQtd.addEventListener('input', atualizarSLA);
   if (selectTipo) selectTipo.addEventListener('change', atualizarSLA);
 

@@ -321,12 +321,9 @@ class NovoAgendamentoForm(forms.ModelForm):
         }),
     )
     hora_slot = forms.ChoiceField(
-        label='Horário',
+        label='Lacuna',
         choices=SLOTS_TODOS,  # grade real via AJAX; clean() valida contra SlotFixo
-        widget=forms.Select(attrs={
-            'class': 'na-hora-select',
-            'id': 'id_hora_slot',
-        }),
+        widget=forms.HiddenInput(attrs={'id': 'id_hora_slot'}),
     )
 
     class Meta:
