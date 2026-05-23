@@ -843,31 +843,19 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
       Carga
     </div>
 
-    <div class="na-grid-2">
+    {{ form.tipo_carga }}
 
-      <div class="na-field">
-        <label class="na-field-label" for="id_tipo_carga">
-          Tipo de Carga <span class="na-req">*</span>
-        </label>
-        {{ form.tipo_carga }}
-        {% if form.tipo_carga.errors %}
-        <div class="na-field-error">{{ form.tipo_carga.errors.0 }}</div>
-        {% endif %}
+    <div class="na-field">
+      <label class="na-field-label" for="id_qtd_itens" id="label-qtd-itens">
+        Qtd. Pallets <span class="na-req">*</span>
+      </label>
+      {{ form.qtd_itens }}
+      <div style="font-size:.65rem; color:var(--na-text-dim); margin-top:.3rem;">
+        Usado para calcular a duração estimada da descarga.
       </div>
-
-      <div class="na-field">
-        <label class="na-field-label" for="id_qtd_itens" id="label-qtd-itens">
-          Qtd. Itens / Caixas <span class="na-req">*</span>
-        </label>
-        {{ form.qtd_itens }}
-        <div style="font-size:.65rem; color:var(--na-text-dim); margin-top:.3rem;">
-          Usado para calcular a duração estimada da descarga.
-        </div>
-        {% if form.qtd_itens.errors %}
-        <div class="na-field-error">{{ form.qtd_itens.errors.0 }}</div>
-        {% endif %}
-      </div>
-
+      {% if form.qtd_itens.errors %}
+      <div class="na-field-error">{{ form.qtd_itens.errors.0 }}</div>
+      {% endif %}
     </div>
 
     <!-- ====================================================
@@ -919,9 +907,6 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
 </div>{# /na-card #}
 </form>
 
-{# =============================================
-   MODAL — SELEÇÃO DE LACUNA (estilo cinema)
-   ============================================= #}
 <div class="lc-backdrop" id="lacuna-modal">
   <div class="lc-modal">
     <div class="lc-head">
@@ -1251,25 +1236,7 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
   // Inicialização: recalcula SLA ao carregar (útil em re-submit com erros)
   atualizarSLA();
 
-  /* ---------------------------------------------------------------
-     7. LABEL DINÂMICO DO CAMPO DE QUANTIDADE
-        PAL → "Qtd. Pallets" / BAT ou FRA → "Qtd. Caixas"
-     --------------------------------------------------------------- */
-  var labelQtd = document.getElementById('label-qtd-itens');
-
-  function atualizarLabelQtd() {
-    if (!labelQtd || !selectTipo || !inputQtd) return;
-    var isPal = selectTipo.value === 'PAL';
-    var textoLabel = isPal ? 'Qtd. Pallets' : 'Qtd. Caixas';
-    var placeholder = isPal ? 'Ex: 24' : 'Ex: 500';
-    labelQtd.childNodes[0].textContent = textoLabel + ' ';
-    inputQtd.placeholder = placeholder;
-  }
-
-  if (selectTipo) selectTipo.addEventListener('change', atualizarLabelQtd);
-
-  // Aplicar label correto no carregamento da página
-  atualizarLabelQtd();
+  if (inputQtd) inputQtd.placeholder = 'Ex: 24';
 
   /* ---------------------------------------------------------------
      5. FEEDBACK DE CARREGAMENTO NO SUBMIT

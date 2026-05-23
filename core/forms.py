@@ -331,8 +331,7 @@ class NovoAgendamentoForm(forms.ModelForm):
                 'id': 'id_numero_pedido',
                 'autocomplete': 'off',
             }),
-            'tipo_carga': forms.Select(attrs={
-                'class': 'na-select',
+            'tipo_carga': forms.HiddenInput(attrs={
                 'id': 'id_tipo_carga',
             }),
             'qtd_itens': forms.NumberInput(attrs={
@@ -359,8 +358,8 @@ class NovoAgendamentoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.fornecedor = kwargs.pop('fornecedor', None)
         super().__init__(*args, **kwargs)
-        # required validado no clean() — para CROSS o PO é opcional
         self.fields['numero_pedido'].required = False
+        self.fields['tipo_carga'].initial = 'PAL'
 
     def clean(self):
         from django.utils import timezone
