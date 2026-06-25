@@ -1,9 +1,4 @@
 {% extends 'base.html' %}
-{# ================================================================
-   NOVO AGENDAMENTO — Portal da Indústria
-   Template: industria/novo_agendamento.html
-   Versão: 0.8.0 — Slots fixos, Toggle de Docas, Painel SLA
-   ================================================================ #}
 
 {% block title %}Novo Agendamento — Portal da Indústria | Zakaz{% endblock %}
 {% block page_title %}Novo Agendamento{% endblock %}
@@ -17,9 +12,6 @@
 {% endblock %}
 
 
-{# ================================================================
-   CSS — Tema "Midnight Blue" exclusivo deste formulário
-   ================================================================ #}
 {% block extra_css %}
 <style>
 /* ---------------------------------------------------------------
@@ -722,9 +714,6 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
 {% endblock %}
 
 
-{# ================================================================
-   CONTEÚDO
-   ================================================================ #}
 {% block content %}
 <div class="na-wrapper fade-in">
 <form method="POST" novalidate id="form-agendamento">
@@ -919,9 +908,6 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
 </div>{# /na-card #}
 </form>
 
-{# =============================================
-   MODAL — SELEÇÃO DE LACUNA (estilo cinema)
-   ============================================= #}
 <div class="lc-backdrop" id="lacuna-modal">
   <div class="lc-modal">
     <div class="lc-head">
@@ -950,9 +936,6 @@ input[type="number"].na-input::-webkit-inner-spin-button { opacity: .4; }
 {% endblock %}
 
 
-{# ================================================================
-   JAVASCRIPT VANILLA
-   ================================================================ #}
 {% block extra_js %}
 <script>
 (function() {
