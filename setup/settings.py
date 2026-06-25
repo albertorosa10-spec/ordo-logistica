@@ -1,7 +1,7 @@
 """
 Django settings for setup project.
 Zakaz — Plataforma de Agendamento
-Versão: 0.9.0 — Configuração híbrida Railway/Local
+Versão: 1.0.0 — Configuração híbrida dev/prod via DJANGO_ENV
 """
 
 import os
@@ -10,22 +10,44 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ==========================================
+# AMBIENTE
+# ==========================================
+
+DJANGO_ENV = os.environ.get('DJANGO_ENV', 'development')
+IS_PRODUCTION = DJANGO_ENV == 'production'
+
+# ==========================================
 # SEGURANÇA
 # ==========================================
 
-SECRET_KEY = os.environ.get(
-    'SECRET_KEY',
-    'django-insecure-tc83e6zypdz1mzm49=sh(r^_qnav6vo7bj8!+=4ietsg(&7ey#'
-)
-
-DEBUG = True
-
-ALLOWED_HOSTS = ['*']
+if IS_PRODUCTION:
+    SECRET_KEY = os.environ['SECRET_KEY']
+    DEBUG = False
+    ALLOWED_HOSTS = ['10.253.12.13', 'localhost', '127.0.0.1']
+else:
+    SECRET_KEY = os.environ.get(
+        'SECRET_KEY',
+        'django-insecure-tc83e6zypdz1mzm49=sh(r^_qnav6vo7bj8!+=4ietsg(&7ey#'
+    )
+    DEBUG = True
+    ALLOWED_HOSTS = ['*']
 
 CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:8000',
+    'http://10.253.12.13',
+    'http://10.253.12.13:8000',
 ]
+
+# ==========================================
+# SEGURANÇA HTTP (produção)
+# ==========================================
+
+if IS_PRODUCTION:
+    SECURE_BROWSER_XSS_FILTER     = True
+    SECURE_CONTENT_TYPE_NOSNIFF   = True
+    SESSION_COOKIE_SECURE         = False  # sem HTTPS por ora
+    CSRF_COOKIE_SECURE            = False  # sem HTTPS por ora
 
 # ==========================================
 # APLICAÇÕES
@@ -73,14 +95,24 @@ TEMPLATES = [
 WSGI_APPLICATION = 'setup.wsgi.application'
 
 # ==========================================
-# DATABASE CONFIGURATION (LOCAL ONLY)
+# DATABASE
 # ==========================================
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+
+if IS_PRODUCTION:
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL', 'sqlite:///db.sqlite3'),
+            conn_max_age=600,
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # ==========================================
 # VALIDAÇÃO DE SENHAS
@@ -133,8 +165,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ==========================================
 # E-MAIL — DESABILITADO
-# Envio automático removido. Manter bloco
-# comentado para reativar futuramente.
 # ==========================================
 
 # _email_host = os.environ.get('EMAIL_HOST_USER')
