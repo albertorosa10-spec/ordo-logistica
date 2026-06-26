@@ -32,12 +32,20 @@ else:
     DEBUG = True
     ALLOWED_HOSTS = ['*']
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://127.0.0.1:8000',
-    'http://localhost:8000',
-    'http://10.253.12.13',
-    'http://10.253.12.13:8000',
-]
+if IS_PRODUCTION:
+    CSRF_TRUSTED_ORIGINS = [
+        'http://10.253.12.13:8080',
+        'http://10.253.12.13',
+        'http://localhost:8080',
+        'http://localhost',
+    ]
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        'http://127.0.0.1:8000',
+        'http://localhost:8000',
+        'http://10.253.12.13',
+        'http://10.253.12.13:8000',
+    ]
 
 # ==========================================
 # SEGURANÇA HTTP (produção)
