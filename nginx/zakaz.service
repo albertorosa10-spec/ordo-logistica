@@ -1,0 +1,16 @@
+[Unit]
+Description=ZAKAZ Gunicorn
+After=network.target
+
+[Service]
+User=agsimoes1
+WorkingDirectory=/home/agsimoes1/ordo-logistica
+Environment="DJANGO_ENV=production"
+Environment="SECRET_KEY=edfL-tnCk5ayX8irGtH8M9-msro5RO4i2tTdmYBBIwo9I0rm9YiWoheNunLKqiPXbi4"
+Environment="DATABASE_URL=sqlite:///db.sqlite3"
+Environment="ALLOWED_HOSTS=10.253.12.13,localhost"
+ExecStart=/home/agsimoes1/ordo-logistica/venv/bin/gunicorn setup.wsgi:application --bind 127.0.0.1:8000 --workers 2 --threads 2 --timeout 120
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
