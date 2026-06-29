@@ -34,9 +34,9 @@ else:
 
 if IS_PRODUCTION:
     CSRF_TRUSTED_ORIGINS = [
-        'http://10.253.12.13:8080',
+        'http://10.253.12.13:443',
         'http://10.253.12.13',
-        'http://localhost:8080',
+        'https://10.253.12.13',
         'http://localhost',
     ]
 else:
